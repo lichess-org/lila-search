@@ -9,6 +9,8 @@ case class Index(name: String) {
 
 case class Id(value: String)
 
+case class Query(value: String)
+
 case class SearchResponse(hitIds: List[String])
 
 object SearchResponse {

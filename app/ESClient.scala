@@ -20,13 +20,15 @@ final class ESClient(client: ElasticClient) {
       case (k, JsNumber(nb))  => k -> nb
     }
     ElasticDsl.index into index.withType fields fields id id.value
-  } void
-  // def deleteById(id: String, indexType: String) = client execute {
-  //   ElasticDsl.delete id id from indexType
-  // } void
-  // def deleteByQuery(query: String, indexType: String) = client execute {
-  //   ElasticDsl.delete from indexType where query
-  // } void
+  }
+
+  def deleteById(index: Index, id: Id) = client execute {
+    ElasticDsl.delete id id.value from index.withType
+  }
+
+  def deleteByQuery(index: Index, query: Query) = client execute {
+    ElasticDsl.delete from index.withType where query.value
+  }
   // def bulk(d: BulkDefinition) = client execute d void
 
   // def put(d: PutMappingDefinition) = client execute d void

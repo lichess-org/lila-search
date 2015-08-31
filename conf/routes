@@ -1,1 +1,3 @@
-GET     /store/:index/:id             controllers.WebApi.store(index: String, id: String)
+POST     /store/:index/:id                controllers.WebApi.store(index: String, id: String)
+POST     /delete/id/:index/:id            controllers.WebApi.deleteById(index: String, id: String)
+POST     /delete/query/:index/:query      controllers.WebApi.deleteByQuery(index: String, query: String)

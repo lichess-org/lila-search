@@ -17,4 +17,12 @@ class WebApi @Inject() (protected val system: ActorSystem) extends Controller wi
     )
   }
 
+  def deleteById(index: String, id: String) = Action.async {
+    client.deleteById(Index(index), Id(id)) inject Ok(s"deleted $id")
+  }
+
+  def deleteByQuery(index: String, query: String) = Action.async {
+    client.deleteByQuery(Index(index), Query(query)) inject Ok(s"deleted $query")
+  }
+
 }
