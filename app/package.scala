@@ -4,6 +4,20 @@ import scala.concurrent.Future
 
 package object search {
 
+  def decomposeTextQuery(text: String): List[String] =
+    text.trim.toLowerCase.replace("+", " ").split(" ").toList
+
+  object Date {
+
+    import org.joda.time.format.{ DateTimeFormat, DateTimeFormatter }
+
+    val format = "YYYY-MM-dd HH:mm:ss"
+
+    val formatter: DateTimeFormatter = DateTimeFormat forPattern format
+  }
+
+  // fix scala
+
   type Fu[+A] = Future[A]
   type Funit = Fu[Unit]
 

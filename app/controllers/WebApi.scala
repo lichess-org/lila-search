@@ -12,15 +12,15 @@ import play.api.mvc._
 class WebApi @Inject() (protected val system: ActorSystem) extends Controller with WithES {
 
   def store(index: String, id: String) = JsObjectBody { obj =>
-    client.store(Index(index), Id(id), obj) inject Ok(s"inserted $id")
+    client.store(Index(index), Id(id), obj) inject Ok(s"inserted $index/$id")
   }
 
   def deleteById(index: String, id: String) = Action.async {
-    client.deleteById(Index(index), Id(id)) inject Ok(s"deleted $id")
+    client.deleteById(Index(index), Id(id)) inject Ok(s"deleted $index/$id")
   }
 
   def deleteByQuery(index: String, query: String) = Action.async {
-    client.deleteByQuery(Index(index), Query(query)) inject Ok(s"deleted $query")
+    client.deleteByQuery(Index(index), Query(query)) inject Ok(s"deleted $index/$query")
   }
 
   def search(index: String, from: Int, size: Int) = JsObjectBody { obj =>
@@ -32,6 +32,14 @@ class WebApi @Inject() (protected val system: ActorSystem) extends Controller wi
   def count(index: String) = JsObjectBody { obj =>
     client.count(Index(index), obj) map { res =>
       Ok(res.count.toString)
+    }
+  }
+
+  def mapping(index: String) = Action.async {
+    Mapping(Index(index)) match {
+      case None => fuccess(NotFound(s"No such index: $index"))
+      case Some(mapping) =>
+        client.putMapping(Index(index), mapping) inject Ok(s"put $index mapping")
     }
   }
 

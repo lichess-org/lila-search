@@ -2,9 +2,11 @@ package lila.search
 
 import org.elasticsearch.action.count.{ CountResponse => CR }
 import org.elasticsearch.action.search.{ SearchResponse => SR }
+import com.sksamuel.elastic4s.IndexType
 
 case class Index(name: String) {
   def withType = s"$name/$name"
+  def indexType = IndexType(name, name)
 }
 
 case class Id(value: String)

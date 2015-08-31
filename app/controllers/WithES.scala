@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 trait WithES {
 
   protected def system: ActorSystem
-  protected def config = play.api.Play.current.configuration
+  private def config = play.api.Play.current.configuration
 
   private val IndexesToOptimize = List("game", "forum", "team")
   private val ElasticHome = config getString "elasticsearch.home" getOrElse {

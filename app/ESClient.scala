@@ -2,11 +2,9 @@ package lila.search
 
 import scala.concurrent.Future
 
-import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
-import com.sksamuel.elastic4s.Executable
-import com.sksamuel.elastic4s.mappings.{ PutMappingDefinition }
-import com.sksamuel.elastic4s.{ ElasticClient, CountDefinition, SearchDefinition, IndexDefinition, BulkDefinition }
+import com.sksamuel.elastic4s.mappings.{ TypedFieldDefinition }
+import com.sksamuel.elastic4s.{ ElasticDsl, ElasticClient }
 import play.api.libs.json._
 
 final class ESClient(client: ElasticClient) {
@@ -30,9 +28,10 @@ final class ESClient(client: ElasticClient) {
   def deleteByQuery(index: Index, query: Query) = client execute {
     ElasticDsl.delete from index.withType where query.value
   }
-  // def bulk(d: BulkDefinition) = client execute d void
 
-  // def put(d: PutMappingDefinition) = client execute d void
+  def putMapping(index: Index, fields: Seq[TypedFieldDefinition]) = client execute {
+    ElasticDsl.put mapping index.indexType as fields
+  }
 
   // def createType(indexName: String, typeName: String) {
   //   try {
