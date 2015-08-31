@@ -2,11 +2,11 @@ package lila.search
 
 import scala.concurrent.Future
 
+import com.sksamuel.elastic4s.ElasticDsl
+import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.Executable
 import com.sksamuel.elastic4s.mappings.{ PutMappingDefinition }
 import com.sksamuel.elastic4s.{ ElasticClient, CountDefinition, SearchDefinition, IndexDefinition, BulkDefinition }
-import com.sksamuel.elastic4s.ElasticDsl
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import play.api.libs.json._
 
 final class ESClient(client: ElasticClient) {
@@ -20,11 +20,7 @@ final class ESClient(client: ElasticClient) {
   } map CountResponse.apply
 
   def store(index: Index, id: Id, obj: JsObject) = client execute {
-    val fields = obj.fields.collect {
-      case (k, JsString(str)) => k -> str
-      case (k, JsNumber(nb))  => k -> nb
-    }
-    ElasticDsl.index into index.withType fields fields id id.value
+    ElasticDsl.index into index.withType source Json.stringify(obj) id id.value
   }
 
   def deleteById(index: Index, id: Id) = client execute {

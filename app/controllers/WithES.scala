@@ -11,9 +11,12 @@ import scala.concurrent.duration._
 trait WithES {
 
   protected def system: ActorSystem
+  protected def config = play.api.Play.current.configuration
 
   private val IndexesToOptimize = List("game", "forum", "team")
-  private val ElasticHome = "/home/lila-elastic"
+  private val ElasticHome = config getString "elasticsearch.home" getOrElse {
+    sys error "Missing config for elasticsearch.home"
+  }
 
   val underlyingClient: ElasticClient = {
     val settings = ImmutableSettings.settingsBuilder()

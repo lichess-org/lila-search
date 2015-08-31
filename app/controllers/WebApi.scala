@@ -4,6 +4,7 @@ import akka.actor._
 import javax.inject._
 import lila.search._
 import play.api._
+import play.api.http.ContentTypes._
 import play.api.libs.json._
 import play.api.mvc._
 
@@ -38,7 +39,9 @@ class WebApi @Inject() (protected val system: ActorSystem) extends Controller wi
     Action.async(BodyParsers.parse.json) { req =>
       req.body.validate[JsObject].fold(
         err => fuccess(BadRequest(err.toString)),
-        obj => f(obj)
-      )
+        obj => f(obj) recover {
+          case e: Exception => BadRequest(s"${Json.prettyPrint(obj)}\n\n${e.getMessage}")
+        }
+      ) map (_ as TEXT)
     }
 }
