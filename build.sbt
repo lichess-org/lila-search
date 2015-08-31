@@ -7,6 +7,8 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 scalaVersion := "2.11.7"
 
 libraryDependencies ++= Seq(
+  "com.github.ornicar" %% "scalalib" % "5.3",
+  "com.sksamuel.elastic4s" %% "elastic4s-core" % "1.7.0",
   cache,
   ws,
   specs2 % Test
