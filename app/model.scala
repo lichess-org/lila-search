@@ -10,12 +10,12 @@ case class Index(name: String) {
 case class Id(value: String)
 
 case class Query(value: String)
+case class From(value: Int)
+case class Size(value: Int)
 
 case class SearchResponse(hitIds: List[String])
 
 object SearchResponse {
-
-  val stub = SearchResponse(Nil)
 
   def apply[A](res: SR): SearchResponse =
     SearchResponse(res.getHits.hits.toList map (_.id))
@@ -24,8 +24,6 @@ object SearchResponse {
 case class CountResponse(count: Int)
 
 object CountResponse {
-
-  val stub = CountResponse(0)
 
   def apply[A](res: CR): CountResponse =
     CountResponse(res.getCount.toInt)

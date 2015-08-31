@@ -15,14 +15,14 @@ trait WithES {
   private val IndexesToOptimize = List("game", "forum", "team")
   private val ElasticHome = "/home/lila-elastic"
 
-  lazy val underlyingClient: ElasticClient = {
+  val underlyingClient: ElasticClient = {
     val settings = ImmutableSettings.settingsBuilder()
       .put("http.enabled", false)
       .put("path.home", ElasticHome)
     ElasticClient.local(settings.build)
   }
 
-  lazy val client = new ESClient(underlyingClient)
+  val client = new ESClient(underlyingClient)
 
   system.scheduler.schedule(1 hour, 1 hour) {
     underlyingClient execute {

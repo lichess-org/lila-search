@@ -11,8 +11,13 @@ import play.api.libs.json._
 
 final class ESClient(client: ElasticClient) {
 
-  // def search(d: SearchDefinition) = client execute d map SearchResponse.apply
-  // def count(d: CountDefinition) = client execute d map CountResponse.apply
+  def search(index: Index, query: JsObject, from: From, size: Size) = client execute {
+    ElasticDsl.search in index.withType rawQuery Json.stringify(query) from from.value size size.value
+  } map SearchResponse.apply
+
+  def count(index: Index, query: JsObject) = client execute {
+    ElasticDsl.count from index.withType rawQuery Json.stringify(query)
+  } map CountResponse.apply
 
   def store(index: Index, id: Id, obj: JsObject) = client execute {
     val fields = obj.fields.collect {
