@@ -70,6 +70,5 @@ object Query {
 
   private val searchableFields = List(Fields.body, Fields.topic, Fields.author)
 
-  import play.api.libs.json._
-  implicit val jsonReader = Json.reads[Query]
+  implicit val jsonReader = play.api.libs.json.Json.reads[Query]
 }

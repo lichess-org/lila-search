@@ -7,14 +7,14 @@ object Which {
   def mapping(index: Index) = index match {
     case Index("game")  => Some(Game.mapping)
     case Index("forum") => Some(forum.Mapping.fields)
-    case Index("team")  => Some(Team.mapping)
+    case Index("team")  => Some(team.Mapping.fields)
     case _              => None
   }
 
   def query(index: Index)(obj: JsObject): Option[Query] = index match {
     // case Index("game")  => Some(Game.mapping)
     case Index("forum") => forum.Query.jsonReader.reads(obj).asOpt: Option[Query]
-    // case Index("team")  => Some(Team.mapping)
+    case Index("team")  => team.Query.jsonReader.reads(obj).asOpt: Option[Query]
     case _              => None
   }
 }
