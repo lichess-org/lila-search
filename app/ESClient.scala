@@ -21,37 +21,34 @@ final class ESClient(client: ElasticClient) {
     ElasticDsl.index into index.withType source Json.stringify(obj) id id.value
   }
 
+  def storeBulk(index: Index, objs: JsObject) = client execute {
+    ElasticDsl.bulk {
+      objs.fields.collect {
+        case (id, obj: JsObject) =>
+          ElasticDsl.index into index.withType source Json.stringify(obj) id id
+      }
+    }
+  }
+
   def deleteById(index: Index, id: Id) = client execute {
     ElasticDsl.delete id id.value from index.withType
   }
 
-  def deleteByQuery(index: Index, query: Query) = client execute {
+  def deleteByQuery(index: Index, query: StringQuery) = client execute {
     ElasticDsl.delete from index.withType where query.value
   }
 
-  def putMapping(index: Index, fields: Seq[TypedFieldDefinition]) = client execute {
-    ElasticDsl.put mapping index.indexType as fields
-  }
+  def putMapping(index: Index, fields: Seq[TypedFieldDefinition]) =
+    resetIndex(index) >>
+      client.execute {
+        ElasticDsl.put mapping index.indexType as fields
+      }
 
-  // def createType(indexName: String, typeName: String) {
-  //   try {
-  //     import scala.concurrent.Await
-  //     import scala.concurrent.duration._
-  //     Await.result(client execute {
-  //       create index indexName
-  //     }, 10.seconds)
-  //   }
-  //   catch {
-  //     case e: Exception => // println("create type: " + e)
-  //   }
-  //   // client.sync execute {
-  //   //   delete from indexName -> typeName where matchall
-  //   // }
-  //   import org.elasticsearch.index.query.QueryBuilders._
-  //   client.java.prepareDeleteByQuery(indexName)
-  //     .setTypes(typeName)
-  //     .setQuery(matchAllQuery)
-  //     .execute()
-  //     .actionGet()
-  // }
+  private def resetIndex(index: Index) =
+    client.execute {
+      ElasticDsl.delete index index.name
+    } >>
+      client.execute {
+        ElasticDsl.create index index.name
+      }
 }

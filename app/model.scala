@@ -11,7 +11,7 @@ case class Index(name: String) {
 
 case class Id(value: String)
 
-case class Query(value: String)
+case class StringQuery(value: String)
 case class From(value: Int)
 case class Size(value: Int)
 

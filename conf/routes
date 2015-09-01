@@ -1,5 +1,7 @@
+POST     /store/bulk/:index               controllers.WebApi.storeBulk(index: String)
 POST     /store/:index/:id                controllers.WebApi.store(index: String, id: String)
 POST     /delete/id/:index/:id            controllers.WebApi.deleteById(index: String, id: String)
 POST     /delete/query/:index/:query      controllers.WebApi.deleteByQuery(index: String, query: String)
 POST     /search/:index/:from/:size       controllers.WebApi.search(index: String, from: Int, size: Int)
+POST     /count/:index                    controllers.WebApi.count(index: String)
 POST     /mapping/:index                  controllers.WebApi.mapping(index: String)

@@ -15,12 +15,16 @@ class WebApi @Inject() (protected val system: ActorSystem) extends Controller wi
     client.store(Index(index), Id(id), obj) inject Ok(s"inserted $index/$id")
   }
 
+  def storeBulk(index: String) = JsObjectBody { objs =>
+    client.storeBulk(Index(index), objs) inject Ok(s"bulk inserted $index")
+  }
+
   def deleteById(index: String, id: String) = Action.async {
     client.deleteById(Index(index), Id(id)) inject Ok(s"deleted $index/$id")
   }
 
   def deleteByQuery(index: String, query: String) = Action.async {
-    client.deleteByQuery(Index(index), Query(query)) inject Ok(s"deleted $index/$query")
+    client.deleteByQuery(Index(index), StringQuery(query)) inject Ok(s"deleted $index/$query")
   }
 
   def search(index: String, from: Int, size: Int) = JsObjectBody { obj =>
