@@ -24,10 +24,12 @@ final class ESClient(client: ElasticClient) {
   def storeBulk(index: Index, objs: JsObject) = client execute {
     ElasticDsl.bulk {
       objs.fields.collect {
-        case (id, obj: JsObject) =>
-          ElasticDsl.index into index.withType source Json.stringify(obj) id id
+        case (id, JsString(doc)) =>
+          ElasticDsl.index into index.withType source doc id id
       }
     }
+  } andThen {
+    case _ => logger info s"bulk insert ${objs.fields.size} in $index"
   }
 
   def deleteById(index: Index, id: Id) = client execute {
@@ -53,4 +55,6 @@ final class ESClient(client: ElasticClient) {
       client.execute {
         ElasticDsl.create index index.name
       }
+
+  private val logger = play.api.Logger("search")
 }

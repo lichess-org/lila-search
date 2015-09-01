@@ -2,7 +2,9 @@ name := """lila-search"""
 
 version := "1.0"
 
-lazy val root = (project in file(".")).enablePlugins(PlayScala)
+lazy val chess = project in file("chess")
+
+lazy val root = project in file(".") enablePlugins PlayScala dependsOn chess
 
 scalaVersion := "2.11.7"
 

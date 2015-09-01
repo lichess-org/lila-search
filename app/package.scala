@@ -1,5 +1,6 @@
 package lila
 
+import ornicar.scalalib.Zero
 import scala.concurrent.Future
 
 package object search {
@@ -8,11 +9,8 @@ package object search {
     text.trim.toLowerCase.replace("+", " ").split(" ").toList
 
   object Date {
-
     import org.joda.time.format.{ DateTimeFormat, DateTimeFormatter }
-
     val format = "YYYY-MM-dd HH:mm:ss"
-
     val formatter: DateTimeFormatter = DateTimeFormat forPattern format
   }
 
@@ -25,6 +23,8 @@ package object search {
   def fufail[A <: Throwable, B](a: A): Fu[B] = Future failed a
   def fufail[A](a: String): Fu[A] = fufail(new Exception(a))
   val funit = fuccess(())
+
+  implicit def execontext = play.api.libs.concurrent.Execution.defaultContext
 
   implicit final class LilaPimpedFuture[A](fua: Fu[A]) {
 
@@ -39,10 +39,6 @@ package object search {
     def inject[B](b: => B): Fu[B] = fua map (_ => b)
   }
 
-  /*
-   * Replaces scalaz boolean ops
-   * so ?? works on Zero and not Monoid
-   */
   implicit class LilaPimpedBoolean(self: Boolean) {
 
     def fold[A](t: => A, f: => A): A = if (self) t else f
@@ -50,5 +46,12 @@ package object search {
     def option[A](a: => A): Option[A] = if (self) Some(a) else None
   }
 
-  implicit def execontext = play.api.libs.concurrent.Execution.defaultContext
+  implicit class LilaPimpedOption[A](self: Option[A]) {
+
+    import scalaz.std.{ option => o }
+
+    def |(a: => A): A = self getOrElse a
+
+    def unary_~(implicit z: Zero[A]): A = self getOrElse z.zero
+  }
 }

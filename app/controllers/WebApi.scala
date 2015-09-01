@@ -54,7 +54,7 @@ class WebApi @Inject() (protected val system: ActorSystem) extends Controller wi
   }
 
   private def JsObjectBody(f: JsObject => Fu[Result]) =
-    Action.async(BodyParsers.parse.json) { req =>
+    Action.async(BodyParsers.parse.json(maxLength = 10 * 1024 * 1024)) { req =>
       req.body.validate[JsObject].fold(
         err => fuccess(BadRequest(err.toString)),
         obj => f(obj) recover {
@@ -62,4 +62,6 @@ class WebApi @Inject() (protected val system: ActorSystem) extends Controller wi
         }
       ) map (_ as TEXT)
     }
+
+  private val logger = play.api.Logger("search")
 }
