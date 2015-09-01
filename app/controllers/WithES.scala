@@ -22,6 +22,11 @@ trait WithES {
     val settings = ImmutableSettings.settingsBuilder()
       .put("http.enabled", false)
       .put("path.home", ElasticHome)
+      .put("path.logs", s"$ElasticHome/logs")
+      .put("path.data", s"$ElasticHome/data")
+      .put("index.number_of_shards", 1)
+      .put("index.number_of_replicas", 0)
+
     ElasticClient.local(settings.build)
   }
 
