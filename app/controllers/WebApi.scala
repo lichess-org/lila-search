@@ -28,19 +28,25 @@ class WebApi @Inject() (protected val system: ActorSystem) extends Controller wi
   }
 
   def search(index: String, from: Int, size: Int) = JsObjectBody { obj =>
-    client.search(Index(index), obj, From(from), Size(size)) map { res =>
-      Ok(res.hitIds mkString ",")
+    Which.query(Index(index))(obj) match {
+      case None => fuccess(NotFound(s"Can't parse query for $index"))
+      case Some(query) => client.search(Index(index), query, From(from), Size(size)) map { res =>
+        Ok(res.hitIds mkString ",")
+      }
     }
   }
 
   def count(index: String) = JsObjectBody { obj =>
-    client.count(Index(index), obj) map { res =>
-      Ok(res.count.toString)
+    Which.query(Index(index))(obj) match {
+      case None => fuccess(NotFound(s"Can't parse query for $index"))
+      case Some(query) => client.count(Index(index), query) map { res =>
+        Ok(res.count.toString)
+      }
     }
   }
 
   def mapping(index: String) = Action.async {
-    Mapping(Index(index)) match {
+    Which mapping Index(index) match {
       case None => fuccess(NotFound(s"No such index: $index"))
       case Some(mapping) =>
         client.putMapping(Index(index), mapping) inject Ok(s"put $index mapping")

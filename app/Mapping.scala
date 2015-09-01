@@ -1,11 +1,20 @@
 package lila.search
 
-object Mapping {
+import play.api.libs.json._
 
-  def apply(index: Index) = index match {
+object Which {
+
+  def mapping(index: Index) = index match {
     case Index("game")  => Some(Game.mapping)
-    case Index("forum") => Some(Forum.mapping)
+    case Index("forum") => Some(forum.Mapping.fields)
     case Index("team")  => Some(Team.mapping)
+    case _              => None
+  }
+
+  def query(index: Index)(obj: JsObject): Option[Query] = index match {
+    // case Index("game")  => Some(Game.mapping)
+    case Index("forum") => forum.Query.jsonReader.reads(obj).asOpt: Option[Query]
+    // case Index("team")  => Some(Team.mapping)
     case _              => None
   }
 }

@@ -9,12 +9,12 @@ import play.api.libs.json._
 
 final class ESClient(client: ElasticClient) {
 
-  def search(index: Index, query: JsObject, from: From, size: Size) = client execute {
-    ElasticDsl.search in index.withType rawQuery Json.stringify(query) from from.value size size.value
+  def search(index: Index, query: Query, from: From, size: Size) = client execute {
+    query.searchDef(from, size)(index)
   } map SearchResponse.apply
 
-  def count(index: Index, query: JsObject) = client execute {
-    ElasticDsl.count from index.withType rawQuery Json.stringify(query)
+  def count(index: Index, query: Query) = client execute {
+    query.countDef(index)
   } map CountResponse.apply
 
   def store(index: Index, id: Id, obj: JsObject) = client execute {
@@ -47,6 +47,8 @@ final class ESClient(client: ElasticClient) {
   private def resetIndex(index: Index) =
     client.execute {
       ElasticDsl.delete index index.name
+    }.recover {
+      case _: Exception =>
     } >>
       client.execute {
         ElasticDsl.create index index.name

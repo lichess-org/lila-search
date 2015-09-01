@@ -39,5 +39,16 @@ package object search {
     def inject[B](b: => B): Fu[B] = fua map (_ => b)
   }
 
+  /*
+   * Replaces scalaz boolean ops
+   * so ?? works on Zero and not Monoid
+   */
+  implicit class LilaPimpedBoolean(self: Boolean) {
+
+    def fold[A](t: => A, f: => A): A = if (self) t else f
+
+    def option[A](a: => A): Option[A] = if (self) Some(a) else None
+  }
+
   implicit def execontext = play.api.libs.concurrent.Execution.defaultContext
 }
