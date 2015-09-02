@@ -28,8 +28,6 @@ final class ESClient(client: ElasticClient) {
           ElasticDsl.index into index.withType source doc id id
       }
     }
-  } andThen {
-    case _ => logger info s"bulk insert ${objs.fields.size} in $index"
   }
 
   def deleteById(index: Index, id: Id) = client execute {

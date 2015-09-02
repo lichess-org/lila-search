@@ -24,6 +24,7 @@
   <logger name="play" level="INFO" />
   <logger name="application" level="INFO" />
   <logger name="search" level="INFO" />
+  <logger name="chrono" level="DEBUG" />
 
   <root level="INFO">
     <appender-ref ref="STDOUT" />

@@ -9,14 +9,18 @@ import play.api.libs.json._
 import play.api.mvc._
 
 @Singleton
-class WebApi @Inject() (protected val system: ActorSystem) extends Controller with WithES {
+class WebApi @Inject() (
+    protected val system: ActorSystem,
+    protected val lifecycle: play.api.inject.ApplicationLifecycle) extends Controller with WithES {
 
   def store(index: String, id: String) = JsObjectBody { obj =>
     client.store(Index(index), Id(id), obj) inject Ok(s"inserted $index/$id")
   }
 
   def storeBulk(index: String) = JsObjectBody { objs =>
-    client.storeBulk(Index(index), objs) inject Ok(s"bulk inserted $index")
+    Chronometer(s"bulk ${objs.fields.size} $index") {
+      client.storeBulk(Index(index), objs) inject Ok(s"bulk inserted $index")
+    }
   }
 
   def deleteById(index: String, id: String) = Action.async {
@@ -58,7 +62,10 @@ class WebApi @Inject() (protected val system: ActorSystem) extends Controller wi
       req.body.validate[JsObject].fold(
         err => fuccess(BadRequest(err.toString)),
         obj => f(obj) recover {
-          case e: Exception => BadRequest(s"${Json.prettyPrint(obj)}\n\n${e.getMessage}")
+          case e: Exception =>
+            val msg = s"${Json.prettyPrint(obj)}\n\n${e.getMessage}"
+            logger warn msg
+            BadRequest(msg)
         }
       ) map (_ as TEXT)
     }

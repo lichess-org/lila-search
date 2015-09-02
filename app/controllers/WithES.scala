@@ -11,6 +11,7 @@ import scala.concurrent.duration._
 trait WithES {
 
   protected def system: ActorSystem
+  protected def lifecycle: play.api.inject.ApplicationLifecycle
   private def config = play.api.Play.current.configuration
 
   private val IndexesToOptimize = List("game", "forum", "team")
@@ -27,7 +28,11 @@ trait WithES {
       .put("index.number_of_shards", 1)
       .put("index.number_of_replicas", 0)
 
-    ElasticClient.local(settings.build)
+    val c = ElasticClient.local(settings.build)
+
+    lifecycle.addStopHook(() => fuccess(c.close()))
+
+    c
   }
 
   val client = new ESClient(underlyingClient)

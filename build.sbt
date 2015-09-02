@@ -4,7 +4,12 @@ version := "1.0"
 
 lazy val chess = project in file("chess")
 
-lazy val root = project in file(".") enablePlugins PlayScala dependsOn chess
+lazy val root = project in file(".") enablePlugins PlayScala dependsOn chess settings (
+  sources in doc in Compile := List(),
+  // disable publishing the main API jar
+  publishArtifact in (Compile, packageDoc) := false,
+  // disable publishing the main sources jar
+  publishArtifact in (Compile, packageSrc) := false)
 
 scalaVersion := "2.11.7"
 
