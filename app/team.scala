@@ -25,11 +25,11 @@ object Mapping {
 case class Query(text: String) extends lila.search.Query {
 
   def searchDef(from: From, size: Size) = index =>
-    search in index.withType query makeQuery sort (
+    search in index.toString query makeQuery sort (
       field sort Fields.nbMembers order SortOrder.DESC
     ) start from.value size size.value
 
-  def countDef = index => count from index.withType query makeQuery
+  def countDef = index => count from index.toString query makeQuery
 
   private lazy val terms = decomposeTextQuery(text)
 

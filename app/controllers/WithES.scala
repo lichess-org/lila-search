@@ -14,14 +14,15 @@ trait WithES {
   protected def lifecycle: play.api.inject.ApplicationLifecycle
   private def config = play.api.Play.current.configuration
 
-  private val IndexesToOptimize = List("game", "forum", "team")
-  private val ElasticHome = config getString "elasticsearch.home" getOrElse {
+  private lazy val IndexesToOptimize = List("game", "forum", "team")
+  private lazy val ElasticHome = config getString "elasticsearch.home" getOrElse {
     sys error "Missing config for elasticsearch.home"
   }
+  private lazy val ElasticHTTP = config getBoolean "elasticsearch.http" getOrElse false
 
-  val underlyingClient: ElasticClient = {
+  lazy val underlyingClient: ElasticClient = {
     val settings = ImmutableSettings.settingsBuilder()
-      .put("http.enabled", false)
+      .put("http.enabled", ElasticHTTP)
       .put("path.home", ElasticHome)
       .put("path.logs", s"$ElasticHome/logs")
       .put("path.data", s"$ElasticHome/data")
@@ -35,7 +36,7 @@ trait WithES {
     c
   }
 
-  val client = new ESClient(underlyingClient)
+  lazy val client = new ESClient(underlyingClient)
 
   system.scheduler.schedule(1 hour, 1 hour) {
     underlyingClient execute {

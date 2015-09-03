@@ -17,13 +17,6 @@ class WebApi @Inject() (
     client.store(Index(index), Id(id), obj) inject Ok(s"inserted $index/$id")
   }
 
-  def storeBulk(index: String) = JsObjectBody { objs =>
-    Chronometer(s"bulk ${objs.fields.size} $index") {
-      client.storeBulk(Index(index), objs)
-    }
-    fuccess(Ok(s"bulk inserted $index")) // async!
-  }
-
   def deleteById(index: String, id: String) = Action.async {
     client.deleteById(Index(index), Id(id)) inject Ok(s"deleted $index/$id")
   }
@@ -50,12 +43,23 @@ class WebApi @Inject() (
     }
   }
 
-  def mapping(index: String) = Action.async {
-    Which mapping Index(index) match {
-      case None => fuccess(NotFound(s"No such index: $index"))
+  def mapping(index: String, typ: String) = Action.async {
+    Which mapping Index(index, typ) match {
+      case None => fuccess(NotFound(s"No such mapping: $index/$typ"))
       case Some(mapping) =>
-        client.putMapping(Index(index), mapping) inject Ok(s"put $index mapping")
+        client.putMapping(Index(index, typ), mapping) inject Ok(s"put $index/$typ mapping")
     }
+  }
+
+  def storeBulk(index: String, typ: String) = JsObjectBody { objs =>
+    Chronometer(s"bulk ${objs.fields.size} $index/$typ") {
+      client.storeBulk(Index(index, typ), objs)
+    }
+    fuccess(Ok(s"bulk inserted $index")) // async!
+  }
+
+  def alias(temp: String, main: String) = Action.async {
+    client.aliasTo(Index(temp), Index(main)) inject Ok(s"aliased temp:$temp to main:$main")
   }
 
   private def JsObjectBody(f: JsObject => Fu[Result]) =

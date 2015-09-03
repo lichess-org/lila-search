@@ -18,24 +18,24 @@ final class ESClient(client: ElasticClient) {
   } map CountResponse.apply
 
   def store(index: Index, id: Id, obj: JsObject) = client execute {
-    ElasticDsl.index into index.withType source Json.stringify(obj) id id.value
+    ElasticDsl.index into index.toString source Json.stringify(obj) id id.value
   }
 
   def storeBulk(index: Index, objs: JsObject) = client execute {
     ElasticDsl.bulk {
       objs.fields.collect {
         case (id, JsString(doc)) =>
-          ElasticDsl.index into index.withType source doc id id
+          ElasticDsl.index into index.toString source doc id id
       }
     }
   }
 
   def deleteById(index: Index, id: Id) = client execute {
-    ElasticDsl.delete id id.value from index.withType
+    ElasticDsl.delete id id.value from index.toString
   }
 
   def deleteByQuery(index: Index, query: StringQuery) = client execute {
-    ElasticDsl.delete from index.withType where query.value
+    ElasticDsl.delete from index.toString where query.value
   }
 
   def putMapping(index: Index, fields: Seq[TypedFieldDefinition]) =
@@ -44,15 +44,20 @@ final class ESClient(client: ElasticClient) {
         ElasticDsl.put mapping index.indexType as fields
       }
 
+  def aliasTo(tempIndex: Index, mainIndex: Index) =
+    deleteIndex(mainIndex) >> client.execute {
+      add alias mainIndex.name on tempIndex.name
+    }
+
   private def resetIndex(index: Index) =
+    deleteIndex(index) >> client.execute {
+      ElasticDsl.create index index.name
+    }
+
+  private def deleteIndex(index: Index) =
     client.execute {
       ElasticDsl.delete index index.name
     }.recover {
       case _: Exception =>
-    } >>
-      client.execute {
-        ElasticDsl.create index index.name
-      }
-
-  private val logger = play.api.Logger("search")
+    }
 }
