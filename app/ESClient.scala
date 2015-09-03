@@ -47,6 +47,8 @@ final class ESClient(client: ElasticClient) {
   def aliasTo(tempIndex: Index, mainIndex: Index) =
     deleteIndex(mainIndex) >> client.execute {
       add alias mainIndex.name on tempIndex.name
+    } >> client.execute {
+      ElasticDsl.optimize index mainIndex.name
     }
 
   private def resetIndex(index: Index) =
