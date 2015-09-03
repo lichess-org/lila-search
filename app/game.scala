@@ -11,7 +11,7 @@ object Fields {
   val status = "s"
   val turns = "t"
   val rated = "r"
-  val variant = "v"
+  val perf = "p"
   val uids = "u"
   val winner = "w"
   val winnerColor = "c"
@@ -31,7 +31,7 @@ object Mapping {
     status typed ShortType,
     turns typed ShortType,
     rated typed BooleanType,
-    variant typed ShortType,
+    perf typed ShortType,
     uids typed StringType,
     winner typed StringType,
     winnerColor typed ShortType,
@@ -51,7 +51,7 @@ case class Query(
     user2: Option[String] = None,
     winner: Option[String] = None,
     winnerColor: Option[Int] = None,
-    variant: Option[Int] = None,
+    perf: Option[Int] = None,
     status: Option[Int] = None,
     turns: Range[Int] = Range.none,
     averageRating: Range[Int] = Range.none,
@@ -84,7 +84,7 @@ case class Query(
       date map Date.formatter.print filters Fields.date,
       hasAiFilters,
       (hasAi | true).fold(aiLevel filters Fields.ai, Nil),
-      toFilters(variant, Fields.variant),
+      toFilters(perf, Fields.perf),
       toFilters(rated, Fields.rated),
       toFilters(opening, Fields.opening),
       toFilters(status, Fields.status),
