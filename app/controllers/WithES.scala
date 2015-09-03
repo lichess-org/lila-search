@@ -3,8 +3,8 @@ package controllers
 import lila.search._
 
 import akka.actor._
-import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.{ ElasticClient, ElasticsearchClientUri }
 import org.elasticsearch.common.settings.ImmutableSettings
 import scala.concurrent.duration._
 
@@ -15,27 +15,18 @@ trait WithES {
   private def config = play.api.Play.current.configuration
 
   private lazy val IndexesToOptimize = List("game", "forum", "team")
-  private lazy val ElasticHome = config getString "elasticsearch.home" getOrElse {
-    sys error "Missing config for elasticsearch.home"
+  private lazy val ElasticsearchUri = config getString "elasticsearch.uri" getOrElse {
+    sys error "Missing config for elasticsearch.uri"
   }
-  private lazy val ElasticHTTP = config getBoolean "elasticsearch.http" getOrElse false
 
   lazy val underlyingClient: ElasticClient = {
-    val settings = ImmutableSettings.settingsBuilder()
-      .put("http.enabled", ElasticHTTP)
-      .put("path.home", ElasticHome)
-      .put("path.logs", s"$ElasticHome/logs")
-      .put("path.data", s"$ElasticHome/data")
-      .put("index.number_of_shards", 1)
-      .put("index.number_of_replicas", 0)
-      // .put("bootstrap.mlockall", true) // prevent swapping
 
-    val c = ElasticClient.local(settings.build)
+    val c = ElasticClient.remote(ElasticsearchClientUri(ElasticsearchUri))
 
     lifecycle.addStopHook(() => scala.concurrent.Future {
       play.api.Logger("search").info("closing now!")
       c.close()
-      Thread sleep 2000
+      Thread sleep 1000
     })
 
     c
