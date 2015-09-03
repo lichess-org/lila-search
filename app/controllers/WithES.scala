@@ -22,17 +22,21 @@ trait WithES {
 
   lazy val underlyingClient: ElasticClient = {
     val settings = ImmutableSettings.settingsBuilder()
-      .put("bootstrap.mlockall", true) // prevent swapping
       .put("http.enabled", ElasticHTTP)
       .put("path.home", ElasticHome)
       .put("path.logs", s"$ElasticHome/logs")
       .put("path.data", s"$ElasticHome/data")
       .put("index.number_of_shards", 1)
       .put("index.number_of_replicas", 0)
+      // .put("bootstrap.mlockall", true) // prevent swapping
 
     val c = ElasticClient.local(settings.build)
 
-    lifecycle.addStopHook(() => fuccess(c.close()))
+    lifecycle.addStopHook(() => scala.concurrent.Future {
+      play.api.Logger("search").info("closing now!")
+      c.close()
+      Thread sleep 2000
+    })
 
     c
   }
