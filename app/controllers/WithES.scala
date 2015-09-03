@@ -22,6 +22,7 @@ trait WithES {
 
   lazy val underlyingClient: ElasticClient = {
     val settings = ImmutableSettings.settingsBuilder()
+      .put("bootstrap.mlockall", true) // prevent swapping
       .put("http.enabled", ElasticHTTP)
       .put("path.home", ElasticHome)
       .put("path.logs", s"$ElasticHome/logs")
