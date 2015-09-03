@@ -19,8 +19,9 @@ class WebApi @Inject() (
 
   def storeBulk(index: String) = JsObjectBody { objs =>
     Chronometer(s"bulk ${objs.fields.size} $index") {
-      client.storeBulk(Index(index), objs) inject Ok(s"bulk inserted $index")
+      client.storeBulk(Index(index), objs)
     }
+    fuccess(Ok(s"bulk inserted $index")) // async!
   }
 
   def deleteById(index: String, id: String) = Action.async {
