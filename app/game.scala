@@ -23,6 +23,7 @@ object Fields {
   val analysed = "n"
   val whiteUser = "wu"
   val blackUser = "bu"
+  val source = "so"
 }
 
 object Mapping {
@@ -42,7 +43,8 @@ object Mapping {
     duration typed IntegerType,
     analysed typed BooleanType,
     whiteUser typed StringType,
-    blackUser typed StringType
+    blackUser typed StringType,
+    source typed ShortType
   ).map(_ index "not_analyzed")
 }
 
@@ -52,6 +54,7 @@ case class Query(
     winner: Option[String] = None,
     winnerColor: Option[Int] = None,
     perf: Option[Int] = None,
+    source: Option[Int] = None,
     status: Option[Int] = None,
     turns: Range[Int] = Range.none,
     averageRating: Range[Int] = Range.none,
@@ -85,6 +88,7 @@ case class Query(
       hasAiFilters,
       (hasAi | true).fold(aiLevel filters Fields.ai, Nil),
       toFilters(perf, Fields.perf),
+      toFilters(source, Fields.source),
       toFilters(rated, Fields.rated),
       toFilters(opening, Fields.opening),
       toFilters(status, Fields.status),
