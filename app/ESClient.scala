@@ -21,14 +21,16 @@ final class ESClient(client: ElasticClient) {
     ElasticDsl.index into index.toString source Json.stringify(obj) id id.value
   }
 
-  def storeBulk(index: Index, objs: JsObject) = client execute {
-    ElasticDsl.bulk {
-      objs.fields.collect {
-        case (id, JsString(doc)) =>
-          ElasticDsl.index into index.toString source doc id id
+  def storeBulk(index: Index, objs: JsObject) =
+    if (objs.fields.isEmpty) funit
+    else client execute {
+      ElasticDsl.bulk {
+        objs.fields.collect {
+          case (id, JsString(doc)) =>
+            ElasticDsl.index into index.toString source doc id id
+        }
       }
     }
-  }
 
   def deleteById(index: Index, id: Id) = client execute {
     ElasticDsl.delete id id.value from index.toString
