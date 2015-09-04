@@ -55,7 +55,7 @@ final class ESClient(client: ElasticClient) {
 
   private def resetIndex(index: Index) =
     deleteIndex(index) >> client.execute {
-      ElasticDsl.create index index.name
+      ElasticDsl.create index index.name shards 1 replicas 0 refreshInterval "30s"
     }
 
   private def deleteIndex(index: Index) =
