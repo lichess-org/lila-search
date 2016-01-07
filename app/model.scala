@@ -1,12 +1,10 @@
 package lila.search
 
+import com.sksamuel.elastic4s.RichSearchResponse
 import org.elasticsearch.action.count.{ CountResponse => CR }
-import org.elasticsearch.action.search.{ SearchResponse => SR }
-import com.sksamuel.elastic4s.IndexType
 
 case class Index(name: String, typeName: String) {
   override def toString = s"$name/$typeName"
-  def indexType = IndexType(name, typeName)
 }
 object Index {
   def apply(name: String): Index = Index(name, name)
@@ -22,7 +20,7 @@ case class SearchResponse(hitIds: List[String])
 
 object SearchResponse {
 
-  def apply[A](res: SR): SearchResponse =
+  def apply[A](res: RichSearchResponse): SearchResponse =
     SearchResponse(res.getHits.hits.toList map (_.id))
 }
 

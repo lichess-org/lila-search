@@ -5,7 +5,6 @@ import lila.search._
 import akka.actor._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.{ ElasticClient, ElasticsearchClientUri }
-import org.elasticsearch.common.settings.ImmutableSettings
 import scala.concurrent.duration._
 
 trait WithES {

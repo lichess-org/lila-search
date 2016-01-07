@@ -76,40 +76,40 @@ case class Query(
 
   def countDef = index => count from index.toString query makeQuery
 
-  private lazy val makeQuery = filteredQuery query matchall filter {
-    List(
-      usernames map { termFilter(Fields.uids, _) },
-      toFilters(winner, Fields.winner),
-      toFilters(winnerColor, Fields.winnerColor),
-      turns filters Fields.turns,
-      averageRating filters Fields.averageRating,
-      duration map (60 *) filters Fields.duration,
-      date map Date.formatter.print filters Fields.date,
-      hasAiFilters,
-      (hasAi | true).fold(aiLevel filters Fields.ai, Nil),
-      toFilters(perf, Fields.perf),
-      toFilters(source, Fields.source),
-      toFilters(rated, Fields.rated),
-      toFilters(opening, Fields.opening),
-      toFilters(status, Fields.status),
-      toFilters(analysed, Fields.analysed),
-      toFilters(whiteUser, Fields.whiteUser),
-      toFilters(blackUser, Fields.blackUser)
+  private lazy val makeQuery = bool {
+    must(List(
+      usernames map { termQuery(Fields.uids, _) },
+      toQueries(winner, Fields.winner),
+      toQueries(winnerColor, Fields.winnerColor),
+      turns queries Fields.turns,
+      averageRating queries Fields.averageRating,
+      duration map (60 *) queries Fields.duration,
+      date map Date.formatter.print queries Fields.date,
+      hasAiQueries,
+      (hasAi | true).fold(aiLevel queries Fields.ai, Nil),
+      toQueries(perf, Fields.perf),
+      toQueries(source, Fields.source),
+      toQueries(rated, Fields.rated),
+      toQueries(opening, Fields.opening),
+      toQueries(status, Fields.status),
+      toQueries(analysed, Fields.analysed),
+      toQueries(whiteUser, Fields.whiteUser),
+      toQueries(blackUser, Fields.blackUser)
     ).flatten match {
-        case Nil     => matchAllFilter
-        case filters => must(filters: _*)
-      }
+        case Nil     => matchAllQuery
+        case queries => must(queries: _*)
+      })
   }
 
   def usernames = List(user1, user2).flatten
 
-  private def hasAiFilters = hasAi.toList map { a =>
-    a.fold(existsFilter(Fields.ai), missingFilter(Fields.ai))
+  private def hasAiQueries = hasAi.toList map { a =>
+    a.fold(existsQuery(Fields.ai), missingQuery(Fields.ai))
   }
 
-  private def toFilters(query: Option[_], name: String) = query.toList map {
-    case s: String => termFilter(name, s.toLowerCase)
-    case x         => termFilter(name, x)
+  private def toQueries(query: Option[_], name: String) = query.toList map {
+    case s: String => termQuery(name, s.toLowerCase)
+    case x         => termQuery(name, x)
   }
 }
 

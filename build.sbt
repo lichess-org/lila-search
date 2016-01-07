@@ -1,6 +1,6 @@
 name := """lila-search"""
 
-version := "1.0"
+version := "1.1"
 
 lazy val chess = project in file("chess")
 
@@ -15,7 +15,7 @@ scalaVersion := "2.11.7"
 
 libraryDependencies ++= Seq(
   "com.github.ornicar" %% "scalalib" % "5.3",
-  "com.sksamuel.elastic4s" %% "elastic4s-core" % "1.7.0",
+  "com.sksamuel.elastic4s" %% "elastic4s-core" % "2.1.1",
   cache,
   ws,
   specs2 % Test

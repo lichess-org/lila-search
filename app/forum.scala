@@ -53,11 +53,11 @@ case class Query(text: String, staff: Boolean, troll: Boolean) extends lila.sear
     }
   } filter {
     List(
-      userSearch map { termFilter(Fields.author, _) },
-      !staff option termFilter(Fields.staff, false),
-      !troll option termFilter(Fields.troll, false)
+      userSearch map { termQuery(Fields.author, _) },
+      !staff option termQuery(Fields.staff, false),
+      !troll option termQuery(Fields.troll, false)
     ).flatten match {
-        case Nil => matchAllFilter
+        case Nil => matchAllQuery
         case filters => must {
           filters: _*
         }

@@ -4,9 +4,9 @@ import com.sksamuel.elastic4s.ElasticDsl._
 
 final class Range[A] private (val a: Option[A], val b: Option[A]) {
 
-  def filters(name: String) = a.fold(b.toList map { bb => rangeFilter(name) lte bb.toString }) { aa =>
-    b.fold(List(rangeFilter(name) gte aa.toString)) { bb =>
-      List(rangeFilter(name) gte aa.toString lte bb.toString)
+  def queries(name: String) = a.fold(b.toList map { bb => rangeQuery(name) lte bb.toString }) { aa =>
+    b.fold(List(rangeQuery(name) gte aa.toString)) { bb =>
+      List(rangeQuery(name) gte aa.toString lte bb.toString)
     }
   }
 
