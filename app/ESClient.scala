@@ -46,6 +46,16 @@ final class ESClient(client: ElasticClient) {
     }
   }
 
+  def deleteByIds(index: Index, ids: List[Id]) = Write {
+    client execute {
+      ElasticDsl.bulk {
+        ids.map { id =>
+          ElasticDsl.delete id id.value from index.toString
+        }
+      }
+    }
+  }
+
   def putMapping(index: Index, fields: Seq[TypedFieldDefinition]) =
     client.execute {
       ElasticDsl.create index index.name mappings (

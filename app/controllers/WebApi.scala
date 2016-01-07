@@ -21,6 +21,14 @@ class WebApi @Inject() (
     client.deleteById(Index(index), Id(id)) inject Ok(s"deleted $index/$id")
   }
 
+  def deleteByIds(index: String) = JsObjectBody { obj =>
+    (obj \ "ids").asOpt[List[String]] match {
+      case Some(ids) =>
+        client.deleteByIds(Index(index), ids map Id) inject Ok(s"deleted ${ids.size} ids from $index")
+      case _ => fuccess(BadRequest(obj))
+    }
+  }
+
   def search(index: String, from: Int, size: Int) = JsObjectBody { obj =>
     Which.query(Index(index))(obj) match {
       case None => fuccess(NotFound(s"Can't parse query for $index"))
