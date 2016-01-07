@@ -16,10 +16,10 @@ object Fields {
 object Mapping {
   import Fields._
   def fields = Seq(
-    name typed StringType boost 3,
-    description typed StringType boost 2,
-    location typed StringType,
-    nbMembers typed ShortType)
+    field(name) typed StringType boost 3,
+    field(description) typed StringType boost 2,
+    field(location) typed StringType,
+    field(nbMembers) typed ShortType)
 }
 
 case class Query(text: String) extends lila.search.Query {
@@ -29,7 +29,7 @@ case class Query(text: String) extends lila.search.Query {
       field sort Fields.nbMembers order SortOrder.DESC
     ) start from.value size size.value
 
-  def countDef = index => count from index.toString query makeQuery
+  def countDef = index => search in index.toString query makeQuery size 0
 
   private lazy val terms = decomposeTextQuery(text)
 
@@ -38,7 +38,7 @@ case class Query(text: String) extends lila.search.Query {
     case terms => must {
       terms.map { term =>
         multiMatchQuery(term) fields (Query.searchableFields: _*)
-      }: _*
+      }
     }
   }
 }

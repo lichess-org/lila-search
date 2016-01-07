@@ -1,7 +1,6 @@
 package lila.search
 
 import com.sksamuel.elastic4s.RichSearchResponse
-import org.elasticsearch.action.count.{ CountResponse => CR }
 
 case class Index(name: String, typeName: String) {
   override def toString = s"$name/$typeName"
@@ -20,15 +19,15 @@ case class SearchResponse(hitIds: List[String])
 
 object SearchResponse {
 
-  def apply[A](res: RichSearchResponse): SearchResponse =
-    SearchResponse(res.getHits.hits.toList map (_.id))
+  def apply(res: RichSearchResponse): SearchResponse =
+    SearchResponse(res.hits.toList map (_.id))
 }
 
 case class CountResponse(count: Int)
 
 object CountResponse {
 
-  def apply[A](res: CR): CountResponse =
-    CountResponse(res.getCount.toInt)
+  def apply(res: RichSearchResponse): CountResponse =
+    CountResponse(res.totalHits.toInt)
 }
 

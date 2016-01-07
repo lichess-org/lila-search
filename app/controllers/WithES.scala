@@ -20,7 +20,7 @@ trait WithES {
 
   lazy val underlyingClient: ElasticClient = {
 
-    val c = ElasticClient.remote(ElasticsearchClientUri(ElasticsearchUri))
+    val c = ElasticClient.transport(ElasticsearchClientUri(ElasticsearchUri))
 
     lifecycle.addStopHook(() => scala.concurrent.Future {
       play.api.Logger("search").info("closing now!")
@@ -35,7 +35,7 @@ trait WithES {
 
   system.scheduler.schedule(1 hour, 1 hour) {
     underlyingClient execute {
-      optimize index IndexesToOptimize
+      forceMerge(IndexesToOptimize)
     }
   }
 }

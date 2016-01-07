@@ -29,22 +29,22 @@ object Fields {
 object Mapping {
   import Fields._
   def fields = Seq(
-    status typed ShortType,
-    turns typed ShortType,
-    rated typed BooleanType,
-    perf typed ShortType,
-    uids typed StringType,
-    winner typed StringType,
-    winnerColor typed ShortType,
-    averageRating typed ShortType,
-    ai typed ShortType,
-    opening typed StringType,
-    date typed DateType format Date.format,
-    duration typed IntegerType,
-    analysed typed BooleanType,
-    whiteUser typed StringType,
-    blackUser typed StringType,
-    source typed ShortType
+    field(status) typed ShortType,
+    field(turns) typed ShortType,
+    field(rated) typed BooleanType,
+    field(perf) typed ShortType,
+    field(uids) typed StringType,
+    field(winner) typed StringType,
+    field(winnerColor) typed ShortType,
+    field(averageRating) typed ShortType,
+    field(ai) typed ShortType,
+    field(opening) typed StringType,
+    field(date) typed DateType format Date.format,
+    field(duration) typed IntegerType,
+    field(analysed) typed BooleanType,
+    field(whiteUser) typed StringType,
+    field(blackUser) typed StringType,
+    field(source) typed ShortType
   ).map(_ index "not_analyzed")
 }
 
@@ -74,7 +74,7 @@ case class Query(
   def searchDef(from: From, size: Size) = index =>
     search in index.toString query makeQuery sort sorting.definition start from.value size size.value
 
-  def countDef = index => count from index.toString query makeQuery
+  def countDef = index => search in index.toString query makeQuery size 0
 
   private lazy val makeQuery = bool {
     must(List(

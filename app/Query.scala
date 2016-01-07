@@ -6,5 +6,5 @@ trait Query {
 
   def searchDef(from: From, size: Size): Index => SearchDefinition
 
-  def countDef: Index => CountDefinition
+  def countDef: Index => SearchDefinition
 }

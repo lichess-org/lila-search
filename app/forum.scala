@@ -19,13 +19,13 @@ object Fields {
 object Mapping {
   import Fields._
   def fields = Seq(
-    body typed StringType boost 2,
-    topic typed StringType boost 4,
-    author typed StringType index "not_analyzed",
-    topicId typed StringType,
-    staff typed BooleanType,
-    troll typed BooleanType,
-    date typed DateType)
+    field(body) typed StringType boost 2,
+    field(topic) typed StringType boost 4,
+    field(author) typed StringType index "not_analyzed",
+    field(topicId) typed StringType,
+    field(staff) typed BooleanType,
+    field(troll) typed BooleanType,
+    field(date) typed DateType)
 }
 
 case class Query(text: String, staff: Boolean, troll: Boolean) extends lila.search.Query {
@@ -35,33 +35,22 @@ case class Query(text: String, staff: Boolean, troll: Boolean) extends lila.sear
       field sort Fields.date order SortOrder.DESC
     ) start from.value size size.value
 
-  def countDef = index => count from index.toString query makeQuery
+  def countDef = index => search in index.toString query makeQuery size 0
 
   private lazy val terms = decomposeTextQuery(text)
 
   private def queryTerms = terms filterNot (_ startsWith "user:")
   private def userSearch = terms find (_ startsWith "user:") map { _ drop 5 }
 
-  private lazy val makeQuery = filteredQuery query {
-    queryTerms match {
-      case Nil => all
-      case terms => must {
-        terms.map { term =>
-          multiMatchQuery(term) fields (Query.searchableFields: _*)
-        }: _*
-      }
-    }
-  } filter {
-    List(
-      userSearch map { termQuery(Fields.author, _) },
-      !staff option termQuery(Fields.staff, false),
-      !troll option termQuery(Fields.troll, false)
-    ).flatten match {
-        case Nil => matchAllQuery
-        case filters => must {
-          filters: _*
-        }
-      }
+  private lazy val makeQuery = bool {
+    must(
+      queryTerms.map { term =>
+        multiMatchQuery(term) fields (Query.searchableFields: _*)
+      } ::: List(
+        userSearch map { termQuery(Fields.author, _) },
+        !staff option termQuery(Fields.staff, false),
+        !troll option termQuery(Fields.troll, false)
+      ).flatten)
   }
 }
 

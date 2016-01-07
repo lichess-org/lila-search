@@ -49,7 +49,7 @@ final class ESClient(client: ElasticClient) {
   def putMapping(index: Index, fields: Seq[TypedFieldDefinition]) =
     client.execute {
       ElasticDsl.create index index.name mappings (
-        index.name as fields
+        mapping(index.name) fields fields
       ) shards 1 replicas 0 refreshInterval "30s"
     }
 
@@ -60,7 +60,7 @@ final class ESClient(client: ElasticClient) {
     } >> Future {
       writeable = true
     } >> client.execute {
-      ElasticDsl.optimize index mainIndex.name
+      ElasticDsl forceMerge mainIndex.name
     }
   }
 
