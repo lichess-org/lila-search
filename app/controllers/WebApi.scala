@@ -62,10 +62,6 @@ class WebApi @Inject() (
     fuccess(Ok(s"bulk inserted $index")) // async!
   }
 
-  def alias(temp: String, main: String) = Action.async {
-    client.aliasTo(Index(temp), Index(main)) inject Ok(s"aliased temp:$temp to main:$main")
-  }
-
   private def JsObjectBody(f: JsObject => Fu[Result]) =
     Action.async(BodyParsers.parse.json(maxLength = 10 * 1024 * 1024)) { req =>
       req.body.validate[JsObject].fold(

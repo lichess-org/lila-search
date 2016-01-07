@@ -57,22 +57,11 @@ final class ESClient(client: ElasticClient) {
   }
 
   def putMapping(index: Index, fields: Seq[TypedFieldDefinition]) =
-    client.execute {
+    deleteIndex(index) >> client.execute {
       ElasticDsl.create index index.name mappings (
         mapping(index.name) fields fields
       ) shards 1 replicas 0 refreshInterval "30s"
     }
-
-  def aliasTo(tempIndex: Index, mainIndex: Index) = {
-    writeable = false
-    deleteIndex(mainIndex) >> client.execute {
-      add alias mainIndex.name on tempIndex.name
-    } >> Future {
-      writeable = true
-    } >> client.execute {
-      ElasticDsl forceMerge mainIndex.name
-    }
-  }
 
   private def deleteIndex(index: Index) =
     client.execute {
