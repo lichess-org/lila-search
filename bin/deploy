@@ -1,6 +1,6 @@
 #!/bin/sh
 
-REMOTE="adele"
+REMOTE="khiaw"
 REMOTE_DIR="/home/lichess-search"
 
 echo "Deploy to server $REMOTE:$REMOTE_DIR"
@@ -36,6 +36,6 @@ echo "rsync complete"
 read -n 1 -p "Press [Enter] to continue."
 
 echo "Restart lichess-search"
-ssh $REMOTE "chown -R lichess-search:lichess-search $REMOTE_DIR && service lichess-search restart"
+ssh $REMOTE "chown -R lichess-search:lichess-search $REMOTE_DIR && systemctl restart lichess-search"
 
 echo "Deploy complete"
