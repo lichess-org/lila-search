@@ -104,7 +104,7 @@ case class Query(
   def usernames = List(user1, user2).flatten
 
   private def hasAiQueries = hasAi.toList map { a =>
-    a.fold(existsQuery(Fields.ai), missingQuery(Fields.ai))
+    a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
   }
 
   private def toQueries(query: Option[_], name: String) = query.toList map {
