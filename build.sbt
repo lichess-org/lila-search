@@ -16,8 +16,8 @@ scalaVersion := "2.11.7"
 scalacOptions ++= Seq("-unchecked", "-language:_")
 
 libraryDependencies ++= Seq(
-  "com.github.ornicar" %% "scalalib" % "5.3",
-  "com.sksamuel.elastic4s" %% "elastic4s-core" % "2.1.1",
+  "com.github.ornicar" %% "scalalib" % "5.4",
+  "com.sksamuel.elastic4s" %% "elastic4s-core" % "2.2.0",
   cache,
   ws,
   specs2 % Test
