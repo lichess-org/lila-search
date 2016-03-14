@@ -59,7 +59,7 @@ final class ESClient(client: ElasticClient) {
   def putMapping(index: Index, fields: Seq[TypedFieldDefinition]) =
     deleteIndex(index) >> client.execute {
       ElasticDsl.create index index.name mappings (
-        mapping(index.name) fields fields
+        mapping(index.name) fields fields source false
       ) shards 1 replicas 0 refreshInterval "300s"
     }
 
