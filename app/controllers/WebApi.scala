@@ -57,9 +57,10 @@ class WebApi @Inject() (
 
   def storeBulk(index: String, typ: String) = JsObjectBody { objs =>
     Chronometer(s"bulk ${objs.fields.size} $index/$typ") {
-      client.storeBulk(Index(index, typ), objs)
+      client.storeBulk(Index(index, typ), objs) map { _ =>
+        Ok("thx")
+      }
     }
-    fuccess(Ok(s"bulk inserted $index")) // async!
   }
 
   private def JsObjectBody(f: JsObject => Fu[Result]) =

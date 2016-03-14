@@ -8,7 +8,7 @@ object Chronometer {
     f andThen {
       case scala.util.Failure(e: Exception) => logger warn s"$name - failed in ${nowMillis - start}ms - ${e.getMessage}"
       case scala.util.Failure(e)            => throw e // Throwables
-      case scala.util.Success(_)            => logger debug s"$name in ${nowMillis - start}ms"
+      case scala.util.Success(_)            => logger info s"$name in ${nowMillis - start}ms"
     }
   }
 
