@@ -64,8 +64,7 @@ case class Query(
     rated: Option[Boolean] = None,
     date: Range[DateTime] = Range.none,
     duration: Range[Int] = Range.none,
-    clockInit: Range[Int] = Range.none,
-    clockInc: Range[Int] = Range.none,
+    clock: Clocking = Clocking(),
     sorting: Sorting = Sorting.default,
     analysed: Option[Boolean] = None,
     whiteUser: Option[String] = None,
@@ -86,8 +85,8 @@ case class Query(
       turns queries Fields.turns,
       averageRating queries Fields.averageRating,
       duration queries Fields.duration,
-      clockInit queries Fields.clockInit,
-      clockInc queries Fields.clockInc,
+      clock.init queries Fields.clockInit,
+      clock.inc queries Fields.clockInc,
       date map Date.formatter.print queries Fields.date,
       hasAiQueries,
       (hasAi | true).fold(aiLevel queries Fields.ai, Nil),
@@ -121,9 +120,10 @@ object Query {
   import play.api.libs.json._
 
   import Range.rangeJsonReader
-  private implicit val sortingJsonReader = play.api.libs.json.Json.reads[Sorting]
+  private implicit val sortingJsonReader = Json.reads[Sorting]
+  private implicit val clockingJsonReader = Json.reads[Clocking]
   implicit val dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(_ isBefore _)
-  implicit val jsonReader = play.api.libs.json.Json.reads[Query]
+  implicit val jsonReader = Json.reads[Query]
 }
 
 case class Sorting(f: String, order: String) {
@@ -137,4 +137,14 @@ object Sorting {
   val default = Sorting(Fields.date, "desc")
 
   val fieldKeys = List(Fields.date, Fields.turns, Fields.averageRating)
+}
+
+case class Clocking(
+    initMin: Option[Int] = None,
+    initMax: Option[Int] = None,
+    incMin: Option[Int] = None,
+    incMax: Option[Int] = None) {
+
+  def init = Range(initMin, initMax)
+  def inc = Range(incMin, incMax)
 }
