@@ -18,6 +18,8 @@ object Fields {
   val ai = "i"
   val date = "d"
   val duration = "l"
+  val clockInit = "ct"
+  val clockInc = "ci"
   val analysed = "n"
   val whiteUser = "wu"
   val blackUser = "bu"
@@ -38,6 +40,8 @@ object Mapping {
     field(ai) typed ShortType,
     field(date) typed DateType format Date.format,
     field(duration) typed IntegerType,
+    field(clockInit) typed IntegerType,
+    field(clockInc) typed IntegerType,
     field(analysed) typed BooleanType,
     field(whiteUser) typed StringType,
     field(blackUser) typed StringType,
@@ -60,6 +64,8 @@ case class Query(
     rated: Option[Boolean] = None,
     date: Range[DateTime] = Range.none,
     duration: Range[Int] = Range.none,
+    clockInit: Range[Int] = Range.none,
+    clockInc: Range[Int] = Range.none,
     sorting: Sorting = Sorting.default,
     analysed: Option[Boolean] = None,
     whiteUser: Option[String] = None,
@@ -79,7 +85,9 @@ case class Query(
       toQueries(winnerColor, Fields.winnerColor),
       turns queries Fields.turns,
       averageRating queries Fields.averageRating,
-      duration map (60 *) queries Fields.duration,
+      duration queries Fields.duration,
+      clockInit queries Fields.clockInit,
+      clockInc queries Fields.clockInc,
       date map Date.formatter.print queries Fields.date,
       hasAiQueries,
       (hasAi | true).fold(aiLevel queries Fields.ai, Nil),
