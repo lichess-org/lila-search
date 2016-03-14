@@ -1,7 +1,6 @@
 package lila.search
 package game
 
-import chess.{ Mode, Status, Openings }
 import org.joda.time.DateTime
 
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
@@ -17,7 +16,6 @@ object Fields {
   val winnerColor = "c"
   val averageRating = "a"
   val ai = "i"
-  val opening = "o"
   val date = "d"
   val duration = "l"
   val analysed = "n"
@@ -38,7 +36,6 @@ object Mapping {
     field(winnerColor) typed ShortType,
     field(averageRating) typed ShortType,
     field(ai) typed ShortType,
-    field(opening) typed StringType,
     field(date) typed DateType format Date.format,
     field(duration) typed IntegerType,
     field(analysed) typed BooleanType,
@@ -61,7 +58,6 @@ case class Query(
     hasAi: Option[Boolean] = None,
     aiLevel: Range[Int] = Range.none,
     rated: Option[Boolean] = None,
-    opening: Option[String] = None,
     date: Range[DateTime] = Range.none,
     duration: Range[Int] = Range.none,
     sorting: Sorting = Sorting.default,
@@ -90,7 +86,6 @@ case class Query(
       toQueries(perf, Fields.perf),
       toQueries(source, Fields.source),
       toQueries(rated, Fields.rated),
-      toQueries(opening, Fields.opening),
       toQueries(status, Fields.status),
       toQueries(analysed, Fields.analysed),
       toQueries(whiteUser, Fields.whiteUser),
