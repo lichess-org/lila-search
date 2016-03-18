@@ -11,13 +11,16 @@ lazy val root = project in file(".") enablePlugins PlayScala dependsOn chess set
   // disable publishing the main sources jar
   publishArtifact in (Compile, packageSrc) := false)
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.8"
 
-scalacOptions ++= Seq("-unchecked", "-language:_")
+scalacOptions ++= Seq(
+  "-deprecation", "-unchecked", "-feature", "-language:_",
+  "-Ybackend:GenBCode", "-Ydelambdafy:method", "-target:jvm-1.8")
 
 libraryDependencies ++= Seq(
   "com.github.ornicar" %% "scalalib" % "5.4",
   "com.sksamuel.elastic4s" %% "elastic4s-core" % "2.2.0",
+  "org.scala-lang.modules" %% "scala-java8-compat" % "0.7.0",
   cache,
   ws,
   specs2 % Test
