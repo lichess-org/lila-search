@@ -19,7 +19,7 @@ scalacOptions ++= Seq(
 
 libraryDependencies ++= Seq(
   "com.github.ornicar" %% "scalalib" % "5.4",
-  "com.sksamuel.elastic4s" %% "elastic4s-core" % "2.2.0",
+  "com.sksamuel.elastic4s" %% "elastic4s-core" % "2.2.1",
   "org.scala-lang.modules" %% "scala-java8-compat" % "0.7.0",
   cache,
   ws,
