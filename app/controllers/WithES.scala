@@ -13,7 +13,7 @@ trait WithES {
   protected def lifecycle: play.api.inject.ApplicationLifecycle
   private def config = play.api.Play.current.configuration
 
-  private lazy val IndexesToOptimize = List("game", "forum", "team")
+  private lazy val IndexesToOptimize = List("game", "forum", "team", "study")
   private lazy val ElasticsearchUri = config getString "elasticsearch.uri" getOrElse {
     sys error "Missing config for elasticsearch.uri"
   }
