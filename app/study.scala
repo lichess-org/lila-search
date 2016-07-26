@@ -15,7 +15,7 @@ object Fields {
   // val createdAt = "createdAt"
   // val updatedAt = "updatedAt"
   // val rank = "rank"
-  // val likes = "likes"
+  val likes = "likes"
   val public = "public"
 }
 
@@ -27,13 +27,17 @@ object Mapping {
     field(members) typed StringType boost 1,
     field(chapterNames) typed StringType boost 3,
     field(chapterTexts) typed StringType boost 1,
+    field(likes) typed ShortType,
     field(public) typed BooleanType)
 }
 
 case class Query(text: String, userId: Option[String]) extends lila.search.Query {
 
   def searchDef(from: From, size: Size) = index =>
-    search in index.toString query makeQuery start from.value size size.value
+    search in index.toString query makeQuery sort(
+      field sort "_score" order SortOrder.DESC,
+      field sort Fields.likes order SortOrder.DESC
+    ) start from.value size size.value
 
   def countDef = index => search in index.toString query makeQuery size 0
 
