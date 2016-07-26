@@ -19,4 +19,9 @@ object Which {
     case Index(_, "study") => study.Query.jsonReader.reads(obj).asOpt: Option[study.Query]
     case _                 => None
   }
+
+  def refreshInterval(index: Index) = index match {
+    case Index(_, "study") => "10s"
+    case _                 => "300s"
+  }
 }
