@@ -48,7 +48,15 @@ case class Query(text: String, userId: Option[String]) extends lila.search.Query
       multiMatchQuery(term) fields (Query.searchableFields: _*)
     } ::: List(
       parsed("owner") map { termQuery(Fields.owner, _) },
-      parsed("member") map { termQuery(Fields.members, _) }
+      parsed("member") map { member =>
+        bool {
+          must(
+            termQuery(Fields.members, member)
+          ) not (
+              termQuery(Fields.owner, member)
+            )
+        }
+      }
     ).flatten
   } should List(
     Some(selectPublic),
