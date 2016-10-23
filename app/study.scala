@@ -23,8 +23,8 @@ object Mapping {
   import Fields._
   def fields = Seq(
     field(name) typed StringType boost 5 analyzer "english",
-    field(owner) typed StringType boost 2,
-    field(members) typed StringType boost 1,
+    field(owner) typed StringType boost 2 index "not_analyzed",
+    field(members) typed StringType boost 1 index "not_analyzed",
     field(chapterNames) typed StringType boost 3 analyzer "english",
     field(chapterTexts) typed StringType boost 1 analyzer "english",
     field(likes) typed ShortType,

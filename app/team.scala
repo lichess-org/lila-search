@@ -18,7 +18,7 @@ object Mapping {
   def fields = Seq(
     field(name) typed StringType boost 3 analyzer "english",
     field(description) typed StringType boost 2 analyzer "english",
-    field(location) typed StringType,
+    field(location) typed StringType analyzer "english",
     field(nbMembers) typed ShortType)
 }
 
