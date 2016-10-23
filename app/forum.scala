@@ -37,17 +37,14 @@ case class Query(text: String, staff: Boolean, troll: Boolean) extends lila.sear
 
   def countDef = index => search in index.toString query makeQuery size 0
 
-  private lazy val terms = decomposeTextQuery(text)
-
-  private def queryTerms = terms filterNot (_ startsWith "user:")
-  private def userSearch = terms find (_ startsWith "user:") map { _ drop 5 }
+  private lazy val parsed = QueryParser(text, List("user"))
 
   private lazy val makeQuery = bool {
     must(
-      queryTerms.map { term =>
+      parsed.terms.map { term =>
         multiMatchQuery(term) fields (Query.searchableFields: _*)
       } ::: List(
-        userSearch map { termQuery(Fields.author, _) },
+        parsed("user") map { termQuery(Fields.author, _) },
         !staff option termQuery(Fields.staff, false),
         !troll option termQuery(Fields.troll, false)
       ).flatten)

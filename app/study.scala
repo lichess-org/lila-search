@@ -34,26 +34,26 @@ object Mapping {
 case class Query(text: String, userId: Option[String]) extends lila.search.Query {
 
   def searchDef(from: From, size: Size) = index =>
-    search in index.toString query makeQuery sort(
+    search in index.toString query makeQuery sort (
       field sort "_score" order SortOrder.DESC,
       field sort Fields.likes order SortOrder.DESC
     ) start from.value size size.value
 
   def countDef = index => search in index.toString query makeQuery size 0
 
-  private lazy val terms = decomposeTextQuery(text)
+  private lazy val parsed = QueryParser(text, List("owner", "member"))
 
-  private lazy val makeQuery = terms match {
-    case Nil => all
-    case terms => must {
-      terms.map { term =>
-        multiMatchQuery(term) fields (Query.searchableFields: _*)
-      }
-    } should List(
-      Some(selectPublic),
-      userId map selectUserId
-    ).flatten minimumShouldMatch 1
-  }
+  private lazy val makeQuery = must {
+    parsed.terms.map { term =>
+      multiMatchQuery(term) fields (Query.searchableFields: _*)
+    } ::: List(
+      parsed("owner") map { termQuery(Fields.owner, _) },
+      parsed("member") map { termQuery(Fields.members, _) }
+    ).flatten
+  } should List(
+    Some(selectPublic),
+    userId map selectUserId
+  ).flatten minimumShouldMatch 1
 
   private val selectPublic = termQuery(Fields.public, true)
 

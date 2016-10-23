@@ -31,9 +31,9 @@ case class Query(text: String) extends lila.search.Query {
 
   def countDef = index => search in index.toString query makeQuery size 0
 
-  private lazy val terms = decomposeTextQuery(text)
+  private lazy val parsed = QueryParser(text, Nil)
 
-  private lazy val makeQuery = terms match {
+  private lazy val makeQuery = parsed.terms match {
     case Nil => all
     case terms => must {
       terms.map { term =>
