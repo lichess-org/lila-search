@@ -19,8 +19,8 @@ object Fields {
 object Mapping {
   import Fields._
   def fields = Seq(
-    field(body) typed StringType boost 2,
-    field(topic) typed StringType boost 4,
+    field(body) typed StringType boost 2 analyzer "english",
+    field(topic) typed StringType boost 4 analyzer "english",
     field(author) typed StringType index "not_analyzed",
     field(topicId) typed StringType,
     field(staff) typed BooleanType,
