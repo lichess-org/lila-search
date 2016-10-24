@@ -63,6 +63,12 @@ class WebApi @Inject() (
     }
   }
 
+  def refresh(index: String) = JsObjectBody { obj =>
+    client.refreshIndex(Index(index)) map { _ =>
+      Ok("thx")
+    }
+  }
+
   private def JsObjectBody(f: JsObject => Fu[Result]) =
     Action.async(BodyParsers.parse.json(maxLength = 10 * 1024 * 1024)) { req =>
       req.body.validate[JsObject].fold(

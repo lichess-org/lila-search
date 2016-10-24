@@ -63,6 +63,14 @@ final class ESClient(client: ElasticClient) {
       ) shards 1 replicas 0 refreshInterval Which.refreshInterval(index)
     }
 
+  def refreshIndex(index: Index) =
+    client.execute {
+      ElasticDsl refreshIndex index.name
+    }.recover {
+      case _: Exception =>
+        println(s"Failed to refresh index $index")
+    }
+
   private def deleteIndex(index: Index) =
     client.execute {
       ElasticDsl.delete index index.name
