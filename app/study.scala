@@ -43,25 +43,27 @@ case class Query(text: String, userId: Option[String]) extends lila.search.Query
 
   private lazy val parsed = QueryParser(text, List("owner", "member"))
 
-  private lazy val makeQuery = must {
-    parsed.terms.map { term =>
-      multiMatchQuery(term) fields (Query.searchableFields: _*)
-    } ::: List(
-      parsed("owner") map { termQuery(Fields.owner, _) },
-      parsed("member") map { member =>
-        bool {
-          must(
-            termQuery(Fields.members, member)
-          ) not (
-              termQuery(Fields.owner, member)
-            )
-        }
-      }
+  private lazy val makeQuery = {
+    must {
+      (
+        multiMatchQuery(parsed.terms mkString " ") fields (Query.searchableFields: _*) analyzer "english" matchType "most_fields"
+      ) :: List(
+          parsed("owner") map { termQuery(Fields.owner, _) },
+          parsed("member") map { member =>
+            bool {
+              must(
+                termQuery(Fields.members, member)
+              ) not (
+                  termQuery(Fields.owner, member)
+                )
+            }
+          }
+        ).flatten
+    } should List(
+      Some(selectPublic),
+      userId map selectUserId
     ).flatten
-  } should List(
-    Some(selectPublic),
-    userId map selectUserId
-  ).flatten minimumShouldMatch 1
+  } minimumShouldMatch 1
 
   private val selectPublic = termQuery(Fields.public, true)
 
