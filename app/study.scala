@@ -44,21 +44,22 @@ case class Query(text: String, userId: Option[String]) extends lila.search.Query
   private lazy val parsed = QueryParser(text, List("owner", "member"))
 
   private lazy val makeQuery = {
+    val matcher: QueryDefinition =
+      if (parsed.terms.isEmpty) matchAllQuery
+      else multiMatchQuery(parsed.terms mkString " ") fields (Query.searchableFields: _*) analyzer "english" matchType "most_fields"
     must {
-      (
-        multiMatchQuery(parsed.terms mkString " ") fields (Query.searchableFields: _*) analyzer "english" matchType "most_fields"
-      ) :: List(
-          parsed("owner") map { termQuery(Fields.owner, _) },
-          parsed("member") map { member =>
-            bool {
-              must(
-                termQuery(Fields.members, member)
-              ) not (
-                  termQuery(Fields.owner, member)
-                )
-            }
+      matcher :: List(
+        parsed("owner") map { termQuery(Fields.owner, _) },
+        parsed("member") map { member =>
+          bool {
+            must(
+              termQuery(Fields.members, member)
+            ) not (
+                termQuery(Fields.owner, member)
+              )
           }
-        ).flatten
+        }
+      ).flatten
     } should List(
       Some(selectPublic),
       userId map selectUserId
