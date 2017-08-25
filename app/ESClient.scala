@@ -2,12 +2,12 @@ package lila.search
 
 import scala.concurrent.Future
 
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
-import com.sksamuel.elastic4s.mappings.{ TypedFieldDefinition }
-import com.sksamuel.elastic4s.{ ElasticDsl, ElasticClient }
+import com.sksamuel.elastic4s.http.ElasticDsl.{ RichFuture => _, _ }
+import com.sksamuel.elastic4s.http.{ ElasticDsl, HttpClient }
+import com.sksamuel.elastic4s.mappings.FieldDefinition
 import play.api.libs.json._
 
-final class ESClient(client: ElasticClient) {
+final class ESClient(client: HttpClient) {
 
   private var writeable = true
 
@@ -25,7 +25,7 @@ final class ESClient(client: ElasticClient) {
 
   def store(index: Index, id: Id, obj: JsObject) = Write {
     client execute {
-      ElasticDsl.index into index.toString source Json.stringify(obj) id id.value
+      indexInto(index.toString) source Json.stringify(obj) id id.value
     }
   }
 
@@ -35,14 +35,14 @@ final class ESClient(client: ElasticClient) {
       ElasticDsl.bulk {
         objs.fields.collect {
           case (id, JsString(doc)) =>
-            ElasticDsl.index into index.toString source doc id id
+            indexInto(index.toString) source doc id id
         }
       }
     }
 
   def deleteById(index: Index, id: Id) = Write {
     client execute {
-      ElasticDsl.delete id id.value from index.toString
+      delete(id.value) from index.toString
     }
   }
 
@@ -50,15 +50,15 @@ final class ESClient(client: ElasticClient) {
     client execute {
       ElasticDsl.bulk {
         ids.map { id =>
-          ElasticDsl.delete id id.value from index.toString
+          delete(id.value) from index.toString
         }
       }
     }
   }
 
-  def putMapping(index: Index, fields: Seq[TypedFieldDefinition]) =
-    deleteIndex(index) >> client.execute {
-      ElasticDsl.create index index.name mappings (
+  def putMapping(index: Index, fields: Seq[FieldDefinition]) =
+    dropIndex(index) >> client.execute {
+      createIndex(index.name) mappings (
         mapping(index.name) fields fields source false all false
       ) shards 1 replicas 0 refreshInterval Which.refreshInterval(index)
     }
@@ -71,9 +71,9 @@ final class ESClient(client: ElasticClient) {
         println(s"Failed to refresh index $index")
     }
 
-  private def deleteIndex(index: Index) =
+  private def dropIndex(index: Index) =
     client.execute {
-      ElasticDsl.delete index index.name
+      deleteIndex(index.name)
     }.recover {
       case _: Exception =>
     }

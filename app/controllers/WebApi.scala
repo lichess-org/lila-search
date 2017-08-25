@@ -10,8 +10,10 @@ import play.api.mvc._
 
 @Singleton
 class WebApi @Inject() (
-    protected val system: ActorSystem,
-    protected val lifecycle: play.api.inject.ApplicationLifecycle) extends Controller with WithES {
+    val system: ActorSystem,
+    val lifecycle: inject.ApplicationLifecycle,
+    val config: Configuration
+) extends InjectedController with WithES {
 
   def store(index: String, id: String) = JsObjectBody { obj =>
     client.store(Index(index), Id(id), obj) inject Ok(s"inserted $index/$id")
@@ -70,7 +72,7 @@ class WebApi @Inject() (
   }
 
   private def JsObjectBody(f: JsObject => Fu[Result]) =
-    Action.async(BodyParsers.parse.json(maxLength = 10 * 1024 * 1024)) { req =>
+    Action.async(parse.json(maxLength = 10 * 1024 * 1024)) { req =>
       req.body.validate[JsObject].fold(
         err => fuccess(BadRequest(err.toString)),
         obj => f(obj) recover {

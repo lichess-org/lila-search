@@ -3,24 +3,23 @@ package controllers
 import lila.search._
 
 import akka.actor._
-import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{ ElasticClient, ElasticsearchClientUri }
+import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.sksamuel.elastic4s.http.HttpClient
+import com.sksamuel.elastic4s.ElasticsearchClientUri
 import scala.concurrent.duration._
 
 trait WithES {
 
   protected def system: ActorSystem
   protected def lifecycle: play.api.inject.ApplicationLifecycle
-  private def config = play.api.Play.current.configuration
+  protected def config: play.api.Configuration
 
   private lazy val IndexesToOptimize = List("game", "forum", "team", "study")
-  private lazy val ElasticsearchUri = config getString "elasticsearch.uri" getOrElse {
-    sys error "Missing config for elasticsearch.uri"
-  }
+  private lazy val ElasticsearchUri = config.get[String]("elasticsearch.uri")
 
-  lazy val underlyingClient: ElasticClient = {
+  lazy val underlyingClient: HttpClient = {
 
-    val c = ElasticClient.transport(ElasticsearchClientUri(ElasticsearchUri))
+    val c = HttpClient(ElasticsearchClientUri(ElasticsearchUri))
 
     lifecycle.addStopHook(() => scala.concurrent.Future {
       play.api.Logger("search").info("closing now!")

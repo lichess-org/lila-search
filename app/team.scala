@@ -1,9 +1,9 @@
 package lila.search
 package team
 
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
+import com.sksamuel.elastic4s.http.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.mappings.FieldType._
-import com.sksamuel.elastic4s.QueryDefinition
+import com.sksamuel.elastic4s.searches.queries.QueryDefinition
 import org.elasticsearch.search.sort.SortOrder
 
 object Fields {
@@ -16,29 +16,27 @@ object Fields {
 object Mapping {
   import Fields._
   def fields = Seq(
-    field(name) typed StringType boost 3 analyzer "english",
-    field(description) typed StringType boost 2 analyzer "english",
-    field(location) typed StringType analyzer "english",
-    field(nbMembers) typed ShortType)
+    textField(name) boost 3 analyzer "english",
+    textField(description) boost 2 analyzer "english",
+    textField(location) analyzer "english",
+    shortField(nbMembers)
+  )
 }
 
 case class Query(text: String) extends lila.search.Query {
 
   def searchDef(from: From, size: Size) = index =>
-    search in index.toString query makeQuery sort (
-      field sort Fields.nbMembers order SortOrder.DESC
+    search(index.toString) query makeQuery sortBy (
+      fieldSort(Fields.nbMembers) order SortOrder.DESC
     ) start from.value size size.value
 
-  def countDef = index => search in index.toString query makeQuery size 0
+  def countDef = index => search(index.toString) query makeQuery size 0
 
   private lazy val parsed = QueryParser(text, Nil)
 
-  private lazy val makeQuery = parsed.terms match {
-    case Nil => all
-    case terms => must {
-      terms.map { term =>
-        multiMatchQuery(term) fields (Query.searchableFields: _*)
-      }
+  private lazy val makeQuery = must {
+    parsed.terms.map { term =>
+      multiMatchQuery(term) fields (Query.searchableFields: _*)
     }
   }
 }

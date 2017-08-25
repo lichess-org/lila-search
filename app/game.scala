@@ -3,7 +3,7 @@ package game
 
 import org.joda.time.DateTime
 
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
+import com.sksamuel.elastic4s.http.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.mappings.FieldType._
 
 object Fields {
@@ -29,24 +29,24 @@ object Fields {
 object Mapping {
   import Fields._
   def fields = Seq(
-    field(status) typed ShortType,
-    field(turns) typed ShortType,
-    field(rated) typed BooleanType,
-    field(perf) typed ShortType,
-    field(uids) typed StringType,
-    field(winner) typed StringType,
-    field(winnerColor) typed ShortType,
-    field(averageRating) typed ShortType,
-    field(ai) typed ShortType,
-    field(date) typed DateType format Date.format,
-    field(duration) typed IntegerType,
-    field(clockInit) typed IntegerType,
-    field(clockInc) typed IntegerType,
-    field(analysed) typed BooleanType,
-    field(whiteUser) typed StringType,
-    field(blackUser) typed StringType,
-    field(source) typed ShortType
-  ).map(_ index "not_analyzed")
+    shortField(status),
+    shortField(turns),
+    booleanField(rated),
+    shortField(perf),
+    keywordField(uids),
+    keywordField(winner),
+    shortField(winnerColor),
+    shortField(averageRating),
+    shortField(ai),
+    dateField(date) format Date.format,
+    intField(duration),
+    intField(clockInit),
+    intField(clockInc),
+    booleanField(analysed),
+    keywordField(whiteUser),
+    keywordField(blackUser),
+    shortField(source)
+  )
 }
 
 case class Query(
@@ -68,40 +68,39 @@ case class Query(
     sorting: Sorting = Sorting.default,
     analysed: Option[Boolean] = None,
     whiteUser: Option[String] = None,
-    blackUser: Option[String] = None) extends lila.search.Query {
+    blackUser: Option[String] = None
+) extends lila.search.Query {
 
   import Fields._
 
   def searchDef(from: From, size: Size) = index =>
-    search in index.toString query makeQuery sort sorting.definition start from.value size size.value
+    search(index.toString) query makeQuery sortBy sorting.definition start from.value size size.value
 
-  def countDef = index => search in index.toString query makeQuery size 0
+  def countDef = index => search(index.toString) query makeQuery size 0
 
-  private lazy val makeQuery = bool {
-    must(List(
-      usernames map { termQuery(Fields.uids, _) },
-      toQueries(winner, Fields.winner),
-      toQueries(winnerColor, Fields.winnerColor),
-      turns queries Fields.turns,
-      averageRating queries Fields.averageRating,
-      duration queries Fields.duration,
-      clock.init queries Fields.clockInit,
-      clock.inc queries Fields.clockInc,
-      date map Date.formatter.print queries Fields.date,
-      hasAiQueries,
-      (hasAi | true).fold(aiLevel queries Fields.ai, Nil),
-      toQueries(perf, Fields.perf),
-      toQueries(source, Fields.source),
-      toQueries(rated, Fields.rated),
-      toQueries(status, Fields.status),
-      toQueries(analysed, Fields.analysed),
-      toQueries(whiteUser, Fields.whiteUser),
-      toQueries(blackUser, Fields.blackUser)
-    ).flatten match {
-        case Nil     => matchAllQuery
-        case queries => must(queries: _*)
-      })
-  }
+  private lazy val makeQuery = boolQuery().must(List(
+    usernames map { termQuery(Fields.uids, _) },
+    toQueries(winner, Fields.winner),
+    toQueries(winnerColor, Fields.winnerColor),
+    turns queries Fields.turns,
+    averageRating queries Fields.averageRating,
+    duration queries Fields.duration,
+    clock.init queries Fields.clockInit,
+    clock.inc queries Fields.clockInc,
+    date map Date.formatter.print queries Fields.date,
+    hasAiQueries,
+    (hasAi | true).fold(aiLevel queries Fields.ai, Nil),
+    toQueries(perf, Fields.perf),
+    toQueries(source, Fields.source),
+    toQueries(rated, Fields.rated),
+    toQueries(status, Fields.status),
+    toQueries(analysed, Fields.analysed),
+    toQueries(whiteUser, Fields.whiteUser),
+    toQueries(blackUser, Fields.blackUser)
+  ).flatten match {
+      case Nil => matchAllQuery
+      case queries => must(queries)
+    })
 
   def usernames = List(user1, user2).flatten
 
@@ -111,26 +110,28 @@ case class Query(
 
   private def toQueries(query: Option[_], name: String) = query.toList map {
     case s: String => termQuery(name, s.toLowerCase)
-    case x         => termQuery(name, x)
+    case x => termQuery(name, x)
   }
 }
 
 object Query {
 
   import play.api.libs.json._
+  import play.api.libs.json.JodaReads._
 
-  import Range.rangeJsonReader
   private implicit val sortingJsonReader = Json.reads[Sorting]
   private implicit val clockingJsonReader = Json.reads[Clocking]
   implicit val dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(_ isBefore _)
+  implicit val dateRangeJsonReader: Reads[Range[DateTime]] = Range.rangeJsonReader[DateTime]
   implicit val jsonReader = Json.reads[Query]
 }
 
 case class Sorting(f: String, order: String) {
   import org.elasticsearch.search.sort.SortOrder
   def definition =
-    field sort (Sorting.fieldKeys contains f).fold(f, Sorting.default.f) order
-      (order.toLowerCase == "asc").fold(SortOrder.ASC, SortOrder.DESC)
+    fieldSort {
+      (Sorting.fieldKeys contains f).fold(f, Sorting.default.f)
+    } order (order.toLowerCase == "asc").fold(SortOrder.ASC, SortOrder.DESC)
 }
 object Sorting {
 
@@ -143,7 +144,8 @@ case class Clocking(
     initMin: Option[Int] = None,
     initMax: Option[Int] = None,
     incMin: Option[Int] = None,
-    incMax: Option[Int] = None) {
+    incMax: Option[Int] = None
+) {
 
   def init = Range(initMin, initMax)
   def inc = Range(incMin, incMax)

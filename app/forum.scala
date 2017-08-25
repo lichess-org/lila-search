@@ -1,9 +1,9 @@
 package lila.search
 package forum
 
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.mappings.FieldType._
-import com.sksamuel.elastic4s.QueryDefinition
+import com.sksamuel.elastic4s.searches.queries.QueryDefinition
 import org.elasticsearch.search.sort.SortOrder
 
 object Fields {
@@ -19,36 +19,36 @@ object Fields {
 object Mapping {
   import Fields._
   def fields = Seq(
-    field(body) typed StringType boost 2 analyzer "english",
-    field(topic) typed StringType boost 4 analyzer "english",
-    field(author) typed StringType index "not_analyzed",
-    field(topicId) typed StringType index "not_analyzed",
-    field(staff) typed BooleanType,
-    field(troll) typed BooleanType,
-    field(date) typed DateType)
+    textField(body) boost 2 analyzer "english",
+    textField(topic) boost 4 analyzer "english",
+    keywordField(author),
+    keywordField(topicId),
+    booleanField(staff),
+    booleanField(troll),
+    dateField(date)
+  )
 }
 
 case class Query(text: String, staff: Boolean, troll: Boolean) extends lila.search.Query {
 
   def searchDef(from: From, size: Size) = index =>
-    search in index.toString query makeQuery sort (
-      field sort Fields.date order SortOrder.DESC
+    search(index.toString) query makeQuery sortBy (
+      fieldSort(Fields.date) order SortOrder.DESC
     ) start from.value size size.value
 
-  def countDef = index => search in index.toString query makeQuery size 0
+  def countDef = index => search(index.toString) query makeQuery size 0
 
   private lazy val parsed = QueryParser(text, List("user"))
 
-  private lazy val makeQuery = bool {
-    must(
-      parsed.terms.map { term =>
-        multiMatchQuery(term) fields (Query.searchableFields: _*)
-      } ::: List(
-        parsed("user") map { termQuery(Fields.author, _) },
-        !staff option termQuery(Fields.staff, false),
-        !troll option termQuery(Fields.troll, false)
-      ).flatten)
-  }
+  private lazy val makeQuery = boolQuery().must(
+    parsed.terms.map { term =>
+      multiMatchQuery(term) fields (Query.searchableFields: _*)
+    } ::: List(
+      parsed("user") map { termQuery(Fields.author, _) },
+      !staff option termQuery(Fields.staff, false),
+      !troll option termQuery(Fields.troll, false)
+    ).flatten
+  )
 }
 
 object Query {

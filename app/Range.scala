@@ -1,6 +1,6 @@
 package lila.search
 
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.http.ElasticDsl._
 
 final class Range[A] private (val a: Option[A], val b: Option[A]) {
 
