@@ -8,12 +8,7 @@ import play.api.http.ContentTypes._
 import play.api.libs.json._
 import play.api.mvc._
 
-@Singleton
-class WebApi @Inject() (
-    val system: ActorSystem,
-    val lifecycle: inject.ApplicationLifecycle,
-    val config: Configuration
-) extends InjectedController with WithES {
+class WebApi @Inject() (cc: ControllerComponents, client: ESClient) extends AbstractController(cc) {
 
   def store(index: String, id: String) = JsObjectBody { obj =>
     client.store(Index(index), Id(id), obj) inject Ok(s"inserted $index/$id")
