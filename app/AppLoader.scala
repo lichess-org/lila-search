@@ -1,16 +1,16 @@
 import play.api._
 import play.api.routing.Router
 
-class MyApplicationLoader extends ApplicationLoader {
-  private var components: MyComponents = _
+class AppLoader extends ApplicationLoader {
+  private var components: AppComponents = _
 
   def load(context: ApplicationLoader.Context): Application = {
-    components = new MyComponents(context)
+    components = new AppComponents(context)
     components.application
   }
 }
 
-class MyComponents(context: ApplicationLoader.Context)
+class AppComponents(context: ApplicationLoader.Context)
   extends BuiltInComponentsFromContext(context) {
 
   def httpFilters = Nil

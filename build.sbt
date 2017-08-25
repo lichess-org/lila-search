@@ -33,7 +33,6 @@ libraryDependencies ++= Seq(
   "org.apache.logging.log4j" % "log4j-api" % "2.8.2",
   "org.apache.logging.log4j" % "log4j-core" % "2.8.2",
   // "org.scala-lang.modules" %% "scala-java8-compat" % "0.8.0",
-  cacheApi,
   ws,
   specs2 % Test
 )
