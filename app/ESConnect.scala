@@ -20,7 +20,6 @@ object ESConnect {
 
     val underlyingClient: HttpClient = {
 
-      println(ElasticsearchClientUri(Host, Port))
       val c = HttpClient(ElasticsearchClientUri(Host, Port))
 
       lifecycle.addStopHook(() => scala.concurrent.Future {

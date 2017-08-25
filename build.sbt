@@ -11,6 +11,7 @@ scalaVersion := "2.12.3"
 lazy val root = project.in(file("."))
   .enablePlugins(PlayScala, PlayNettyServer)
   .disablePlugins(PlayAkkaHttpServer)
+  .disablePlugins(PlayFilters)
 
 sources in doc in Compile := List()
 // disable publishing the main API jar

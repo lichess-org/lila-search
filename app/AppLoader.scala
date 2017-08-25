@@ -11,9 +11,9 @@ class MyApplicationLoader extends ApplicationLoader {
 }
 
 class MyComponents(context: ApplicationLoader.Context)
-  extends BuiltInComponentsFromContext(context)
-  with play.filters.HttpFiltersComponents
-  with _root_.controllers.AssetsComponents {
+  extends BuiltInComponentsFromContext(context) {
+
+  def httpFilters = Nil
 
   lazy val client = ESConnect(
     actorSystem,
