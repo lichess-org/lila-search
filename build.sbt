@@ -30,8 +30,8 @@ libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
   "com.typesafe.play" %% "play-json-joda" % "2.6.7",
-  "org.apache.logging.log4j" % "log4j-api" % "2.8.2",
-  "org.apache.logging.log4j" % "log4j-core" % "2.8.2",
+  /* "org.apache.logging.log4j" % "log4j-api" % "2.8.2", */
+  /* "org.apache.logging.log4j" % "log4j-core" % "2.8.2", */
   // "org.scala-lang.modules" %% "scala-java8-compat" % "0.8.0",
   ws,
   specs2 % Test
