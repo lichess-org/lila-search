@@ -36,7 +36,9 @@ case class Query(text: String) extends lila.search.Query {
 
   private lazy val makeQuery = must {
     parsed.terms.map { term =>
-      multiMatchQuery(term) fields (Query.searchableFields: _*)
+      multiMatchQuery(term) fields {
+        Query.searchableFields.map(_ -> 1f).toMap
+      }
     }
   }
 }
