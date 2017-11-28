@@ -73,7 +73,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient) extends Abst
         obj => f(obj) recover {
           case e: Exception =>
             val msg = s"${Json.prettyPrint(obj)}\n\n${e.getMessage}"
-            logger warn msg
+            logger.warn(msg, e)
             BadRequest(msg)
         }
       ) map (_ as TEXT)
