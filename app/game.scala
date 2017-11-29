@@ -29,23 +29,23 @@ object Fields {
 object Mapping {
   import Fields._
   def fields = Seq(
-    keywordField(status),
+    keywordField(status).docValues(false),
     shortField(turns),
-    booleanField(rated),
-    keywordField(perf),
-    keywordField(uids),
-    keywordField(winner),
-    keywordField(winnerColor),
+    booleanField(rated).docValues(false),
+    keywordField(perf).docValues(false),
+    keywordField(uids).docValues(false),
+    keywordField(winner).docValues(false),
+    keywordField(winnerColor).docValues(false),
     shortField(averageRating),
-    shortField(ai),
+    shortField(ai).docValues(false),
     dateField(date) format Date.format,
-    intField(duration),
-    intField(clockInit),
-    shortField(clockInc),
-    booleanField(analysed),
-    keywordField(whiteUser),
-    keywordField(blackUser),
-    keywordField(source)
+    intField(duration).docValues(false),
+    intField(clockInit).docValues(false),
+    shortField(clockInc).docValues(false),
+    booleanField(analysed).docValues(false),
+    keywordField(whiteUser).docValues(false),
+    keywordField(blackUser).docValues(false),
+    keywordField(source).docValues(false)
   )
 }
 
