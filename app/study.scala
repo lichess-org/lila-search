@@ -22,13 +22,13 @@ object Fields {
 object Mapping {
   import Fields._
   def fields = Seq(
-    textField(name) boost 5 analyzer "english",
-    keywordField(owner) boost 2,
-    keywordField(members) boost 1,
-    textField(chapterNames) boost 3 analyzer "english",
-    textField(chapterTexts) boost 1 analyzer "english",
-    shortField(likes),
-    booleanField(public)
+    textField(name) boost 5 analyzer "english" docValues false,
+    keywordField(owner) boost 2 docValues false,
+    keywordField(members) boost 1 docValues false,
+    textField(chapterNames) boost 3 analyzer "english" docValues false,
+    textField(chapterTexts) boost 1 analyzer "english" docValues false,
+    shortField(likes) docValues true, // sort by likes
+    booleanField(public) docValues false
   )
 }
 

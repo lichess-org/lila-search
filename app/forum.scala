@@ -19,12 +19,12 @@ object Fields {
 object Mapping {
   import Fields._
   def fields = Seq(
-    textField(body) boost 2 analyzer "english",
-    textField(topic) boost 4 analyzer "english",
-    keywordField(author),
-    keywordField(topicId),
-    booleanField(staff),
-    booleanField(troll),
+    textField(body) boost 2 analyzer "english" docValues false,
+    textField(topic) boost 5 analyzer "english" docValues false,
+    keywordField(author) docValues false,
+    keywordField(topicId) docValues false,
+    booleanField(staff) docValues false,
+    booleanField(troll) docValues false,
     dateField(date)
   )
 }
