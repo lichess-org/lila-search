@@ -23,7 +23,7 @@ scalacOptions ++= Seq(
   "-deprecation", "-unchecked", "-feature", "-language:_", "-Ydelambdafy:method"
 )
 
-val elastic4sVersion = "5.6.0"
+val elastic4sVersion = "6.0.1"
 
 libraryDependencies ++= Seq(
   "com.github.ornicar" %% "scalalib" % "6.5",
