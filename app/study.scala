@@ -47,9 +47,7 @@ case class Query(text: String, userId: Option[String]) extends lila.search.Query
   private lazy val makeQuery = {
     val matcher: QueryDefinition =
       if (parsed.terms.isEmpty) matchAllQuery
-      else multiMatchQuery(parsed.terms mkString " ") fields {
-        Query.searchableFields.map(_ -> 1f).toMap
-      } analyzer "english" matchType "most_fields"
+      else multiMatchQuery(parsed.terms mkString " ") fields (Query.searchableFields: _*) analyzer "english" matchType "most_fields"
     must {
       matcher :: List(
         parsed("owner") map { termQuery(Fields.owner, _) },

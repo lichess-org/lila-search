@@ -42,9 +42,7 @@ case class Query(text: String, staff: Boolean, troll: Boolean) extends lila.sear
 
   private lazy val makeQuery = boolQuery().must(
     parsed.terms.map { term =>
-      multiMatchQuery(term) fields {
-        Query.searchableFields.map(_ -> 1f).toMap
-      }
+      multiMatchQuery(term) fields (Query.searchableFields: _*)
     } ::: List(
       parsed("user") map { termQuery(Fields.author, _) },
       !staff option termQuery(Fields.staff, false),
