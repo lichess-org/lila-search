@@ -5,6 +5,7 @@ import org.joda.time.DateTime
 
 import com.sksamuel.elastic4s.http.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.mappings.FieldType._
+import scala.concurrent.duration._
 
 object Fields {
   val status = "s"
@@ -73,10 +74,12 @@ case class Query(
 
   import Fields._
 
-  def searchDef(from: From, size: Size) = index =>
-    search(index.toString) query makeQuery sortBy sorting.definition start from.value size size.value
+  val timeout = 5 seconds
 
-  def countDef = index => search(index.toString) query makeQuery size 0
+  def searchDef(from: From, size: Size) = index =>
+    search(index.toString) query makeQuery sortBy sorting.definition start from.value size size.value timeout timeout
+
+  def countDef = index => search(index.toString) query makeQuery size 0 timeout timeout
 
   private lazy val makeQuery = boolQuery().must(List(
     usernames map { termQuery(Fields.uids, _) },
