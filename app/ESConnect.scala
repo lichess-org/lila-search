@@ -5,6 +5,7 @@ import com.sksamuel.elastic4s.ElasticsearchClientUri
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.HttpClient
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 
 object ESConnect {
 
@@ -12,7 +13,7 @@ object ESConnect {
     system: ActorSystem,
     lifecycle: play.api.inject.ApplicationLifecycle,
     config: play.api.Configuration
-  ): ESClient = {
+  )(implicit ec: ExecutionContext): ESClient = {
 
     val IndexesToOptimize = List("game", "forum", "team", "study")
     val Host = config.get[String]("elasticsearch.host")

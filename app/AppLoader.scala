@@ -24,7 +24,7 @@ class AppComponents(context: ApplicationLoader.Context)
   lazy val homeController = new _root_.controllers.WebApi(
     controllerComponents,
     client
-  )
+  )(executionContext)
 
   lazy val router: Router = new _root_.router.Routes(httpErrorHandler, homeController)
 }

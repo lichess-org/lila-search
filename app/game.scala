@@ -127,7 +127,7 @@ object Query {
 }
 
 case class Sorting(f: String, order: String) {
-  import org.elasticsearch.search.sort.SortOrder
+  import com.sksamuel.elastic4s.searches.sort.SortOrder
   def definition =
     fieldSort {
       (Sorting.fieldKeys contains f).fold(f, Sorting.default.f)

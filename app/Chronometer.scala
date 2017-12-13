@@ -1,8 +1,10 @@
 package lila.search
 
+import scala.concurrent.ExecutionContext
+
 object Chronometer {
 
-  def apply[A](name: String)(f: => Fu[A]): Fu[A] = {
+  def apply[A](name: String)(f: => Fu[A])(implicit ec: ExecutionContext): Fu[A] = {
     val start = nowMillis
     // logger debug s"$name - start"
     f andThen {

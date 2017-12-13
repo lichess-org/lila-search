@@ -7,8 +7,9 @@ import play.api._
 import play.api.http.ContentTypes._
 import play.api.libs.json._
 import play.api.mvc._
+import scala.concurrent.ExecutionContext
 
-class WebApi @Inject() (cc: ControllerComponents, client: ESClient) extends AbstractController(cc) {
+class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec: ExecutionContext) extends AbstractController(cc) {
 
   def store(index: String, id: String) = JsObjectBody { obj =>
     client.store(Index(index), Id(id), obj) inject Ok(s"inserted $index/$id")
@@ -66,7 +67,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient) extends Abst
     }
   }
 
-  private def JsObjectBody(f: JsObject => Fu[Result]) =
+  private def JsObjectBody(f: JsObject => Fu[Result])(implicit ec: ExecutionContext) =
     Action.async(parse.json(maxLength = 10 * 1024 * 1024)) { req =>
       req.body.validate[JsObject].fold(
         err => fuccess(BadRequest(err.toString)),

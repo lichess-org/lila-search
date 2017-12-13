@@ -4,7 +4,7 @@ package forum
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.mappings.FieldType._
 import com.sksamuel.elastic4s.searches.queries.QueryDefinition
-import org.elasticsearch.search.sort.SortOrder
+import com.sksamuel.elastic4s.searches.sort.SortOrder
 
 object Fields {
   val body = "bo"

@@ -4,7 +4,7 @@ package team
 import com.sksamuel.elastic4s.http.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.mappings.FieldType._
 import com.sksamuel.elastic4s.searches.queries.QueryDefinition
-import org.elasticsearch.search.sort.SortOrder
+import com.sksamuel.elastic4s.searches.sort.SortOrder
 
 object Fields {
   val name = "na"

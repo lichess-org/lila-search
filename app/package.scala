@@ -2,6 +2,7 @@ package lila
 
 import ornicar.scalalib.Zero
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
 
 package object search {
 
@@ -21,19 +22,17 @@ package object search {
   def fufail[A](a: String): Fu[A] = fufail(new Exception(a))
   val funit = fuccess(())
 
-  implicit def execontext = play.api.libs.concurrent.Execution.defaultContext
-
   implicit final class LilaPimpedFuture[A](fua: Fu[A]) {
 
-    def >>-(sideEffect: => Unit): Fu[A] = fua andThen {
+    def >>-(sideEffect: => Unit)(implicit ec: ExecutionContext): Fu[A] = fua andThen {
       case _ => sideEffect
     }
 
-    def >>[B](fub: => Fu[B]): Fu[B] = fua flatMap (_ => fub)
+    def >>[B](fub: => Fu[B])(implicit ec: ExecutionContext): Fu[B] = fua flatMap (_ => fub)
 
-    def void: Funit = fua map (_ => Unit)
+    def void(implicit ec: ExecutionContext): Funit = fua map (_ => Unit)
 
-    def inject[B](b: => B): Fu[B] = fua map (_ => b)
+    def inject[B](b: => B)(implicit ec: ExecutionContext): Fu[B] = fua map (_ => b)
   }
 
   implicit class LilaPimpedBoolean(self: Boolean) {
