@@ -81,7 +81,7 @@ case class Query(
 
   def countDef = index => search(index.toString) query makeQuery size 0 timeout timeout
 
-  private lazy val makeQuery = boolQuery().must(List(
+  private lazy val makeQuery = List(
     usernames map { termQuery(Fields.uids, _) },
     toQueries(winner, Fields.winner),
     toQueries(winnerColor, Fields.winnerColor),
@@ -102,8 +102,8 @@ case class Query(
     toQueries(blackUser, Fields.blackUser)
   ).flatten match {
       case Nil => matchAllQuery
-      case queries => must(queries)
-    })
+      case queries => boolQuery().must(queries)
+    }
 
   def usernames = List(user1, user2).flatten
 
