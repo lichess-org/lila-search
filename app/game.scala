@@ -14,6 +14,7 @@ object Fields {
   val perf = "p"
   val uids = "u"
   val winner = "w"
+  val loser = "o"
   val winnerColor = "c"
   val averageRating = "a"
   val ai = "i"
@@ -36,6 +37,7 @@ object Mapping {
     keywordField(perf) docValues false,
     keywordField(uids) docValues false,
     keywordField(winner) docValues false,
+    keywordField(loser) docValues false,
     keywordField(winnerColor) docValues false,
     shortField(averageRating),
     shortField(ai) docValues false,
@@ -54,6 +56,7 @@ case class Query(
     user1: Option[String] = None,
     user2: Option[String] = None,
     winner: Option[String] = None,
+    loser: Option[String] = None,
     winnerColor: Option[Int] = None,
     perf: Option[Int] = None,
     source: Option[Int] = None,
@@ -84,6 +87,7 @@ case class Query(
   private lazy val makeQuery = List(
     usernames map { termQuery(Fields.uids, _) },
     toQueries(winner, Fields.winner),
+    toQueries(loser, Fields.loser),
     toQueries(winnerColor, Fields.winnerColor),
     turns queries Fields.turns,
     averageRating queries Fields.averageRating,
