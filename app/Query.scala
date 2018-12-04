@@ -1,12 +1,12 @@
 package lila.search
 
-import com.sksamuel.elastic4s.searches.SearchDefinition
+import com.sksamuel.elastic4s.searches.SearchRequest
 
 trait Query {
 
-  def searchDef(from: From, size: Size): Index => SearchDefinition
+  def searchDef(from: From, size: Size): Index => SearchRequest
 
-  def countDef: Index => SearchDefinition
+  def countDef: Index => SearchRequest
 }
 
 case class ParsedQuery(terms: List[String], filters: Map[String, String]) {

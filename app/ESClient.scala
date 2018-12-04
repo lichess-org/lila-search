@@ -3,11 +3,11 @@ package lila.search
 import scala.concurrent.{ Future, ExecutionContext }
 
 import com.sksamuel.elastic4s.http.ElasticDsl.{ RichFuture => _, _ }
-import com.sksamuel.elastic4s.http.{ ElasticDsl, HttpClient, RequestFailure, RequestSuccess }
+import com.sksamuel.elastic4s.http.{ ElasticDsl, ElasticClient, Response }
 import com.sksamuel.elastic4s.mappings.FieldDefinition
 import play.api.libs.json._
 
-final class ESClient(client: HttpClient)(implicit ec: ExecutionContext) {
+final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
   private var writeable = true
 
@@ -15,11 +15,8 @@ final class ESClient(client: HttpClient)(implicit ec: ExecutionContext) {
     if (writeable) f.void
     else funit
 
-  private def toResult[A](response: Either[RequestFailure, RequestSuccess[A]]): Future[A] =
-    response.fold(
-      fail => Future.failed(new Exception(fail.error.reason)),
-      suc => Future.successful(suc.result)
-    )
+  private def toResult[A](response: Response[A]): Future[A] =
+    response.fold[Future[A]](Future.failed(new Exception(response.error.reason)))(Future.successful)
 
   def search(index: Index, query: Query, from: From, size: Size) = client execute {
     query.searchDef(from, size)(index)

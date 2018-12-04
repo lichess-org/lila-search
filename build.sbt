@@ -4,9 +4,9 @@ import scalariform.formatter.preferences._
 
 name := """lila-search"""
 
-version := "1.4"
+version := "1.5"
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.7"
 
 lazy val root = project.in(file("."))
   .enablePlugins(PlayScala, PlayNettyServer)
@@ -23,13 +23,13 @@ scalacOptions ++= Seq(
   "-deprecation", "-unchecked", "-feature", "-language:_", "-Ydelambdafy:method"
 )
 
-val elastic4sVersion = "6.2.3"
+val elastic4sVersion = "6.4.0"
 
 libraryDependencies ++= Seq(
-  "com.github.ornicar" %% "scalalib" % "6.5",
+  "com.github.ornicar" %% "scalalib" % "6.6",
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
-  "com.typesafe.play" %% "play-json-joda" % "2.6.7",
+  "com.typesafe.play" %% "play-json-joda" % "2.6.10",
   "org.apache.logging.log4j" % "log4j-api" % "2.10.0",
   "org.apache.logging.log4j" % "log4j-core" % "2.10.0",
   ws,

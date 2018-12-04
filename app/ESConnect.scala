@@ -3,7 +3,7 @@ import lila.search._
 import akka.actor._
 import com.sksamuel.elastic4s.ElasticsearchClientUri
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.HttpClient
+import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticProperties }
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 
@@ -16,12 +16,11 @@ object ESConnect {
   )(implicit ec: ExecutionContext): ESClient = {
 
     val IndexesToOptimize = List("game", "forum", "team", "study")
-    val Host = config.get[String]("elasticsearch.host")
-    val Port = config.get[Int]("elasticsearch.port")
+    val Uri = config.get[String]("elasticsearch.uri")
 
-    val underlyingClient: HttpClient = {
+    val underlyingClient: ElasticClient = {
 
-      val c = HttpClient(ElasticsearchClientUri(Host, Port))
+      val c = ElasticClient(ElasticProperties(Uri))
 
       lifecycle.addStopHook(() => scala.concurrent.Future {
         play.api.Logger("search").info("closing now!")
