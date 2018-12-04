@@ -11,7 +11,6 @@ object Fields {
   val topic = "to"
   val topicId = "ti"
   val author = "au"
-  val staff = "st"
   val troll = "tr"
   val date = "da"
 }
@@ -23,13 +22,12 @@ object Mapping {
     textField(topic) boost 5 analyzer "english" docValues false,
     keywordField(author) docValues false,
     keywordField(topicId) docValues false,
-    booleanField(staff) docValues false,
     booleanField(troll) docValues false,
     dateField(date)
   )
 }
 
-case class Query(text: String, staff: Boolean, troll: Boolean) extends lila.search.Query {
+case class Query(text: String, troll: Boolean) extends lila.search.Query {
 
   def searchDef(from: From, size: Size) = index =>
     search(index.toString) query makeQuery sortBy (
@@ -45,7 +43,6 @@ case class Query(text: String, staff: Boolean, troll: Boolean) extends lila.sear
       multiMatchQuery(term) fields (Query.searchableFields: _*)
     } ::: List(
       parsed("user") map { termQuery(Fields.author, _) },
-      !staff option termQuery(Fields.staff, false),
       !troll option termQuery(Fields.troll, false)
     ).flatten
   )
