@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """lila-search"""
 
-version := "1.5"
+version := "1.6"
 
 scalaVersion := "2.12.7"
 
@@ -23,7 +23,7 @@ scalacOptions ++= Seq(
   "-deprecation", "-unchecked", "-feature", "-language:_", "-Ydelambdafy:method"
 )
 
-val elastic4sVersion = "6.4.0"
+val elastic4sVersion = "6.5.1"
 
 libraryDependencies ++= Seq(
   "com.github.ornicar" %% "scalalib" % "6.6",
