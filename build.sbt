@@ -9,8 +9,7 @@ version := "1.8"
 scalaVersion := "2.13.1"
 
 lazy val root = project.in(file("."))
-  .enablePlugins(PlayScala, PlayNettyServer)
-  .disablePlugins(PlayAkkaHttpServer)
+  .enablePlugins(PlayScala)
   .disablePlugins(PlayFilters)
 
 sources in doc in Compile := List()
