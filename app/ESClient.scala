@@ -68,7 +68,5 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
   private def dropIndex(index: Index) =
     client.execute {
       deleteIndex(index.name)
-    }.void.recover {
-      case _: Exception =>
     }
 }
