@@ -1,10 +1,7 @@
 package controllers
 
-import akka.actor._
 import javax.inject._
 import lila.search._
-import play.api._
-import play.api.http.ContentTypes._
 import play.api.libs.json._
 import play.api.mvc._
 import scala.concurrent.ExecutionContext
@@ -61,7 +58,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
     }
   }
 
-  def refresh(index: String) = JsObjectBody { obj =>
+  def refresh(index: String) = JsObjectBody { _ =>
     client.refreshIndex(Index(index)) map { _ =>
       Ok("thx")
     }

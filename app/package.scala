@@ -30,7 +30,7 @@ package object search {
 
     def >>[B](fub: => Fu[B])(implicit ec: ExecutionContext): Fu[B] = fua flatMap (_ => fub)
 
-    def void(implicit ec: ExecutionContext): Funit = fua map (_ => Unit)
+    def void: Funit = fua.map(_ => ())(ExecutionContext.parasitic)
 
     def inject[B](b: => B)(implicit ec: ExecutionContext): Fu[B] = fua map (_ => b)
   }
@@ -43,8 +43,6 @@ package object search {
   }
 
   implicit class LilaPimpedOption[A](self: Option[A]) {
-
-    import scalaz.std.{ option => o }
 
     def |(a: => A): A = self getOrElse a
 

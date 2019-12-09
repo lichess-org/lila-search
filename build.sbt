@@ -30,16 +30,19 @@ scalacOptions ++= Seq(
   "-Ywarn-unused:_",
   "-Xfatal-warnings",
   "-Xmaxerrs", "12",
-  "-Xmaxwarns", "12"
+  "-Xmaxwarns", "12",
+  "-P:silencer:pathFilters=target/scala-2.13/routes"
 )
 
 val elastic4sVersion = "6.7.3"
 
 libraryDependencies ++= Seq(
-  "com.github.ornicar" %% "scalalib" % "6.7.3",
+  "com.github.ornicar" %% "scalalib" % "6.7",
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
   "com.typesafe.play" %% "play-json-joda" % "2.8.0",
+  compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.4.4" cross CrossVersion.full),
+  "com.github.ghik" % "silencer-lib" % "1.4.4" % Provided cross CrossVersion.full,
   ws,
   specs2 % Test
 )

@@ -9,12 +9,6 @@ import play.api.libs.json._
 
 final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
-  private var writeable = true
-
-  private def Write[A](f: => Fu[A]): Funit =
-    if (writeable) f.void
-    else funit
-
   private def toResult[A](response: Response[A]): Future[A] =
     response.fold[Future[A]](Future.failed(new Exception(response.error.reason)))(Future.successful)
 
@@ -26,11 +20,10 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
     query.countDef(index)
   } flatMap toResult map CountResponse.apply
 
-  def store(index: Index, id: Id, obj: JsObject) = Write {
+  def store(index: Index, id: Id, obj: JsObject) =
     client execute {
       indexInto(index.toString) source Json.stringify(obj) id id.value
     }
-  }
 
   def storeBulk(index: Index, objs: JsObject) =
     if (objs.fields.isEmpty) funit
@@ -43,13 +36,12 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
       }
     }
 
-  def deleteById(index: Index, id: Id) = Write {
+  def deleteById(index: Index, id: Id) =
     client execute {
       delete(id.value) from index.toString
     }
-  }
 
-  def deleteByIds(index: Index, ids: List[Id]) = Write {
+  def deleteByIds(index: Index, ids: List[Id]) =
     client execute {
       ElasticDsl.bulk {
         ids.map { id =>
@@ -57,7 +49,6 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
         }
       }
     }
-  }
 
   def putMapping(index: Index, fields: Seq[FieldDefinition]) =
     dropIndex(index) >> client.execute {
@@ -69,7 +60,7 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
   def refreshIndex(index: Index) =
     client.execute {
       ElasticDsl refreshIndex index.name
-    }.recover {
+    }.void.recover {
       case _: Exception =>
         println(s"Failed to refresh index $index")
     }
@@ -77,7 +68,7 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
   private def dropIndex(index: Index) =
     client.execute {
       deleteIndex(index.name)
-    }.recover {
+    }.void.recover {
       case _: Exception =>
     }
 }

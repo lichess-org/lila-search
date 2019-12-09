@@ -1,7 +1,6 @@
 import lila.search._
 
 import akka.actor._
-import com.sksamuel.elastic4s.ElasticsearchClientUri
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticProperties }
 import scala.concurrent.duration._
@@ -31,7 +30,7 @@ object ESConnect {
       c
     }
 
-    system.scheduler.schedule(1 hour, 1 hour) {
+    system.scheduler.scheduleWithFixedDelay(1 hour, 1 hour) { () =>
       underlyingClient execute {
         forceMerge(IndexesToOptimize)
       }

@@ -2,7 +2,6 @@ package lila.search
 package study
 
 import com.sksamuel.elastic4s.http.ElasticDsl.{ RichFuture => _, _ }
-import com.sksamuel.elastic4s.mappings.FieldType._
 import com.sksamuel.elastic4s.searches.queries.{ Query => QueryDefinition }
 import com.sksamuel.elastic4s.searches.sort.SortOrder
 

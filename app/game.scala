@@ -4,7 +4,6 @@ package game
 import org.joda.time.DateTime
 
 import com.sksamuel.elastic4s.http.ElasticDsl.{ RichFuture => _, _ }
-import com.sksamuel.elastic4s.mappings.FieldType._
 import scala.concurrent.duration._
 
 object Fields {
@@ -74,8 +73,6 @@ case class Query(
     whiteUser: Option[String] = None,
     blackUser: Option[String] = None
 ) extends lila.search.Query {
-
-  import Fields._
 
   val timeout = 5 seconds
 
