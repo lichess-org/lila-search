@@ -41,8 +41,8 @@ libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
   "com.typesafe.play" %% "play-json" % "2.8.1",
   "com.typesafe.play" %% "play-json-joda" % "2.8.1",
-  compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.4.4" cross CrossVersion.full),
-  "com.github.ghik" % "silencer-lib" % "1.4.4" % Provided cross CrossVersion.full,
+  compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.5.0" cross CrossVersion.full),
+  "com.github.ghik" % "silencer-lib" % "1.5.0" % Provided cross CrossVersion.full,
   ws,
   specs2 % Test
 )
