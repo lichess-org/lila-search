@@ -33,7 +33,7 @@ scalacOptions ++= Seq(
   "-P:silencer:pathFilters=target/scala-2.13/routes"
 )
 
-val elastic4sVersion = "6.7.5"
+val elastic4sVersion = "7.6.1"
 
 libraryDependencies ++= Seq(
   "com.github.ornicar" %% "scalalib" % "6.7",
