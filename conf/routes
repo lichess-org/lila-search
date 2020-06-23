@@ -3,6 +3,6 @@ POST     /delete/id/:index/:id            controllers.WebApi.deleteById(index: S
 POST     /delete/ids/:index               controllers.WebApi.deleteByIds(index: String)
 POST     /search/:index/:from/:size       controllers.WebApi.search(index: String, from: Int, size: Int)
 POST     /count/:index                    controllers.WebApi.count(index: String)
-POST     /mapping/:index/:typ             controllers.WebApi.mapping(index: String, typ: String)
-POST     /store/bulk/:index/:typ          controllers.WebApi.storeBulk(index: String, typ: String)
+POST     /mapping/:index                  controllers.WebApi.mapping(index: String)
+POST     /store/bulk/:index               controllers.WebApi.storeBulk(index: String)
 POST     /refresh/:index                  controllers.WebApi.refresh(index: String)

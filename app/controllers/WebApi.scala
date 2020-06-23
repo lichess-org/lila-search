@@ -51,18 +51,18 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
       }
     }
 
-  def mapping(index: String, typ: String) =
+  def mapping(index: String) =
     Action.async {
       Which mapping Index(index) match {
-        case None => fuccess(NotFound(s"No such mapping: $index/$typ"))
+        case None => fuccess(NotFound(s"No such mapping: $index"))
         case Some(mapping) =>
-          client.putMapping(Index(index), mapping) inject Ok(s"put $index/$typ mapping")
+          client.putMapping(Index(index), mapping) inject Ok(s"put $index mapping")
       }
     }
 
-  def storeBulk(index: String, typ: String) =
+  def storeBulk(index: String) =
     JsObjectBody { objs =>
-      Chronometer(s"bulk ${objs.fields.size} $index/$typ") {
+      Chronometer(s"bulk ${objs.fields.size} $index") {
         client.storeBulk(Index(index), objs) map { _ =>
           Ok("thx")
         }
