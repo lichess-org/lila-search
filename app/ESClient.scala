@@ -56,7 +56,7 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
   def putMapping(index: Index, fields: Seq[FieldDefinition]) =
     dropIndex(index) >> client.execute {
       createIndex(index.name).mapping(
-        properties(fields) source false all false
+        properties(fields) source false // all false
       ) shards 1 replicas 0 refreshInterval Which.refreshInterval(index)
     }
 
