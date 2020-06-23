@@ -1,6 +1,7 @@
 package lila.search
 
-import com.sksamuel.elastic4s.searches.SearchRequest
+import com.sksamuel.elastic4s.requests.searches.SearchRequest
+import com.sksamuel.elastic4s.Index
 
 trait Query {
 
@@ -23,9 +24,10 @@ object QueryParser {
     terms.foldLeft(ParsedQuery(Nil, Map.empty)) {
       case (parsed, term) =>
         filterKeys.collectFirst {
-          case fk if term startsWith s"$fk:" => parsed.copy(
-            filters = parsed.filters + (fk -> term.drop(fk.size + 1))
-          )
+          case fk if term startsWith s"$fk:" =>
+            parsed.copy(
+              filters = parsed.filters + (fk -> term.drop(fk.size + 1))
+            )
         } getOrElse parsed.copy(terms = parsed.terms :+ term)
     }
   }

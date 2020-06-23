@@ -1,13 +1,6 @@
 package lila.search
 
-import com.sksamuel.elastic4s.http.search.{ SearchResponse => ESR }
-
-case class Index(name: String, typeName: String) {
-  override def toString = s"$name/$typeName"
-}
-object Index {
-  def apply(name: String): Index = Index(name, name)
-}
+import com.sksamuel.elastic4s.requests.searches.{ SearchResponse => ESR }
 
 case class Id(value: String)
 
@@ -30,4 +23,3 @@ object CountResponse {
   def apply(res: ESR): CountResponse =
     CountResponse(res.totalHits.toInt)
 }
-

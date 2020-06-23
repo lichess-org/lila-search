@@ -3,52 +3,53 @@ package game
 
 import org.joda.time.DateTime
 
-import com.sksamuel.elastic4s.http.ElasticDsl.{ RichFuture => _, _ }
+import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import scala.concurrent.duration._
 
 object Fields {
-  val status = "s"
-  val turns = "t"
-  val rated = "r"
-  val perf = "p"
-  val uids = "u"
-  val winner = "w"
-  val loser = "o"
-  val winnerColor = "c"
+  val status        = "s"
+  val turns         = "t"
+  val rated         = "r"
+  val perf          = "p"
+  val uids          = "u"
+  val winner        = "w"
+  val loser         = "o"
+  val winnerColor   = "c"
   val averageRating = "a"
-  val ai = "i"
-  val date = "d"
-  val duration = "l"
-  val clockInit = "ct"
-  val clockInc = "ci"
-  val analysed = "n"
-  val whiteUser = "wu"
-  val blackUser = "bu"
-  val source = "so"
+  val ai            = "i"
+  val date          = "d"
+  val duration      = "l"
+  val clockInit     = "ct"
+  val clockInc      = "ci"
+  val analysed      = "n"
+  val whiteUser     = "wu"
+  val blackUser     = "bu"
+  val source        = "so"
 }
 
 object Mapping {
   import Fields._
-  def fields = Seq(
-    keywordField(status) docValues false,
-    shortField(turns),
-    booleanField(rated) docValues false,
-    keywordField(perf) docValues false,
-    keywordField(uids) docValues false,
-    keywordField(winner) docValues false,
-    keywordField(loser) docValues false,
-    keywordField(winnerColor) docValues false,
-    shortField(averageRating),
-    shortField(ai) docValues false,
-    dateField(date) format Date.format,
-    intField(duration) docValues false,
-    intField(clockInit) docValues false,
-    shortField(clockInc) docValues false,
-    booleanField(analysed) docValues false,
-    keywordField(whiteUser) docValues false,
-    keywordField(blackUser) docValues false,
-    keywordField(source) docValues false
-  )
+  def fields =
+    Seq(
+      keywordField(status) docValues false,
+      shortField(turns),
+      booleanField(rated) docValues false,
+      keywordField(perf) docValues false,
+      keywordField(uids) docValues false,
+      keywordField(winner) docValues false,
+      keywordField(loser) docValues false,
+      keywordField(winnerColor) docValues false,
+      shortField(averageRating),
+      shortField(ai) docValues false,
+      dateField(date) format Date.format,
+      intField(duration) docValues false,
+      intField(clockInit) docValues false,
+      shortField(clockInc) docValues false,
+      booleanField(analysed) docValues false,
+      keywordField(whiteUser) docValues false,
+      keywordField(blackUser) docValues false,
+      keywordField(source) docValues false
+    )
 }
 
 case class Query(
@@ -76,8 +77,11 @@ case class Query(
 
   val timeout = 5 seconds
 
-  def searchDef(from: From, size: Size) = index =>
-    search(index.toString) query makeQuery sortBy sorting.definition start from.value size size.value timeout timeout
+  def searchDef(from: From, size: Size) =
+    index =>
+      search(
+        index.toString
+      ) query makeQuery sortBy sorting.definition start from.value size size.value timeout timeout
 
   def countDef = index => search(index.toString) query makeQuery size 0 timeout timeout
 
@@ -102,20 +106,22 @@ case class Query(
     toQueries(whiteUser, Fields.whiteUser),
     toQueries(blackUser, Fields.blackUser)
   ).flatten match {
-      case Nil => matchAllQuery
-      case queries => boolQuery().must(queries)
-    }
+    case Nil     => matchAllQuery
+    case queries => boolQuery().must(queries)
+  }
 
   def usernames = List(user1, user2).flatten
 
-  private def hasAiQueries = hasAi.toList map { a =>
-    a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
-  }
+  private def hasAiQueries =
+    hasAi.toList map { a =>
+      a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
+    }
 
-  private def toQueries(query: Option[_], name: String) = query.toList map {
-    case s: String => termQuery(name, s.toLowerCase)
-    case x => termQuery(name, x)
-  }
+  private def toQueries(query: Option[_], name: String) =
+    query.toList map {
+      case s: String => termQuery(name, s.toLowerCase)
+      case x         => termQuery(name, x)
+    }
 }
 
 object Query {
@@ -123,15 +129,15 @@ object Query {
   import play.api.libs.json._
   import play.api.libs.json.JodaReads._
 
-  private implicit val sortingJsonReader = Json.reads[Sorting]
-  private implicit val clockingJsonReader = Json.reads[Clocking]
-  implicit val dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(_ isBefore _)
+  implicit private val sortingJsonReader                   = Json.reads[Sorting]
+  implicit private val clockingJsonReader                  = Json.reads[Clocking]
+  implicit val dateTimeOrdering: Ordering[DateTime]        = Ordering.fromLessThan(_ isBefore _)
   implicit val dateRangeJsonReader: Reads[Range[DateTime]] = Range.rangeJsonReader[DateTime]
-  implicit val jsonReader = Json.reads[Query]
+  implicit val jsonReader                                  = Json.reads[Query]
 }
 
 case class Sorting(f: String, order: String) {
-  import com.sksamuel.elastic4s.searches.sort.SortOrder
+  import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
   def definition =
     fieldSort {
       (Sorting.fieldKeys contains f).fold(f, Sorting.default.f)
@@ -152,5 +158,5 @@ case class Clocking(
 ) {
 
   def init = Range(initMin, initMax)
-  def inc = Range(incMin, incMax)
+  def inc  = Range(incMin, incMax)
 }

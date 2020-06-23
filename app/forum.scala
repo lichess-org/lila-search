@@ -1,36 +1,38 @@
 package lila.search
 package forum
 
-import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.searches.sort.SortOrder
+import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
 object Fields {
-  val body = "bo"
-  val topic = "to"
+  val body    = "bo"
+  val topic   = "to"
   val topicId = "ti"
-  val author = "au"
-  val troll = "tr"
-  val date = "da"
+  val author  = "au"
+  val troll   = "tr"
+  val date    = "da"
 }
 
 object Mapping {
   import Fields._
-  def fields = Seq(
-    textField(body) boost 2 analyzer "english" docValues false,
-    textField(topic) boost 5 analyzer "english" docValues false,
-    keywordField(author) docValues false,
-    keywordField(topicId) docValues false,
-    booleanField(troll) docValues false,
-    dateField(date)
-  )
+  def fields =
+    Seq(
+      textField(body) boost 2 analyzer "english" docValues false,
+      textField(topic) boost 5 analyzer "english" docValues false,
+      keywordField(author) docValues false,
+      keywordField(topicId) docValues false,
+      booleanField(troll) docValues false,
+      dateField(date)
+    )
 }
 
 case class Query(text: String, troll: Boolean) extends lila.search.Query {
 
-  def searchDef(from: From, size: Size) = index =>
-    search(index.toString) query makeQuery sortBy (
-      fieldSort(Fields.date) order SortOrder.DESC
-    ) start from.value size size.value
+  def searchDef(from: From, size: Size) =
+    index =>
+      search(index.toString) query makeQuery sortBy (
+        fieldSort(Fields.date) order SortOrder.DESC
+      ) start from.value size size.value
 
   def countDef = index => search(index.toString) query makeQuery size 0
 

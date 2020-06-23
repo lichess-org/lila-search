@@ -10,8 +10,7 @@ class AppLoader extends ApplicationLoader {
   }
 }
 
-class AppComponents(context: ApplicationLoader.Context)
-  extends BuiltInComponentsFromContext(context) {
+class AppComponents(context: ApplicationLoader.Context) extends BuiltInComponentsFromContext(context) {
 
   def httpFilters = Nil
 

@@ -1,32 +1,34 @@
 package lila.search
 package team
 
-import com.sksamuel.elastic4s.http.ElasticDsl.{ RichFuture => _, _ }
-import com.sksamuel.elastic4s.searches.sort.SortOrder
+import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
+import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
 object Fields {
-  val name = "na"
+  val name        = "na"
   val description = "de"
-  val location = "lo"
-  val nbMembers = "nbm"
+  val location    = "lo"
+  val nbMembers   = "nbm"
 }
 
 object Mapping {
   import Fields._
-  def fields = Seq(
-    textField(name) boost 3 analyzer "english" docValues false,
-    textField(description) boost 2 analyzer "english" docValues false,
-    textField(location) analyzer "english" docValues false,
-    shortField(nbMembers)
-  )
+  def fields =
+    Seq(
+      textField(name) boost 3 analyzer "english" docValues false,
+      textField(description) boost 2 analyzer "english" docValues false,
+      textField(location) analyzer "english" docValues false,
+      shortField(nbMembers)
+    )
 }
 
 case class Query(text: String) extends lila.search.Query {
 
-  def searchDef(from: From, size: Size) = index =>
-    search(index.toString) query makeQuery sortBy (
-      fieldSort(Fields.nbMembers) order SortOrder.DESC
-    ) start from.value size size.value
+  def searchDef(from: From, size: Size) =
+    index =>
+      search(index.toString) query makeQuery sortBy (
+        fieldSort(Fields.nbMembers) order SortOrder.DESC
+      ) start from.value size size.value
 
   def countDef = index => search(index.toString) query makeQuery size 0
 
