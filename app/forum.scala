@@ -30,11 +30,11 @@ case class Query(text: String, troll: Boolean) extends lila.search.Query {
 
   def searchDef(from: From, size: Size) =
     index =>
-      search(index.toString) query makeQuery sortBy (
+      search(index.name) query makeQuery sortBy (
         fieldSort(Fields.date) order SortOrder.DESC
       ) start from.value size size.value
 
-  def countDef = index => search(index.toString) query makeQuery size 0
+  def countDef = index => search(index.name) query makeQuery size 0
 
   private lazy val parsed = QueryParser(text, List("user"))
 

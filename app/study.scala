@@ -11,6 +11,7 @@ object Fields {
   val members      = "members"
   val chapterNames = "chapterNames"
   val chapterTexts = "chapterTexts"
+  val topics       = "topics"
   // val createdAt = "createdAt"
   // val updatedAt = "updatedAt"
   // val rank = "rank"
@@ -22,11 +23,12 @@ object Mapping {
   import Fields._
   def fields =
     Seq(
-      textField(name) boost 5 analyzer "english" docValues false,
+      textField(name) boost 10 analyzer "english" docValues false,
       keywordField(owner) boost 2 docValues false,
       keywordField(members) boost 1 docValues false,
-      textField(chapterNames) boost 3 analyzer "english" docValues false,
+      textField(chapterNames) boost 4 analyzer "english" docValues false,
       textField(chapterTexts) boost 1 analyzer "english" docValues false,
+      textField(topics) boost 5 analyzer "english" docValues false,
       shortField(likes) docValues true, // sort by likes
       booleanField(public) docValues false
     )
@@ -36,12 +38,12 @@ case class Query(text: String, userId: Option[String]) extends lila.search.Query
 
   def searchDef(from: From, size: Size) =
     index =>
-      search(index.toString) query makeQuery sortBy (
+      search(index.name) query makeQuery sortBy (
         fieldSort("_score") order SortOrder.DESC,
         fieldSort(Fields.likes) order SortOrder.DESC
       ) start from.value size size.value
 
-  def countDef = index => search(index.toString) query makeQuery size 0
+  def countDef = index => search(index.name) query makeQuery size 0
 
   private lazy val parsed = QueryParser(text, List("owner", "member"))
 
@@ -78,6 +80,7 @@ object Query {
     Fields.name,
     Fields.owner,
     Fields.members,
+    Fields.topics,
     Fields.chapterNames,
     Fields.chapterTexts
   )

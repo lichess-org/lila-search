@@ -30,18 +30,18 @@ object Fields {
 object Mapping {
   import Fields._
   def fields =
-    Seq(
+    Seq( // only keep docValues for sortable fields
       keywordField(status) docValues false,
-      shortField(turns),
+      shortField(turns) docValues true,
       booleanField(rated) docValues false,
       keywordField(perf) docValues false,
       keywordField(uids) docValues false,
       keywordField(winner) docValues false,
       keywordField(loser) docValues false,
       keywordField(winnerColor) docValues false,
-      shortField(averageRating),
+      shortField(averageRating) docValues true,
       shortField(ai) docValues false,
-      dateField(date) format Date.format,
+      dateField(date) format Date.format docValues true,
       intField(duration) docValues false,
       intField(clockInit) docValues false,
       shortField(clockInc) docValues false,
@@ -80,10 +80,10 @@ case class Query(
   def searchDef(from: From, size: Size) =
     index =>
       search(
-        index.toString
+        index.name
       ) query makeQuery sortBy sorting.definition start from.value size size.value timeout timeout
 
-  def countDef = index => search(index.toString) query makeQuery size 0 timeout timeout
+  def countDef = index => search(index.name) query makeQuery size 0 timeout timeout
 
   private lazy val makeQuery = List(
     usernames map { termQuery(Fields.uids, _) },

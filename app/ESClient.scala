@@ -24,7 +24,7 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
   def store(index: Index, id: Id, obj: JsObject) =
     client execute {
-      indexInto(index.toString) source Json.stringify(obj) id id.value
+      indexInto(index.name) source Json.stringify(obj) id id.value
     }
 
   def storeBulk(index: Index, objs: JsObject) =
@@ -34,7 +34,7 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
         ElasticDsl.bulk {
           objs.fields.collect {
             case (id, JsString(doc)) =>
-              indexInto(index.toString) source doc id id
+              indexInto(index.name) source doc id id
           }
         }
       }
