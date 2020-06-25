@@ -57,7 +57,7 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
     dropIndex(index) >> client.execute {
       createIndex(index.name).mapping(
         properties(fields) source false // all false
-      ) shards 1 replicas 0 refreshInterval Which.refreshInterval(index)
+      ) shards 2 replicas 0 refreshInterval Which.refreshInterval(index)
     }
 
   def refreshIndex(index: Index) =
