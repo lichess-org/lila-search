@@ -8,7 +8,7 @@ package object search {
 
   object Date {
     import org.joda.time.format.{ DateTimeFormat, DateTimeFormatter }
-    val format                       = "YYYY-MM-dd HH:mm:ss"
+    val format                       = "yyyy-MM-dd HH:mm:ss"
     val formatter: DateTimeFormatter = DateTimeFormat forPattern format
   }
 
