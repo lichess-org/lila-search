@@ -34,8 +34,8 @@ val elastic4sVersion = "7.9.0"
 libraryDependencies ++= Seq(
   "com.github.ornicar" %% "scalalib" % "6.8",
   "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % elastic4sVersion,
-  "com.typesafe.play" %% "play-json" % "2.9.0",
-  "com.typesafe.play" %% "play-json-joda" % "2.9.0",
+  "com.typesafe.play" %% "play-json" % "2.9.1",
+  "com.typesafe.play" %% "play-json-joda" % "2.9.1",
   ws,
   specs2 % Test
 )
