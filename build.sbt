@@ -4,7 +4,7 @@ version := "2.0"
 
 scalaVersion := "2.13.3"
 
-lazy val root = project.in(file("."))
+lazy val `lila-search` = project.in(file("."))
   .enablePlugins(PlayScala)
   .disablePlugins(PlayFilters)
 
@@ -15,18 +15,41 @@ publishArtifact in (Compile, packageDoc) := false
 publishArtifact in (Compile, packageSrc) := false
 
 scalacOptions ++= Seq(
-  "-language:implicitConversions",
-  "-language:postfixOps",
-  "-feature",
-  "-unchecked",
-  "-deprecation",
-  "-Xlint:_",
-  "-Ywarn-macros:after",
-  "-Ywarn-unused:_",
-  /* "-Xfatal-warnings", */
-  "-Xmaxerrs", "12",
-  "-Xmaxwarns", "12",
-  s"-Wconf:src=${target.value}/.*:s"
+    "-explaintypes",
+    "-feature",
+    "-language:higherKinds",
+    "-language:implicitConversions",
+    "-language:postfixOps",
+    "-Ymacro-annotations",
+    // Warnings as errors!
+    // "-Xfatal-warnings",
+    // Linting options
+    "-unchecked",
+    "-Xcheckinit",
+    "-Xlint:adapted-args",
+    "-Xlint:constant",
+    "-Xlint:delayedinit-select",
+    "-Xlint:deprecation",
+    "-Xlint:inaccessible",
+    "-Xlint:infer-any",
+    "-Xlint:missing-interpolator",
+    "-Xlint:nullary-unit",
+    "-Xlint:option-implicit",
+    "-Xlint:package-object-classes",
+    "-Xlint:poly-implicit-overload",
+    "-Xlint:private-shadow",
+    "-Xlint:stars-align",
+    "-Xlint:type-parameter-shadow",
+    "-Wdead-code",
+    "-Wextra-implicit",
+    "-Wnumeric-widen",
+    "-Wunused:imports",
+    "-Wunused:locals",
+    "-Wunused:patvars",
+    "-Wunused:privates",
+    "-Wunused:implicits",
+    "-Wunused:params",
+    /* "-Wvalue-discard" */
 )
 
 val elastic4sVersion = "7.9.0"

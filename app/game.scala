@@ -106,7 +106,7 @@ case class Query(
     toQueries(whiteUser, Fields.whiteUser),
     toQueries(blackUser, Fields.blackUser)
   ).flatten match {
-    case Nil     => matchAllQuery
+    case Nil     => matchAllQuery()
     case queries => boolQuery().must(queries)
   }
 

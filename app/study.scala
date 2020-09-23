@@ -38,7 +38,7 @@ case class Query(text: String, userId: Option[String]) extends lila.search.Query
 
   def searchDef(from: From, size: Size) =
     index =>
-      search(index.name) query makeQuery sortBy (
+      search(index.name).query(makeQuery).sortBy(
         fieldSort("_score") order SortOrder.DESC,
         fieldSort(Fields.likes) order SortOrder.DESC
       ) start from.value size size.value
@@ -49,7 +49,7 @@ case class Query(text: String, userId: Option[String]) extends lila.search.Query
 
   private lazy val makeQuery = {
     val matcher: QueryDefinition =
-      if (parsed.terms.isEmpty) matchAllQuery
+      if (parsed.terms.isEmpty) matchAllQuery()
       else
         multiMatchQuery(
           parsed.terms mkString " "
