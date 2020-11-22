@@ -52,7 +52,7 @@ scalacOptions ++= Seq(
     /* "-Wvalue-discard" */
 )
 
-val elastic4sVersion = "7.9.1"
+val elastic4sVersion = "7.9.2"
 
 libraryDependencies ++= Seq(
   "com.github.ornicar" %% "scalalib" % "6.8",
