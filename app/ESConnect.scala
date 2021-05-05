@@ -32,12 +32,6 @@ object ESConnect {
       c
     }
 
-    system.scheduler.scheduleWithFixedDelay(1 hour, 1 hour) { () =>
-      underlyingClient execute {
-        forceMerge(IndexesToOptimize)
-      }
-    }
-
     new ESClient(underlyingClient)
   }
 }
