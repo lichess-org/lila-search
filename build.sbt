@@ -2,7 +2,7 @@ name := """lila-search"""
 
 version := "2.0"
 
-scalaVersion := "2.13.3"
+scalaVersion := "2.13.5"
 
 lazy val `lila-search` = project.in(file("."))
   .enablePlugins(PlayScala)
@@ -56,7 +56,7 @@ val elastic4sVersion = "7.11.0"
 
 libraryDependencies ++= Seq(
   "com.github.ornicar" %% "scalalib" % "6.8",
-  "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % elastic4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "7.11.1",
   "com.typesafe.play" %% "play-json" % "2.9.2",
   "com.typesafe.play" %% "play-json-joda" % "2.9.2",
   ws,
