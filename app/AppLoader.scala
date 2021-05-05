@@ -1,5 +1,8 @@
 import play.api._
 import play.api.routing.Router
+import lila.search.ESClient
+import com.sksamuel.elastic4s.http.JavaClient
+import com.sksamuel.elastic4s.{ ElasticClient, ElasticProperties }
 
 class AppLoader extends ApplicationLoader {
   private var components: AppComponents = _
@@ -14,11 +17,20 @@ class AppComponents(context: ApplicationLoader.Context) extends BuiltInComponent
 
   def httpFilters = Nil
 
-  lazy val client = ESConnect(
-    actorSystem,
-    context.lifecycle,
-    configuration
-  )
+  lazy val client = new ESClient({
+
+      val c = ElasticClient(JavaClient(ElasticProperties(configuration.get[String]("elasticsearch.uri"))))
+
+      context.lifecycle.addStopHook(() =>
+        scala.concurrent.Future {
+          play.api.Logger("search").info("closing now!")
+          c.close()
+          Thread sleep 1000
+        }
+      )
+
+      c
+    })
 
   lazy val homeController = new _root_.controllers.WebApi(
     controllerComponents,
