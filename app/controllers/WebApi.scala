@@ -31,7 +31,8 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
 
   def search(index: String, from: Int, size: Int) =
     JsObjectBody { obj =>
-      Which.query(Index(index))(obj) match {
+      if ((from + size) > 5000) fuccess(BadRequest(s"Too deep: from $from"))
+      else Which.query(Index(index))(obj) match {
         case None => fuccess(NotFound(s"Can't parse query for $index"))
         case Some(query) =>
           client.search(Index(index), query, From(from), Size(size)) map { res =>
@@ -55,8 +56,8 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
     Action.async {
       Which mapping Index(index) match {
         case None => fuccess(NotFound(s"No such mapping: $index"))
-        case Some(mapping) =>
-          client.putMapping(Index(index), mapping) inject Ok(s"put $index mapping")
+        case Some(m) =>
+          client.putMapping(Index(index), m) inject Ok(s"put $index mapping")
       }
     }
 
