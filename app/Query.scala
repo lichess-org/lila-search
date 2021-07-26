@@ -16,10 +16,12 @@ case class ParsedQuery(terms: List[String], filters: Map[String, String]) {
 }
 
 object QueryParser {
+  
+  private val spaceRegex = " +".r
 
   def apply(q: String, filterKeys: Seq[String]): ParsedQuery = {
 
-    val terms = q.trim.toLowerCase.replace("+", " ").split(" ").toList
+    val terms = spaceRegex.split(q.trim.toLowerCase.replace("+", " ")).toList
 
     terms.foldLeft(ParsedQuery(Nil, Map.empty)) {
       case (parsed, term) =>
