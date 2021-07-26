@@ -16,7 +16,7 @@ case class ParsedQuery(terms: List[String], filters: Map[String, String]) {
 }
 
 object QueryParser {
-  
+
   private val spaceRegex = "[ +]+".r
 
   def apply(q: String, filterKeys: Seq[String]): ParsedQuery = {
