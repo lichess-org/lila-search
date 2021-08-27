@@ -7,7 +7,6 @@ import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 object Fields {
   val name        = "na"
   val description = "de"
-  val location    = "lo"
   val nbMembers   = "nbm"
 }
 
@@ -17,7 +16,6 @@ object Mapping {
     Seq(
       textField(name) boost 10 analyzer "english" docValues false,
       textField(description) boost 2 analyzer "english" docValues false,
-      textField(location) analyzer "english" docValues false,
       shortField(nbMembers)
     )
 }
@@ -43,7 +41,7 @@ case class Query(text: String) extends lila.search.Query {
 
 object Query {
 
-  private val searchableFields = List(Fields.name, Fields.description, Fields.location)
+  private val searchableFields = List(Fields.name, Fields.description)
 
   implicit val jsonReader = play.api.libs.json.Json.reads[Query]
 }
