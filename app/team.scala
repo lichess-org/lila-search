@@ -15,7 +15,7 @@ object Mapping {
   import Fields._
   def fields =
     Seq(
-      textField(name) boost 3 analyzer "english" docValues false,
+      textField(name) boost 10 analyzer "english" docValues false,
       textField(description) boost 2 analyzer "english" docValues false,
       textField(location) analyzer "english" docValues false,
       shortField(nbMembers)
