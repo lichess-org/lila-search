@@ -1,5 +1,6 @@
 logs
 target
+/project/project
 /.idea
 /.idea_modules
 /.classpath
