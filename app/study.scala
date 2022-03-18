@@ -23,14 +23,14 @@ object Mapping {
   import Fields._
   def fields =
     Seq(
-      textField(name) boost 10 analyzer "english" docValues false,
-      keywordField(owner) boost 2 docValues false,
-      keywordField(members) boost 1 docValues false,
-      textField(chapterNames) boost 4 analyzer "english" docValues false,
-      textField(chapterTexts) boost 1 analyzer "english" docValues false,
-      textField(topics) boost 5 analyzer "english" docValues false,
-      shortField(likes) docValues true, // sort by likes
-      booleanField(public) docValues false
+      textField(name).copy(boost = Some(10), analyzer = Some("english")),
+      keywordField(owner).copy(boost = Some(2), docValues = Some(false)),
+      keywordField(members).copy(boost = Some(1), docValues = Some(false)),
+      textField(chapterNames).copy(boost = Some(4), analyzer = Some("english")),
+      textField(chapterTexts).copy(boost = Some(1), analyzer = Some("english")),
+      textField(topics).copy(boost = Some(5), analyzer = Some("english")),
+      shortField(likes).copy(docValues = Some(true)), // sort by likes
+      booleanField(public).copy(docValues = Some(false))
     )
 }
 
@@ -38,10 +38,12 @@ case class Query(text: String, userId: Option[String]) extends lila.search.Query
 
   def searchDef(from: From, size: Size) =
     index =>
-      search(index.name).query(makeQuery).sortBy(
-        fieldSort("_score") order SortOrder.DESC,
-        fieldSort(Fields.likes) order SortOrder.DESC
-      ) start from.value size size.value
+      search(index.name)
+        .query(makeQuery)
+        .sortBy(
+          fieldSort("_score") order SortOrder.DESC,
+          fieldSort(Fields.likes) order SortOrder.DESC
+        ) start from.value size size.value
 
   def countDef = index => search(index.name) query makeQuery size 0
 

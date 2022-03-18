@@ -1,11 +1,10 @@
 package lila.search
 
-import scala.concurrent.{ ExecutionContext, Future }
-
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
+import com.sksamuel.elastic4s.fields.ElasticField
 import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index, Response }
-import com.sksamuel.elastic4s.requests.mappings.FieldDefinition
 import play.api.libs.json._
+import scala.concurrent.{ ExecutionContext, Future }
 
 final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
@@ -32,9 +31,8 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
     else
       client execute {
         ElasticDsl.bulk {
-          objs.fields.collect {
-            case (id, JsString(doc)) =>
-              indexInto(index.name) source doc id id
+          objs.fields.collect { case (id, JsString(doc)) =>
+            indexInto(index.name) source doc id id
           }
         }
       }
@@ -53,7 +51,7 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
       }
     }
 
-  def putMapping(index: Index, fields: Seq[FieldDefinition]) =
+  def putMapping(index: Index, fields: Seq[ElasticField]) =
     dropIndex(index) >> client.execute {
       createIndex(index.name).mapping(
         properties(fields) source false // all false
@@ -66,9 +64,8 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
         ElasticDsl refreshIndex index.name
       }
       .void
-      .recover {
-        case _: Exception =>
-          println(s"Failed to refresh index $index")
+      .recover { case _: Exception =>
+        println(s"Failed to refresh index $index")
       }
 
   private def dropIndex(index: Index) =

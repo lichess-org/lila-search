@@ -25,8 +25,8 @@ package object search {
   implicit final class LilaPimpedFuture[A](fua: Fu[A]) {
 
     def >>-(sideEffect: => Unit)(implicit ec: ExecutionContext): Fu[A] =
-      fua andThen {
-        case _ => sideEffect
+      fua andThen { case _ =>
+        sideEffect
       }
 
     def >>[B](fub: => Fu[B])(implicit ec: ExecutionContext): Fu[B] = fua flatMap (_ => fub)

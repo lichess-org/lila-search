@@ -31,24 +31,24 @@ object Mapping {
   import Fields._
   def fields =
     Seq( // only keep docValues for sortable fields
-      keywordField(status) docValues false,
-      shortField(turns) docValues true,
-      booleanField(rated) docValues false,
-      keywordField(perf) docValues false,
-      keywordField(uids) docValues false,
-      keywordField(winner) docValues false,
-      keywordField(loser) docValues false,
-      keywordField(winnerColor) docValues false,
-      shortField(averageRating) docValues true,
-      shortField(ai) docValues false,
-      dateField(date) format Date.format docValues true,
-      intField(duration) docValues false,
-      intField(clockInit) docValues false,
-      shortField(clockInc) docValues false,
-      booleanField(analysed) docValues false,
-      keywordField(whiteUser) docValues false,
-      keywordField(blackUser) docValues false,
-      keywordField(source) docValues false
+      keywordField(status).copy(docValues = Some(false)),
+      shortField(turns).copy(docValues = Some(true)),
+      booleanField(rated).copy(docValues = Some(false)),
+      keywordField(perf).copy(docValues = Some(false)),
+      keywordField(uids).copy(docValues = Some(false)),
+      keywordField(winner).copy(docValues = Some(false)),
+      keywordField(loser).copy(docValues = Some(false)),
+      keywordField(winnerColor).copy(docValues = Some(false)),
+      shortField(averageRating).copy(docValues = Some(true)),
+      shortField(ai).copy(docValues = Some(false)),
+      dateField(date).copy(format = Some(Date.format), docValues = Some(true)),
+      intField(duration).copy(docValues = Some(false)),
+      intField(clockInit).copy(docValues = Some(false)),
+      shortField(clockInc).copy(docValues = Some(false)),
+      booleanField(analysed).copy(docValues = Some(false)),
+      keywordField(whiteUser).copy(docValues = Some(false)),
+      keywordField(blackUser).copy(docValues = Some(false)),
+      keywordField(source).copy(docValues = Some(false))
     )
 }
 
