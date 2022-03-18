@@ -30,7 +30,7 @@ object Mapping {
       textField(chapterTexts).copy(boost = Some(1), analyzer = Some("english")),
       textField(topics).copy(boost = Some(5), analyzer = Some("english")),
       shortField(likes).copy(docValues = Some(true)), // sort by likes
-      booleanField(public).copy(docValues = Some(false)),
+      booleanField(public).copy(docValues = Some(false))
     )
 }
 
@@ -38,10 +38,12 @@ case class Query(text: String, userId: Option[String]) extends lila.search.Query
 
   def searchDef(from: From, size: Size) =
     index =>
-      search(index.name).query(makeQuery).sortBy(
-        fieldSort("_score") order SortOrder.DESC,
-        fieldSort(Fields.likes) order SortOrder.DESC
-      ) start from.value size size.value
+      search(index.name)
+        .query(makeQuery)
+        .sortBy(
+          fieldSort("_score") order SortOrder.DESC,
+          fieldSort(Fields.likes) order SortOrder.DESC
+        ) start from.value size size.value
 
   def countDef = index => search(index.name) query makeQuery size 0
 

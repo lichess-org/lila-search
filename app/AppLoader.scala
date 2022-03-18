@@ -19,18 +19,18 @@ class AppComponents(context: ApplicationLoader.Context) extends BuiltInComponent
 
   lazy val client = new ESClient({
 
-      val c = ElasticClient(JavaClient(ElasticProperties(configuration.get[String]("elasticsearch.uri"))))
+    val c = ElasticClient(JavaClient(ElasticProperties(configuration.get[String]("elasticsearch.uri"))))
 
-      context.lifecycle.addStopHook(() =>
-        scala.concurrent.Future {
-          play.api.Logger("search").info("closing now!")
-          c.close()
-          Thread sleep 1000
-        }
-      )
+    context.lifecycle.addStopHook(() =>
+      scala.concurrent.Future {
+        play.api.Logger("search").info("closing now!")
+        c.close()
+        Thread sleep 1000
+      }
+    )
 
-      c
-    })
+    c
+  })
 
   lazy val homeController = new _root_.controllers.WebApi(
     controllerComponents,

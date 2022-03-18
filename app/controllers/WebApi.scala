@@ -32,13 +32,14 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
   def search(index: String, from: Int, size: Int) =
     JsObjectBody { obj =>
       if ((from + size) > 5000) fuccess(BadRequest(s"Too deep: from $from"))
-      else Which.query(Index(index))(obj) match {
-        case None => fuccess(NotFound(s"Can't parse query for $index"))
-        case Some(query) =>
-          client.search(Index(index), query, From(from), Size(size)) map { res =>
-            Ok(res.hitIds mkString ",")
-          }
-      }
+      else
+        Which.query(Index(index))(obj) match {
+          case None => fuccess(NotFound(s"Can't parse query for $index"))
+          case Some(query) =>
+            client.search(Index(index), query, From(from), Size(size)) map { res =>
+              Ok(res.hitIds mkString ",")
+            }
+        }
     }
 
   def count(index: String) =
@@ -84,11 +85,10 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
         .fold(
           err => fuccess(BadRequest(err.toString)),
           obj =>
-            f(obj) recover {
-              case e: Exception =>
-                val msg = s"${Json.prettyPrint(obj)}\n\n${e.getMessage}"
-                logger.warn(msg, e)
-                BadRequest(msg)
+            f(obj) recover { case e: Exception =>
+              val msg = s"${Json.prettyPrint(obj)}\n\n${e.getMessage}"
+              logger.warn(msg, e)
+              BadRequest(msg)
             }
         ) map (_ as TEXT)
     }
