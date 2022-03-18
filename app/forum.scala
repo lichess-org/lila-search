@@ -17,11 +17,11 @@ object Mapping {
   import Fields._
   def fields =
     Seq(
-      textField(body) boost 2 analyzer "english" docValues false,
-      textField(topic) boost 5 analyzer "english" docValues false,
-      keywordField(author) docValues false,
-      keywordField(topicId) docValues false,
-      booleanField(troll) docValues false,
+      textField(body).copy( boost = Some(2), analyzer = Some("english")),
+      textField(topic).copy(boost = Some(5), analyzer = Some("english")),
+      keywordField(author).copy(docValues = Some(false)),
+      keywordField(topicId).copy(docValues = Some(false)),
+      booleanField(troll).copy(docValues = Some(false)),
       dateField(date)
     )
 }
