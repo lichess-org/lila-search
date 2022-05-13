@@ -7,7 +7,7 @@ import play.api.libs.json._
 import play.api.mvc._
 import scala.concurrent.ExecutionContext
 
-class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec: ExecutionContext)
+class WebApi @Inject(cc: ControllerComponents, client: ESClient)(implicit ec: ExecutionContext)
     extends AbstractController(cc) {
 
   def store(index: String, id: String) =
@@ -31,7 +31,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
 
   def search(index: String, from: Int, size: Int) =
     JsObjectBody { obj =>
-      if ((from + size) > 5000) fuccess(BadRequest(s"Too deep: from $from"))
+      if (from + size > 5000) fuccess(BadRequest(s"Too deep: from $from"))
       else
         Which.query(Index(index))(obj) match {
           case None => fuccess(NotFound(s"Can't parse query for $index"))

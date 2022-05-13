@@ -22,10 +22,8 @@ object Range {
   import play.api.libs.functional.syntax._
 
   implicit def rangeJsonReader[A: Reads: Ordering]: Reads[Range[A]] =
-    (
-      (__ \ "a").readNullable[A] and
-        (__ \ "b").readNullable[A]
-    ) { (a, b) => Range(a, b) }
+    (__ \ "a").readNullable[A] and
+      (__ \ "b").readNullable[A] { (a, b) => Range(a, b) }
 
   def apply[A](a: Option[A], b: Option[A])(implicit o: Ordering[A]): Range[A] =
     (a, b) match {
