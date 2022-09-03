@@ -56,8 +56,8 @@ scalacOptions ++= Seq(
 libraryDependencies ++= Seq(
   "com.github.ornicar"     %% "scalalib"                % "7.0.2",
   "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "7.17.4",
-  "com.typesafe.play"      %% "play-json"               % "2.9.2",
-  "com.typesafe.play"      %% "play-json-joda"          % "2.9.2",
+  "com.typesafe.play"      %% "play-json"               % "2.9.3",
+  "com.typesafe.play"      %% "play-json-joda"          % "2.9.3",
   ws,
   specs2 % Test
 )
