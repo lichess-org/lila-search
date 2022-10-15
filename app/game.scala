@@ -129,8 +129,8 @@ object Query {
   import play.api.libs.json._
   import play.api.libs.json.JodaReads._
 
-  implicit private val sortingJsonReader                   = Json.reads[Sorting]
-  implicit private val clockingJsonReader                  = Json.reads[Clocking]
+  implicit val sortingJsonReader                           = Json.reads[Sorting]
+  implicit val clockingJsonReader                          = Json.reads[Clocking]
   implicit val dateTimeOrdering: Ordering[DateTime]        = Ordering.fromLessThan(_ isBefore _)
   implicit val dateRangeJsonReader: Reads[Range[DateTime]] = Range.rangeJsonReader[DateTime]
   implicit val jsonReader                                  = Json.reads[Query]
