@@ -1,6 +1,6 @@
 package lila
 
-import ornicar.scalalib.Zero
+import alleycats.Zero
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 
