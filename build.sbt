@@ -1,4 +1,4 @@
-name := """lila-search"""
+name := "lila-search"
 
 version := "2.0"
 
@@ -9,11 +9,9 @@ lazy val `lila-search` = project
   .enablePlugins(PlayScala)
   .disablePlugins(PlayFilters)
 
-sources in doc in Compile := List()
-// disable publishing the main API jar
-publishArtifact in (Compile, packageDoc) := false
-// disable publishing the main sources jar
-publishArtifact in (Compile, packageSrc) := false
+Compile / doc / sources                := Seq.empty
+Compile / packageDoc / publishArtifact := false
+Compile / packageSrc / publishArtifact := false
 
 scalacOptions ++= Seq(
   "-explaintypes",
