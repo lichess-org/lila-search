@@ -7,3 +7,5 @@ target
 /.project
 /.settings
 /RUNNING_PID
+# docker sbt
+/?
