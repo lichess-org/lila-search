@@ -2,7 +2,7 @@ name := "lila-search"
 
 version := "2.0"
 
-scalaVersion := "2.13.10"
+scalaVersion := "2.13.11"
 
 lazy val `lila-search` = project
   .in(file("."))
