@@ -1,3 +1,5 @@
+.bloop/
+.metals/
 logs
 target
 /project/project
