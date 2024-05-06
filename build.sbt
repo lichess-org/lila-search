@@ -55,7 +55,15 @@ lazy val play = project
   ).dependsOn(core)
 
 
+lazy val api = (project in file("modules/api"))
+  .enablePlugins(Smithy4sCodegenPlugin)
+  .settings(
+    name                     := "api",
+    libraryDependencies ++= Seq(
+      "com.disneystreaming.smithy4s" %% "smithy4s-core" % smithy4sVersion.value,
+    )
+  )
+
 lazy val root = project
   .in(file("."))
-  .aggregate(core, play)
-
+  .aggregate(core, play, api)
