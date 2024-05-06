@@ -3,6 +3,7 @@ package forum
 
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
+import play.api.libs.json.Reads
 
 object Fields {
   val body    = "bo"
@@ -52,5 +53,5 @@ object Query {
 
   private val searchableFields = List(Fields.body, Fields.topic, Fields.author)
 
-  implicit val jsonReader = play.api.libs.json.Json.reads[Query]
+  implicit val jsonReader: Reads[Query] = play.api.libs.json.Json.reads[Query]
 }

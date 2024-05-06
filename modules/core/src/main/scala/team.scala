@@ -43,5 +43,5 @@ object Query {
 
   private val searchableFields = List(Fields.name, Fields.description)
 
-  implicit val jsonReader = play.api.libs.json.Json.reads[Query]
+  implicit val jsonReader: play.api.libs.json.Reads[lila.search.team.Query] = play.api.libs.json.Json.reads[Query]
 }

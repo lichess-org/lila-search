@@ -4,6 +4,7 @@ package study
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.requests.searches.queries.{ Query => QueryDefinition }
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
+import play.api.libs.json.Reads
 
 object Fields {
   val name         = "name"
@@ -87,5 +88,5 @@ object Query {
     Fields.chapterTexts
   )
 
-  implicit val jsonReader = play.api.libs.json.Json.reads[Query]
+  implicit val jsonReader: Reads[Query] = play.api.libs.json.Json.reads[Query]
 }

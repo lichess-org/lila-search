@@ -75,7 +75,7 @@ case class Query(
     blackUser: Option[String] = None
 ) extends lila.search.Query {
 
-  val timeout = 5 seconds
+  val timeout = 5.seconds
 
   def searchDef(from: From, size: Size) =
     index =>
@@ -129,11 +129,11 @@ object Query {
   import play.api.libs.json._
   import play.api.libs.json.JodaReads._
 
-  implicit val sortingJsonReader                           = Json.reads[Sorting]
-  implicit val clockingJsonReader                          = Json.reads[Clocking]
+  implicit val sortingJsonReader: Reads[Sorting]                           = Json.reads[Sorting]
+  implicit val clockingJsonReader: Reads[Clocking]                          = Json.reads[Clocking]
   implicit val dateTimeOrdering: Ordering[DateTime]        = Ordering.fromLessThan(_ isBefore _)
   implicit val dateRangeJsonReader: Reads[Range[DateTime]] = Range.rangeJsonReader[DateTime]
-  implicit val jsonReader                                  = Json.reads[Query]
+  implicit val jsonReader: Reads[Query]                                  = Json.reads[Query]
 }
 
 case class Sorting(f: String, order: String) {
