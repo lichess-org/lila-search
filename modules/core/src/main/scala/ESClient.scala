@@ -9,6 +9,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 case class Index(name: String) extends AnyVal {
   def toES: ESIndex = ESIndex(name)
 }
+
 final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
   private def toResult[A](response: Response[A]): Future[A] =
@@ -16,12 +17,12 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
   def search(index: Index, query: Query, from: From, size: Size) =
     client execute {
-      query.searchDef(from, size)(index.toES)
+      query.searchDef(from, size)(index)
     } flatMap toResult map SearchResponse.apply
 
   def count(index: Index, query: Query) =
     client execute {
-      query.countDef(index.toES)
+      query.countDef(index)
     } flatMap toResult map CountResponse.apply
 
   def store(index: Index, id: Id, obj: JsObject) =

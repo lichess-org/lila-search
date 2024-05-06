@@ -1,7 +1,6 @@
 package lila.search
 
 import com.sksamuel.elastic4s.requests.searches.SearchRequest
-import com.sksamuel.elastic4s.Index
 
 trait Query {
 

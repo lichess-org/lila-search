@@ -1,7 +1,6 @@
 package lila.search
 
 import play.api.libs.json._
-// import com.sksamuel.elastic4s.{Index => ESIndex}
 
 object Which {
 
