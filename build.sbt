@@ -66,8 +66,8 @@ lazy val core = project
   )
 
 
-lazy val app = project
-  .in(file("app"))
+lazy val play = project
+  .in(file("play"))
   .enablePlugins(PlayScala)
   .disablePlugins(PlayFilters)
   .settings(
@@ -86,5 +86,5 @@ lazy val app = project
 
 lazy val root = project
   .in(file("."))
-  .aggregate(core, app)
+  .aggregate(core, play)
 
