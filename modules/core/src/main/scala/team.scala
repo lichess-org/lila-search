@@ -45,5 +45,5 @@ object Query {
 
   private val searchableFields = List(Fields.name, Fields.description)
 
-  implicit val jsonReader: Reads[lila.search.team.Query] = Json.reads[Query]
+  implicit val jsonReader: Reads[Query] = Json.reads[Query]
 }

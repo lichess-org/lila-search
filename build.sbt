@@ -1,3 +1,5 @@
+import org.typelevel.scalacoptions.ScalacOptions
+
 inThisBuild(
   Seq(
     scalaVersion  := "2.13.14",
@@ -13,6 +15,7 @@ inThisBuild(
 )
 
 val commonSettings = Seq(
+  tpolecatExcludeOptions += ScalacOptions.fatalWarnings
 )
 
 lazy val core = project
