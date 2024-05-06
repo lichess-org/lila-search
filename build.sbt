@@ -53,7 +53,7 @@ val commonSettings = Seq(
 )
 
 lazy val core = project
-  .in(file("core"))
+  .in(file("modules/core"))
   .settings(
     commonSettings,
     name         := "lila-search",
