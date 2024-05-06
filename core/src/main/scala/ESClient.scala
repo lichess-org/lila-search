@@ -2,10 +2,13 @@ package lila.search
 
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.fields.ElasticField
-import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index, Response }
+import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index => ESIndex, Response }
 import play.api.libs.json._
 import scala.concurrent.{ ExecutionContext, Future }
 
+case class Index(name: String) extends AnyVal {
+  def toES: ESIndex = ESIndex(name)
+}
 final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
   private def toResult[A](response: Response[A]): Future[A] =
@@ -13,12 +16,12 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
   def search(index: Index, query: Query, from: From, size: Size) =
     client execute {
-      query.searchDef(from, size)(index)
+      query.searchDef(from, size)(index.toES)
     } flatMap toResult map SearchResponse.apply
 
   def count(index: Index, query: Query) =
     client execute {
-      query.countDef(index)
+      query.countDef(index.toES)
     } flatMap toResult map CountResponse.apply
 
   def store(index: Index, id: Id, obj: JsObject) =
@@ -39,14 +42,14 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
   def deleteOne(index: Index, id: Id) =
     client execute {
-      deleteById(index, id.value)
+      deleteById(index.toES, id.value)
     }
 
   def deleteMany(index: Index, ids: List[Id]) =
     client execute {
       ElasticDsl.bulk {
         ids.map { id =>
-          deleteById(index, id.value)
+          deleteById(index.toES, id.value)
         }
       }
     }

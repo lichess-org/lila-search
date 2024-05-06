@@ -1,11 +1,11 @@
 package controllers
 
-import com.sksamuel.elastic4s.Index
 import javax.inject._
 import lila.search._
 import play.api.libs.json._
 import play.api.mvc._
 import scala.concurrent.ExecutionContext
+import lila.search.Index
 
 class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec: ExecutionContext)
     extends AbstractController(cc) {
