@@ -22,7 +22,7 @@ lazy val core = project
   .in(file("modules/core"))
   .settings(
     commonSettings,
-    name         := "lila-search",
+    name         := "core",
     libraryDependencies ++= Seq(
       "com.github.ornicar"     %% "scalalib"                % "7.1.0",
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "7.17.4",
@@ -37,7 +37,7 @@ lazy val play = project
   .disablePlugins(PlayFilters)
   .settings(
     commonSettings,
-    name         := "core",
+    name         := "lila-search",
     libraryDependencies ++= Seq(
       "com.github.ornicar"     %% "scalalib"                % "7.1.0",
       "com.typesafe.play"      %% "play-json"               % "2.9.4",
