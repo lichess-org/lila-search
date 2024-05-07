@@ -7,7 +7,7 @@ import org.joda.time.DateTime
 import lila.search.game.Clocking
 import lila.search.game.Sorting
 
-object QueryParser {
+object JsonParser {
   def parse(index: Index)(obj: JsObject): Option[Q] =
     index match {
       case Index("game")  => gameReader.reads(obj).asOpt

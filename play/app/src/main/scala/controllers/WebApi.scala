@@ -33,7 +33,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
     JsObjectBody { obj =>
       if ((from + size) > 5000) fuccess(BadRequest(s"Too deep: from $from"))
       else
-        QueryParser.parse(Index(index))(obj) match {
+        JsonParser.parse(Index(index))(obj) match {
           case None => fuccess(NotFound(s"Can't parse query for $index"))
           case Some(query) =>
             client.search(Index(index), query, From(from), Size(size)) map { res =>
@@ -44,7 +44,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
 
   def count(index: String) =
     JsObjectBody { obj =>
-      QueryParser.parse(Index(index))(obj) match {
+      JsonParser.parse(Index(index))(obj) match {
         case None => fuccess(NotFound(s"Can't parse query for $index"))
         case Some(query) =>
           client.count(Index(index), query) map { res =>
