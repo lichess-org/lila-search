@@ -9,10 +9,10 @@ inThisBuild(
   Seq(
     scalaVersion := scala213,
     versionScheme := Some("early-semver"),
-    version       := "3.0.0-SNAPSHOT",
-    run / fork    := true,
+    version := "3.0.0-SNAPSHOT",
+    run / fork := true,
     run / javaOptions += "-Dconfig.override_with_env_vars=true",
-    Compile / doc / sources                := Seq.empty,
+    Compile / doc / sources := Seq.empty,
     Compile / packageDoc / publishArtifact := false,
     Compile / packageSrc / publishArtifact := false,
     resolvers += "lila-maven" at "https://raw.githubusercontent.com/ornicar/lila-maven/master"
@@ -35,7 +35,6 @@ lazy val core = project
     )
   )
 
-
 lazy val play = project
   .in(file("play"))
   .enablePlugins(PlayScala)
@@ -43,24 +42,24 @@ lazy val play = project
   .settings(
     commonSettings,
     tpolecatExcludeOptions += ScalacOptions.fatalWarnings,
-    name         := "lila-search",
+    name := "lila-search-play",
     libraryDependencies ++= Seq(
-      "com.github.ornicar"     %% "scalalib"                % "7.1.0",
-      "com.typesafe.play"      %% "play-json"               % "2.9.4",
-      "com.typesafe.play"      %% "play-json-joda"          % "2.9.4"
+      "com.github.ornicar" %% "scalalib" % "7.1.0",
+      "com.typesafe.play" %% "play-json" % "2.9.4",
+      "com.typesafe.play" %% "play-json-joda" % "2.9.4"
     ),
     // Play provides two styles of routers, one expects its actions to be injected, the
     // other, legacy style, accesses its actions statically.
     routesGenerator := InjectedRoutesGenerator
-  ).dependsOn(core)
-
+  )
+  .dependsOn(core)
 
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
-    name                     := "api",
+    name := "lila-search-api",
     libraryDependencies ++= Seq(
-      "com.disneystreaming.smithy4s" %% "smithy4s-core" % smithy4sVersion.value,
+      "com.disneystreaming.smithy4s" %% "smithy4s-core" % smithy4sVersion.value
     )
   )
 
