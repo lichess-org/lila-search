@@ -24,7 +24,7 @@ lazy val core = project
     name         := "core",
     libraryDependencies ++= Seq(
       "com.github.ornicar"     %% "scalalib"                % "7.1.0",
-      "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "7.17.4",
+      "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.5",
       "joda-time" % "joda-time" % "2.12.7"
     )
   )
