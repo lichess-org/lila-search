@@ -3,8 +3,9 @@ package lila.search
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.fields.ElasticField
 import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index => ESIndex, Response }
-import play.api.libs.json._
 import scala.concurrent.{ ExecutionContext, Future }
+
+case class JsonObject(json: String) extends AnyVal
 
 case class Index(name: String) extends AnyVal {
   def toES: ESIndex = ESIndex(name)
@@ -25,18 +26,18 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
       q.countDef(query)(index)
     } flatMap toResult map CountResponse.apply
 
-  def store(index: Index, id: Id, obj: JsObject) =
+  def store(index: Index, id: Id, obj: JsonObject) =
     client execute {
-      indexInto(index.name) source Json.stringify(obj) id id.value
+      indexInto(index.name) source obj.json id id.value
     }
 
-  def storeBulk(index: Index, objs: JsObject) =
-    if (objs.fields.isEmpty) funit
+  def storeBulk(index: Index, objs: List[(String, JsonObject)]) =
+    if (objs.isEmpty) funit
     else
       client execute {
         ElasticDsl.bulk {
-          objs.fields.collect { case (id, JsString(doc)) =>
-            indexInto(index.name) source doc id id
+          objs.map { case (id, obj) =>
+            indexInto(index.name) source obj.json id id
           }
         }
       }
