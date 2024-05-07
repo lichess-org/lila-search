@@ -15,7 +15,6 @@ inThisBuild(
 )
 
 val commonSettings = Seq(
-  tpolecatExcludeOptions += ScalacOptions.fatalWarnings
 )
 
 lazy val core = project
@@ -37,6 +36,7 @@ lazy val play = project
   .disablePlugins(PlayFilters)
   .settings(
     commonSettings,
+    tpolecatExcludeOptions += ScalacOptions.fatalWarnings,
     name         := "lila-search",
     libraryDependencies ++= Seq(
       "com.github.ornicar"     %% "scalalib"                % "7.1.0",
