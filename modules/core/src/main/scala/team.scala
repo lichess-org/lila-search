@@ -22,7 +22,7 @@ object Mapping {
 
 object TeamQuery {
 
-  implicit val query: lila.search.Query[Team] = new lila.search.Query[Team] {
+  implicit val query: lila.search.Queryable[Team] = new lila.search.Queryable[Team] {
 
     def searchDef(query: Team)(from: From, size: Size) =
       index =>
@@ -36,13 +36,10 @@ object TeamQuery {
 
     private def makeQuery(team: Team) = must {
       parsed(team).terms.map { term =>
-        multiMatchQuery(term) fields (Query.searchableFields: _*)
+        multiMatchQuery(term) fields (searchableFields: _*)
       }
     }
   }
-}
 
-object Query {
-
-  val searchableFields = List(Fields.name, Fields.description)
+  private val searchableFields = List(Fields.name, Fields.description)
 }

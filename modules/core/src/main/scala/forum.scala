@@ -27,7 +27,7 @@ object Mapping {
 }
 
 object ForumQuery {
-  implicit val query: lila.search.Query[Forum] = new lila.search.Query[Forum] {
+  implicit val query: lila.search.Queryable[Forum] = new lila.search.Queryable[Forum] {
 
     def searchDef(query: Forum)(from: From, size: Size) =
       index =>
@@ -41,17 +41,13 @@ object ForumQuery {
 
     private def makeQuery(query: Forum) = boolQuery().must(
       parsed(query.text).terms.map { term =>
-        multiMatchQuery(term) fields (Query.searchableFields: _*)
+        multiMatchQuery(term) fields (searchableFields: _*)
       } ::: List(
         parsed(query.text)("user") map { termQuery(Fields.author, _) },
         !query.troll option termQuery(Fields.troll, false)
       ).flatten
     )
   }
-}
 
-object Query {
-
-  val searchableFields = List(Fields.body, Fields.topic, Fields.author)
-
+  private val searchableFields = List(Fields.body, Fields.topic, Fields.author)
 }

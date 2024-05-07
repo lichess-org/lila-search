@@ -35,7 +35,7 @@ object Mapping {
 }
 
 object StudyQuery {
-  implicit val query: lila.search.Query[Study] = new lila.search.Query[Study] {
+  implicit val query: lila.search.Queryable[Study] = new lila.search.Queryable[Study] {
 
     def searchDef(query: Study)(from: From, size: Size) =
       index =>

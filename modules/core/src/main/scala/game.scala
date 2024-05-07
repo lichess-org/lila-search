@@ -51,7 +51,7 @@ object Mapping {
 }
 
 object GameQuery {
-  implicit val query: lila.search.Query[Game] = new lila.search.Query[Game] {
+  implicit val query: lila.search.Queryable[Game] = new lila.search.Queryable[Game] {
 
     val timeout = 5.seconds
 
@@ -115,6 +115,7 @@ case class Sorting(f: String, order: String) {
       (Sorting.fieldKeys contains f).fold(f, Sorting.default.f)
     } order (order.toLowerCase == "asc").fold(SortOrder.ASC, SortOrder.DESC)
 }
+
 object Sorting {
 
   val default = Sorting(Fields.date, "desc")

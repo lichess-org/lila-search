@@ -8,7 +8,7 @@ import lila.search.game.Clocking
 import lila.search.game.Sorting
 
 object JsonParser {
-  def parse(index: Index)(obj: JsObject): Option[Q] =
+  def parse(index: Index)(obj: JsObject): Option[Query] =
     index match {
       case Index("game")  => gameReader.reads(obj).asOpt
       case Index("forum") => forumReader.reads(obj).asOpt
