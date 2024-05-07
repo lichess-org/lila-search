@@ -4,7 +4,6 @@ package study
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.requests.searches.queries.{ Query => QueryDefinition }
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
-import play.api.libs.json.Reads
 
 object Fields {
   val name         = "name"
@@ -35,49 +34,48 @@ object Mapping {
     )
 }
 
-case class Query(text: String, userId: Option[String]) extends lila.search.Query {
+object StudyQuery {
+  implicit val query: lila.search.Query[Study] = new lila.search.Query[Study] {
 
-  def searchDef(from: From, size: Size) =
-    index =>
-      search(index.name)
-        .query(makeQuery)
-        .sortBy(
-          fieldSort("_score") order SortOrder.DESC,
-          fieldSort(Fields.likes) order SortOrder.DESC
-        ) start from.value size size.value
+    def searchDef(query: Study)(from: From, size: Size) =
+      index =>
+        search(index.name)
+          .query(makeQuery(query))
+          .sortBy(
+            fieldSort("_score") order SortOrder.DESC,
+            fieldSort(Fields.likes) order SortOrder.DESC
+          ) start from.value size size.value
 
-  def countDef = index => search(index.name) query makeQuery size 0
+    def countDef(query: Study) = index => search(index.name) query makeQuery(query) size 0
 
-  private lazy val parsed = QueryParser(text, List("owner", "member"))
+    private def parsed(text: String) = QueryParser(text, List("owner", "member"))
 
-  private lazy val makeQuery = {
-    val matcher: QueryDefinition =
-      if (parsed.terms.isEmpty) matchAllQuery()
-      else
-        multiMatchQuery(
-          parsed.terms mkString " "
-        ) fields (Query.searchableFields: _*) analyzer "english" matchType "most_fields"
-    must {
-      matcher :: List(
-        parsed("owner") map { termQuery(Fields.owner, _) },
-        parsed("member") map { member =>
-          boolQuery()
-            .must(termQuery(Fields.members, member))
-            .not(termQuery(Fields.owner, member))
-        }
+    private def makeQuery(query: Study) = {
+      val matcher: QueryDefinition =
+        if (parsed(query.text).terms.isEmpty) matchAllQuery()
+        else
+          multiMatchQuery(
+            parsed(query.text).terms mkString " "
+          ) fields (searchableFields: _*) analyzer "english" matchType "most_fields"
+      must {
+        matcher :: List(
+          parsed(query.text)("owner") map { termQuery(Fields.owner, _) },
+          parsed(query.text)("member") map { member =>
+            boolQuery()
+              .must(termQuery(Fields.members, member))
+              .not(termQuery(Fields.owner, member))
+          }
+        ).flatten
+      } should List(
+        Some(selectPublic),
+        query.userId.map(selectUserId)
       ).flatten
-    } should List(
-      Some(selectPublic),
-      userId map selectUserId
-    ).flatten
-  } minimumShouldMatch 1
+    } minimumShouldMatch 1
 
-  private val selectPublic = termQuery(Fields.public, true)
+    private val selectPublic = termQuery(Fields.public, true)
 
-  private def selectUserId(userId: String) = termQuery(Fields.members, userId)
-}
-
-object Query {
+    private def selectUserId(userId: String) = termQuery(Fields.members, userId)
+  }
 
   private val searchableFields = List(
     Fields.name,
@@ -88,5 +86,4 @@ object Query {
     Fields.chapterTexts
   )
 
-  implicit val jsonReader: Reads[Query] = play.api.libs.json.Json.reads[Query]
 }

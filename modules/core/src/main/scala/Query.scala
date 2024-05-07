@@ -2,11 +2,11 @@ package lila.search
 
 import com.sksamuel.elastic4s.requests.searches.SearchRequest
 
-trait Query {
+trait Query[A] {
 
-  def searchDef(from: From, size: Size): Index => SearchRequest
+  def searchDef(query: A)(from: From, size: Size): Index => SearchRequest
 
-  def countDef: Index => SearchRequest
+  def countDef(query: A): Index => SearchRequest
 }
 
 case class ParsedQuery(terms: List[String], filters: Map[String, String]) {

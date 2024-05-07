@@ -3,7 +3,6 @@ package forum
 
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
-import play.api.libs.json.Reads
 
 object Fields {
   val body    = "bo"
@@ -27,31 +26,32 @@ object Mapping {
     )
 }
 
-case class Query(text: String, troll: Boolean) extends lila.search.Query {
+object ForumQuery {
+  implicit val query: lila.search.Query[Forum] = new lila.search.Query[Forum] {
 
-  def searchDef(from: From, size: Size) =
-    index =>
-      search(index.name) query makeQuery sortBy (
-        fieldSort(Fields.date) order SortOrder.DESC
-      ) start from.value size size.value
+    def searchDef(query: Forum)(from: From, size: Size) =
+      index =>
+        search(index.name) query makeQuery(query) sortBy (
+          fieldSort(Fields.date) order SortOrder.DESC
+        ) start from.value size size.value
 
-  def countDef = index => search(index.name) query makeQuery size 0
+    def countDef(query: Forum) = index => search(index.name) query makeQuery(query) size 0
 
-  private lazy val parsed = QueryParser(text, List("user"))
+    private def parsed(text: String) = QueryParser(text, List("user"))
 
-  private lazy val makeQuery = boolQuery().must(
-    parsed.terms.map { term =>
-      multiMatchQuery(term) fields (Query.searchableFields: _*)
-    } ::: List(
-      parsed("user") map { termQuery(Fields.author, _) },
-      !troll option termQuery(Fields.troll, false)
-    ).flatten
-  )
+    private def makeQuery(query: Forum) = boolQuery().must(
+      parsed(query.text).terms.map { term =>
+        multiMatchQuery(term) fields (Query.searchableFields: _*)
+      } ::: List(
+        parsed(query.text)("user") map { termQuery(Fields.author, _) },
+        !query.troll option termQuery(Fields.troll, false)
+      ).flatten
+    )
+  }
 }
 
 object Query {
 
-  private val searchableFields = List(Fields.body, Fields.topic, Fields.author)
+  val searchableFields = List(Fields.body, Fields.topic, Fields.author)
 
-  implicit val jsonReader: Reads[Query] = play.api.libs.json.Json.reads[Query]
 }

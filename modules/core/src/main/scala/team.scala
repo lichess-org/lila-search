@@ -4,7 +4,7 @@ package team
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
-object Fields {
+private object Fields {
   val name        = "na"
   val description = "de"
   val nbMembers   = "nbm"
@@ -20,30 +20,29 @@ object Mapping {
     )
 }
 
-case class Query(text: String) extends lila.search.Query {
+object TeamQuery {
 
-  def searchDef(from: From, size: Size) =
-    index =>
-      search(index.name) query makeQuery sortBy (
-        fieldSort(Fields.nbMembers) order SortOrder.DESC
-      ) start from.value size size.value
+  implicit val query: lila.search.Query[Team] = new lila.search.Query[Team] {
 
-  def countDef = index => search(index.name) query makeQuery size 0
+    def searchDef(query: Team)(from: From, size: Size) =
+      index =>
+        search(index.name) query makeQuery(query) sortBy (
+          fieldSort(Fields.nbMembers) order SortOrder.DESC
+        ) start from.value size size.value
 
-  private lazy val parsed = QueryParser(text, Nil)
+    def countDef(query: Team) = index => search(index.name) query makeQuery(query) size 0
 
-  private lazy val makeQuery = must {
-    parsed.terms.map { term =>
-      multiMatchQuery(term) fields (Query.searchableFields: _*)
+    private def parsed(query: Team) = QueryParser(query.text, Nil)
+
+    private def makeQuery(team: Team) = must {
+      parsed(team).terms.map { term =>
+        multiMatchQuery(term) fields (Query.searchableFields: _*)
+      }
     }
   }
 }
 
 object Query {
 
-  import play.api.libs.json._
-
-  private val searchableFields = List(Fields.name, Fields.description)
-
-  implicit val jsonReader: Reads[Query] = Json.reads[Query]
+  val searchableFields = List(Fields.name, Fields.description)
 }

@@ -15,14 +15,14 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
   private def toResult[A](response: Response[A]): Future[A] =
     response.fold[Future[A]](Future.failed(new Exception(response.error.reason)))(Future.successful)
 
-  def search(index: Index, query: Query, from: From, size: Size) =
+  def search[A](index: Index, query: A, from: From, size: Size)(implicit q: Query[A]) =
     client execute {
-      query.searchDef(from, size)(index)
+      q.searchDef(query)(from, size)(index)
     } flatMap toResult map SearchResponse.apply
 
-  def count(index: Index, query: Query) =
+  def count[A](index: Index, query: A)(implicit q: Query[A]) =
     client execute {
-      query.countDef(index)
+      q.countDef(query)(index)
     } flatMap toResult map CountResponse.apply
 
   def store(index: Index, id: Id, obj: JsObject) =

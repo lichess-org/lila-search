@@ -1,8 +1,6 @@
 package lila.search
 package game
 
-import org.joda.time.DateTime
-
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import scala.concurrent.duration._
 
@@ -52,88 +50,62 @@ object Mapping {
     )
 }
 
-case class Query(
-    user1: Option[String] = None,
-    user2: Option[String] = None,
-    winner: Option[String] = None,
-    loser: Option[String] = None,
-    winnerColor: Option[Int] = None,
-    perf: List[Int] = List.empty,
-    source: Option[Int] = None,
-    status: Option[Int] = None,
-    turns: Range[Int] = Range.none,
-    averageRating: Range[Int] = Range.none,
-    hasAi: Option[Boolean] = None,
-    aiLevel: Range[Int] = Range.none,
-    rated: Option[Boolean] = None,
-    date: Range[DateTime] = Range.none,
-    duration: Range[Int] = Range.none,
-    clock: Clocking = Clocking(),
-    sorting: Sorting = Sorting.default,
-    analysed: Option[Boolean] = None,
-    whiteUser: Option[String] = None,
-    blackUser: Option[String] = None
-) extends lila.search.Query {
+object GameQuery {
+  implicit val query: lila.search.Query[Game] = new lila.search.Query[Game] {
 
-  val timeout = 5.seconds
+    val timeout = 5.seconds
 
-  def searchDef(from: From, size: Size) =
-    index =>
-      search(
-        index.name
-      ) query makeQuery sortBy sorting.definition start from.value size size.value timeout timeout
+    def searchDef(query: Game)(from: From, size: Size) =
+      index =>
+        search(index.name).query(
+          makeQuery(query)
+        ) sortBy query.sorting.definition start from.value size size.value timeout timeout
 
-  def countDef = index => search(index.name) query makeQuery size 0 timeout timeout
+    def countDef(query: Game) = index => search(index.name) query makeQuery(query) size 0 timeout timeout
 
-  private lazy val makeQuery = List(
-    usernames map { termQuery(Fields.uids, _) },
-    toQueries(winner, Fields.winner),
-    toQueries(loser, Fields.loser),
-    toQueries(winnerColor, Fields.winnerColor),
-    turns queries Fields.turns,
-    averageRating queries Fields.averageRating,
-    duration queries Fields.duration,
-    clock.init queries Fields.clockInit,
-    clock.inc queries Fields.clockInc,
-    date map Date.formatter.print queries Fields.date,
-    hasAiQueries,
-    (hasAi | true).fold(aiLevel queries Fields.ai, Nil),
-    if (perf.nonEmpty) List(termsQuery(Fields.perf, perf)) else Nil,
-    toQueries(source, Fields.source),
-    toQueries(rated, Fields.rated),
-    toQueries(status, Fields.status),
-    toQueries(analysed, Fields.analysed),
-    toQueries(whiteUser, Fields.whiteUser),
-    toQueries(blackUser, Fields.blackUser)
-  ).flatten match {
-    case Nil     => matchAllQuery()
-    case queries => boolQuery().must(queries)
+    private def makeQuery(query: Game) = {
+
+      import query._
+      def usernames = List(user1, user2).flatten
+
+      def hasAiQueries =
+        hasAi.toList map { a =>
+          a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
+        }
+
+      def toQueries(query: Option[_], name: String) =
+        query.toList map {
+          case s: String => termQuery(name, s.toLowerCase)
+          case x         => termQuery(name, x)
+        }
+
+      List(
+        usernames map { termQuery(Fields.uids, _) },
+        toQueries(winner, Fields.winner),
+        toQueries(loser, Fields.loser),
+        toQueries(winnerColor, Fields.winnerColor),
+        turns queries Fields.turns,
+        averageRating queries Fields.averageRating,
+        duration queries Fields.duration,
+        clock.init queries Fields.clockInit,
+        clock.inc queries Fields.clockInc,
+        date map Date.formatter.print queries Fields.date,
+        hasAiQueries,
+        (hasAi | true).fold(aiLevel queries Fields.ai, Nil),
+        if (perf.nonEmpty) List(termsQuery(Fields.perf, perf)) else Nil,
+        toQueries(source, Fields.source),
+        toQueries(rated, Fields.rated),
+        toQueries(status, Fields.status),
+        toQueries(analysed, Fields.analysed),
+        toQueries(whiteUser, Fields.whiteUser),
+        toQueries(blackUser, Fields.blackUser)
+      ).flatten match {
+        case Nil     => matchAllQuery()
+        case queries => boolQuery().must(queries)
+      }
+
+    }
   }
-
-  def usernames = List(user1, user2).flatten
-
-  private def hasAiQueries =
-    hasAi.toList map { a =>
-      a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
-    }
-
-  private def toQueries(query: Option[_], name: String) =
-    query.toList map {
-      case s: String => termQuery(name, s.toLowerCase)
-      case x         => termQuery(name, x)
-    }
-}
-
-object Query {
-
-  import play.api.libs.json._
-  import play.api.libs.json.JodaReads._
-
-  implicit val sortingJsonReader: Reads[Sorting]           = Json.reads[Sorting]
-  implicit val clockingJsonReader: Reads[Clocking]         = Json.reads[Clocking]
-  implicit val dateTimeOrdering: Ordering[DateTime]        = Ordering.fromLessThan(_ isBefore _)
-  implicit val dateRangeJsonReader: Reads[Range[DateTime]] = Range.rangeJsonReader[DateTime]
-  implicit val jsonReader: Reads[Query]                    = Json.reads[Query]
 }
 
 case class Sorting(f: String, order: String) {
