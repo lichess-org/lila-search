@@ -1,5 +1,6 @@
 import org.typelevel.scalacoptions.ScalacOption
 import org.typelevel.scalacoptions.ScalacOptions
+import Dependencies.*
 
 lazy val scala213 = "2.13.14"
 lazy val scala3 = "3.4.1"
@@ -63,6 +64,26 @@ lazy val api = (project in file("modules/api"))
     )
   )
 
+lazy val app = (project in file("modules/app"))
+  .enablePlugins(Smithy4sCodegenPlugin)
+  .settings(
+    name := "lila-search",
+    commonSettings,
+    libraryDependencies ++= Seq(
+      "com.disneystreaming.smithy4s" %% "smithy4s-http4s"         % smithy4sVersion.value,
+      "com.disneystreaming.smithy4s" %% "smithy4s-http4s-swagger" % smithy4sVersion.value,
+      http4sServer,
+      http4sEmberClient,
+      cirisCore,
+      cirisHtt4s,
+      logbackX
+    ),
+    Compile / run / fork         := true,
+  )
+  .enablePlugins(JavaAppPackaging)
+  .dependsOn(api, core)
+
 lazy val root = project
   .in(file("."))
-  .aggregate(core, play, api)
+  .settings(publish := {}, publish / skip := true)
+  .aggregate(core, play, api, app)
