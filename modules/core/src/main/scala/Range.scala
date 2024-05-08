@@ -18,15 +18,6 @@ final class Range[A] private (val a: Option[A], val b: Option[A]) {
 
 object Range {
 
-  import play.api.libs.json._
-  import play.api.libs.functional.syntax._
-
-  implicit def rangeJsonReader[A: Reads: Ordering]: Reads[Range[A]] =
-    (
-      (__ \ "a").readNullable[A] and
-        (__ \ "b").readNullable[A]
-    ) { (a, b) => Range(a, b) }
-
   def apply[A](a: Option[A], b: Option[A])(implicit o: Ordering[A]): Range[A] =
     (a, b) match {
       case (Some(aa), Some(bb)) =>

@@ -1,6 +1,5 @@
 package controllers
 
-import com.sksamuel.elastic4s.Index
 import javax.inject._
 import lila.search._
 import play.api.libs.json._
@@ -12,7 +11,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
 
   def store(index: String, id: String) =
     JsObjectBody { obj =>
-      client.store(Index(index), Id(id), obj) inject Ok(s"inserted $index/$id")
+      client.store(Index(index), Id(id), JsonObject(Json.stringify(obj))) inject Ok(s"inserted $index/$id")
     }
 
   def deleteById(index: String, id: String) =
@@ -33,7 +32,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
     JsObjectBody { obj =>
       if ((from + size) > 5000) fuccess(BadRequest(s"Too deep: from $from"))
       else
-        Which.query(Index(index))(obj) match {
+        JsonParser.parse(Index(index))(obj) match {
           case None => fuccess(NotFound(s"Can't parse query for $index"))
           case Some(query) =>
             client.search(Index(index), query, From(from), Size(size)) map { res =>
@@ -44,7 +43,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
 
   def count(index: String) =
     JsObjectBody { obj =>
-      Which.query(Index(index))(obj) match {
+      JsonParser.parse(Index(index))(obj) match {
         case None => fuccess(NotFound(s"Can't parse query for $index"))
         case Some(query) =>
           client.count(Index(index), query) map { res =>
@@ -64,8 +63,11 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
 
   def storeBulk(index: String) =
     JsObjectBody { objs =>
+      val jsonObjs = objs.fields.collect { case (id, obj) =>
+        (id, JsonObject(Json.stringify(obj)))
+      }.toList
       Chronometer(s"bulk ${objs.fields.size} $index") {
-        client.storeBulk(Index(index), objs) map { _ =>
+        client.storeBulk(Index(index), jsonObjs) map { _ =>
           Ok("thx")
         }
       }

@@ -2,51 +2,56 @@ package lila.search
 
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.fields.ElasticField
-import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index, Response }
-import play.api.libs.json._
+import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index => ESIndex, Response }
 import scala.concurrent.{ ExecutionContext, Future }
+
+case class JsonObject(json: String) extends AnyVal
+
+case class Index(name: String) extends AnyVal {
+  def toES: ESIndex = ESIndex(name)
+}
 
 final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
   private def toResult[A](response: Response[A]): Future[A] =
     response.fold[Future[A]](Future.failed(new Exception(response.error.reason)))(Future.successful)
 
-  def search(index: Index, query: Query, from: From, size: Size) =
+  def search[A](index: Index, query: A, from: From, size: Size)(implicit q: Queryable[A]) =
     client execute {
-      query.searchDef(from, size)(index)
+      q.searchDef(query)(from, size)(index)
     } flatMap toResult map SearchResponse.apply
 
-  def count(index: Index, query: Query) =
+  def count[A](index: Index, query: A)(implicit q: Queryable[A]) =
     client execute {
-      query.countDef(index)
+      q.countDef(query)(index)
     } flatMap toResult map CountResponse.apply
 
-  def store(index: Index, id: Id, obj: JsObject) =
+  def store(index: Index, id: Id, obj: JsonObject) =
     client execute {
-      indexInto(index.name) source Json.stringify(obj) id id.value
+      indexInto(index.name) source obj.json id id.value
     }
 
-  def storeBulk(index: Index, objs: JsObject) =
-    if (objs.fields.isEmpty) funit
+  def storeBulk(index: Index, objs: List[(String, JsonObject)]) =
+    if (objs.isEmpty) funit
     else
       client execute {
         ElasticDsl.bulk {
-          objs.fields.collect { case (id, JsString(doc)) =>
-            indexInto(index.name) source doc id id
+          objs.map { case (id, obj) =>
+            indexInto(index.name) source obj.json id id
           }
         }
       }
 
   def deleteOne(index: Index, id: Id) =
     client execute {
-      deleteById(index, id.value)
+      deleteById(index.toES, id.value)
     }
 
   def deleteMany(index: Index, ids: List[Id]) =
     client execute {
       ElasticDsl.bulk {
         ids.map { id =>
-          deleteById(index, id.value)
+          deleteById(index.toES, id.value)
         }
       }
     }

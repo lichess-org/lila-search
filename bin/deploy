@@ -5,7 +5,7 @@ REMOTE_DIR="/home/lichess-search"
 
 echo "Deploy to server $REMOTE:$REMOTE_DIR"
 
-sbt ";stage;exit"
+sbt ";play/stage;exit"
 if [ $? != 0 ]; then
   echo "Deploy canceled"
   exit 1
@@ -23,7 +23,7 @@ RSYNC_OPTIONS=" \
   --exclude RUNNING_PID \
   --exclude '.git/'"
 
-stage="target/universal/stage"
+stage="play/target/universal/stage"
 include="bin $stage/bin $stage/lib $stage/conf"
 rsync_command="rsync $RSYNC_OPTIONS $include $REMOTE:$REMOTE_DIR"
 echo "$rsync_command"
