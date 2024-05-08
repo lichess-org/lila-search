@@ -32,7 +32,8 @@ lazy val core = project
     name := "lila-search-core",
     libraryDependencies ++= Seq(
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.5",
-      "joda-time" % "joda-time" % "2.12.7"
+      "org.typelevel" %% "cats-core" % "2.10.0",
+      "joda-time" % "joda-time" % "2.12.7",
     )
   )
 
@@ -74,12 +75,15 @@ lazy val app = (project in file("modules/app"))
     libraryDependencies ++= Seq(
       "com.disneystreaming.smithy4s" %% "smithy4s-http4s"         % smithy4sVersion.value,
       "com.disneystreaming.smithy4s" %% "smithy4s-http4s-swagger" % smithy4sVersion.value,
+      catsCore,
+      catsEffect,
       http4sServer,
       http4sEmberClient,
       cirisCore,
       cirisHtt4s,
       logbackX
     ),
+    excludeDependencies ++= Seq("org.typelevel" % "cats-core_2.13", "org.typelevel" % "cats-kernel_2.13"),
     Compile / run / fork         := true,
   )
   .enablePlugins(JavaAppPackaging)
