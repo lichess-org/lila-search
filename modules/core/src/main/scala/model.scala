@@ -13,7 +13,7 @@ case class SearchResponse(hitIds: List[String])
 object SearchResponse {
 
   def apply(res: ESR): SearchResponse =
-    SearchResponse(res.hits.hits.toList map (_.id))
+    SearchResponse(res.hits.hits.toList.map(_.id))
 }
 
 case class CountResponse(count: Int)

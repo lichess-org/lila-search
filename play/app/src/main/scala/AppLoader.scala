@@ -25,7 +25,7 @@ class AppComponents(context: ApplicationLoader.Context) extends BuiltInComponent
       scala.concurrent.Future {
         play.api.Logger("search").info("closing now!")
         c.close()
-        Thread sleep 1000
+        Thread.sleep(1000)
       }
     )
 

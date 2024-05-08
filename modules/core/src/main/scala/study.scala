@@ -42,11 +42,12 @@ object StudyQuery {
         search(index.name)
           .query(makeQuery(query))
           .sortBy(
-            fieldSort("_score") order SortOrder.DESC,
-            fieldSort(Fields.likes) order SortOrder.DESC
-          ) start from.value size size.value
+            fieldSort("_score").order(SortOrder.DESC),
+            fieldSort(Fields.likes).order(SortOrder.DESC)
+          )
+          .start(from.value) size size.value
 
-    def countDef(query: Study) = index => search(index.name) query makeQuery(query) size 0
+    def countDef(query: Study) = index => search(index.name).query(makeQuery(query)) size 0
 
     private def parsed(text: String) = QueryParser(text, List("owner", "member"))
 
@@ -55,12 +56,12 @@ object StudyQuery {
         if (parsed(query.text).terms.isEmpty) matchAllQuery()
         else
           multiMatchQuery(
-            parsed(query.text).terms mkString " "
-          ) fields (searchableFields: _*) analyzer "english" matchType "most_fields"
+            parsed(query.text).terms.mkString(" ")
+          ).fields(searchableFields*).analyzer("english").matchType("most_fields")
       must {
         matcher :: List(
-          parsed(query.text)("owner") map { termQuery(Fields.owner, _) },
-          parsed(query.text)("member") map { member =>
+          parsed(query.text)("owner").map { termQuery(Fields.owner, _) },
+          parsed(query.text)("member").map { member =>
             boolQuery()
               .must(termQuery(Fields.members, member))
               .not(termQuery(Fields.owner, member))
@@ -70,7 +71,7 @@ object StudyQuery {
         Some(selectPublic),
         query.userId.map(selectUserId)
       ).flatten
-    } minimumShouldMatch 1
+    }.minimumShouldMatch(1)
 
     private val selectPublic = termQuery(Fields.public, true)
 

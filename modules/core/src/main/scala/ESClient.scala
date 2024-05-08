@@ -17,38 +17,44 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
     response.fold[Future[A]](Future.failed(new Exception(response.error.reason)))(Future.successful)
 
   def search[A](index: Index, query: A, from: From, size: Size)(implicit q: Queryable[A]) =
-    client execute {
-      q.searchDef(query)(from, size)(index)
-    } flatMap toResult map SearchResponse.apply
+    client
+      .execute {
+        q.searchDef(query)(from, size)(index)
+      }
+      .flatMap(toResult)
+      .map(SearchResponse.apply)
 
   def count[A](index: Index, query: A)(implicit q: Queryable[A]) =
-    client execute {
-      q.countDef(query)(index)
-    } flatMap toResult map CountResponse.apply
+    client
+      .execute {
+        q.countDef(query)(index)
+      }
+      .flatMap(toResult)
+      .map(CountResponse.apply)
 
   def store(index: Index, id: Id, obj: JsonObject) =
-    client execute {
-      indexInto(index.name) source obj.json id id.value
+    client.execute {
+      indexInto(index.name).source(obj.json).id(id.value)
     }
 
   def storeBulk(index: Index, objs: List[(String, JsonObject)]) =
     if (objs.isEmpty) funit
     else
-      client execute {
+      client.execute {
         ElasticDsl.bulk {
           objs.map { case (id, obj) =>
-            indexInto(index.name) source obj.json id id
+            indexInto(index.name).source(obj.json).id(id)
           }
         }
       }
 
   def deleteOne(index: Index, id: Id) =
-    client execute {
+    client.execute {
       deleteById(index.toES, id.value)
     }
 
   def deleteMany(index: Index, ids: List[Id]) =
-    client execute {
+    client.execute {
       ElasticDsl.bulk {
         ids.map { id =>
           deleteById(index.toES, id.value)
@@ -58,15 +64,19 @@ final class ESClient(client: ElasticClient)(implicit ec: ExecutionContext) {
 
   def putMapping(index: Index, fields: Seq[ElasticField]) =
     dropIndex(index) >> client.execute {
-      createIndex(index.name).mapping(
-        properties(fields) source false // all false
-      ) shards 5 replicas 0 refreshInterval Which.refreshInterval(index)
+      createIndex(index.name)
+        .mapping(
+          properties(fields).source(false) // all false
+        )
+        .shards(5)
+        .replicas(0)
+        .refreshInterval(Which.refreshInterval(index))
     }
 
   def refreshIndex(index: Index) =
     client
       .execute {
-        ElasticDsl refreshIndex index.name
+        ElasticDsl.refreshIndex(index.name)
       }
       .void
       .recover { case _: Exception =>

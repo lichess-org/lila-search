@@ -11,7 +11,7 @@ trait Queryable[A] {
 
 case class ParsedQuery(terms: List[String], filters: Map[String, String]) {
 
-  def apply(fk: String): Option[String] = filters get fk
+  def apply(fk: String): Option[String] = filters.get(fk)
 }
 
 object QueryParser {
@@ -23,12 +23,14 @@ object QueryParser {
     val terms = spaceRegex.split(q.trim.toLowerCase).toList
 
     terms.foldLeft(ParsedQuery(Nil, Map.empty)) { case (parsed, term) =>
-      filterKeys.collectFirst {
-        case fk if term startsWith s"$fk:" =>
-          parsed.copy(
-            filters = parsed.filters + (fk -> term.drop(fk.size + 1))
-          )
-      } getOrElse parsed.copy(terms = parsed.terms :+ term)
+      filterKeys
+        .collectFirst {
+          case fk if term.startsWith(s"$fk:") =>
+            parsed.copy(
+              filters = parsed.filters + (fk -> term.drop(fk.size + 1))
+            )
+        }
+        .getOrElse(parsed.copy(terms = parsed.terms :+ term))
     }
   }
 }

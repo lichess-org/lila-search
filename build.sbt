@@ -1,8 +1,13 @@
+import org.typelevel.scalacoptions.ScalacOption
 import org.typelevel.scalacoptions.ScalacOptions
+
+lazy val scala213 = "2.13.14"
+lazy val scala3 = "3.4.1"
+lazy val supportedScalaVersions = List(scala213, scala3)
 
 inThisBuild(
   Seq(
-    scalaVersion  := "2.13.14",
+    scalaVersion := scala213,
     versionScheme := Some("early-semver"),
     version       := "3.0.0-SNAPSHOT",
     run / fork    := true,
@@ -21,9 +26,10 @@ lazy val core = project
   .in(file("modules/core"))
   .settings(
     commonSettings,
-    name         := "core",
+    crossScalaVersions := supportedScalaVersions,
+    tpolecatScalacOptions ++= Set(ScalacOptions.source3),
+    name := "lila-search-core",
     libraryDependencies ++= Seq(
-      "com.github.ornicar"     %% "scalalib"                % "7.1.0",
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.5",
       "joda-time" % "joda-time" % "2.12.7"
     )

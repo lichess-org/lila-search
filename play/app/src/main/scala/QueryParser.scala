@@ -31,8 +31,7 @@ object JsonParser {
 
   implicit def rangeJsonReader[A: Reads: Ordering]: Reads[Range[A]] =
     (
-      (__ \ "a").readNullable[A] and
-        (__ \ "b").readNullable[A]
+      (__ \ "a").readNullable[A].and((__ \ "b").readNullable[A])
     ) { (a, b) => Range(a, b) }
 
 }
