@@ -5,8 +5,9 @@ import lila.search._
 import play.api.libs.json._
 import play.api.mvc._
 import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 
-class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec: ExecutionContext)
+class WebApi @Inject() (cc: ControllerComponents, client: ESClient[Future])(implicit ec: ExecutionContext)
     extends AbstractController(cc) {
 
   def store(index: String, id: String) =

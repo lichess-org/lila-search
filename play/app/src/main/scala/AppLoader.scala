@@ -17,7 +17,7 @@ class AppComponents(context: ApplicationLoader.Context) extends BuiltInComponent
 
   def httpFilters = Nil
 
-  lazy val client = new ESClient({
+  lazy val client = ESClient.makeFuture({
 
     val c = ElasticClient(JavaClient(ElasticProperties(configuration.get[String]("elasticsearch.uri"))))
 
