@@ -9,11 +9,11 @@ import org.http4s.{ HttpApp, HttpRoutes }
 import org.typelevel.log4cats.Logger
 import smithy4s.http4s.SimpleRestJsonBuilder
 
-def Routes(using Logger[IO]): Resource[IO, HttpApp[IO]] =
+def Routes(resources: AppResources)(using Logger[IO]): Resource[IO, HttpApp[IO]] =
 
   val healthServiceImpl: HealthService[IO] = new HealthService.Default[IO](IO.stub)
 
-  val searchServiceImpl: SearchService[IO] = new SearchService.Default[IO](IO.stub)
+  val searchServiceImpl: SearchService[IO] = SearchServiceImpl(resources.esClient)
 
   val search: Resource[IO, HttpRoutes[IO]] =
     SimpleRestJsonBuilder.routes(searchServiceImpl).resource

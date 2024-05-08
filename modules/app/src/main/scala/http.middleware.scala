@@ -15,5 +15,8 @@ def ApplyMiddleware(routes: HttpRoutes[IO]): HttpApp[IO] =
   val timeout: Middleware   = Timeout(60.seconds)
 
   val middleware = autoSlash.andThen(timeout)
+  val logger =
+    RequestLogger.httpApp[IO](true, true) andThen
+      ResponseLogger.httpApp[IO, Request[IO]](true, true)
 
-  middleware(routes).orNotFound
+  logger(middleware(routes).orNotFound)

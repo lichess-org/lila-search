@@ -14,14 +14,15 @@ object App extends IOApp.Simple:
   def app: Resource[IO, Unit] =
     for
       config <- AppConfig.load.toResource
-      _      <- Logger[IO].info(s"Starting fide-api with config: $config").toResource
-      _      <- SearchApp(config).run()
+      _      <- Logger[IO].info(s"Starting lila-search with config: $config").toResource
+      res    <- AppResources.instance(config)
+      _      <- SearchApp(res, config).run()
     yield ()
 
-class SearchApp(config: AppConfig)(using Logger[IO]):
+class SearchApp(res: AppResources, config: AppConfig)(using Logger[IO]):
   def run(): Resource[IO, Unit] =
     for
-      httpApp <- Routes
+      httpApp <- Routes(res)
       server  <- MkHttpServer.apply.newEmber(config.server, httpApp)
       _       <- Logger[IO].info(s"Starting server on ${config.server.host}:${config.server.port}").toResource
     yield ()

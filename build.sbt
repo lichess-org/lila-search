@@ -44,7 +44,7 @@ lazy val play = project
   .settings(
     commonSettings,
     tpolecatExcludeOptions += ScalacOptions.fatalWarnings,
-    name := "lila-search-play",
+    name := "lila-search",
     libraryDependencies ++= Seq(
       "com.github.ornicar" %% "scalalib" % "7.1.0",
       "com.typesafe.play" %% "play-json" % "2.9.4",
@@ -69,21 +69,23 @@ lazy val api = (project in file("modules/api"))
 lazy val app = (project in file("modules/app"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
-    name := "lila-search",
+    name := "lila-search-v3",
     commonSettings,
     scalaVersion := scala3,
     libraryDependencies ++= Seq(
       "com.disneystreaming.smithy4s" %% "smithy4s-http4s"         % smithy4sVersion.value,
       "com.disneystreaming.smithy4s" %% "smithy4s-http4s-swagger" % smithy4sVersion.value,
+      "com.sksamuel.elastic4s" %% "elastic4s-effect-cats" % "8.11.5",
       catsCore,
       catsEffect,
+      ducktape,
       http4sServer,
       http4sEmberClient,
       cirisCore,
       cirisHtt4s,
       logbackX
     ),
-    excludeDependencies ++= Seq("org.typelevel" % "cats-core_2.13", "org.typelevel" % "cats-kernel_2.13"),
+    excludeDependencies ++= Seq("org.typelevel" % "cats-core_2.13", "org.typelevel" % "cats-kernel_2.13", "com.sksamuel.elastic4s" % "elastic4s-core_2.13", "com.sksamuel.elastic4s" % "elastic4s-domain_2.13", "com.sksamuel.elastic4s" % "elastic4s-http_2.13", "com.fasterxml.jackson.module" % "jackson-module-scala_2.13"),
     Compile / run / fork         := true,
   )
   .enablePlugins(JavaAppPackaging)

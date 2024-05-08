@@ -7,7 +7,7 @@ use alloy#simpleRestJson
 @simpleRestJson
 service SearchService {
   version: "3.0.0",
-  operations: [SearchForum]
+  operations: [SearchForum, CountForum]
 }
 
 @readonly
@@ -41,6 +41,8 @@ structure SearchForumInput {
 }
 
 structure ForumInputBody {
-  troll: Boolean
-  query: String
+  @required
+  text: String
+  @required
+  troll: Boolean = false
 }

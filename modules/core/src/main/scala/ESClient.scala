@@ -41,22 +41,18 @@ object ESClient {
         q: Queryable[A]
     ): F[SearchResponse] =
       client
-        .execute { q.searchDef(query)(from, size)(index) }
+        .execute(q.searchDef(query)(from, size)(index))
         .flatMap(toResult)
         .map(SearchResponse.apply)
 
     def count[A](index: Index, query: A)(implicit q: Queryable[A]): F[CountResponse] =
       client
-        .execute {
-          q.countDef(query)(index)
-        }
+        .execute(q.countDef(query)(index))
         .flatMap(toResult)
         .map(CountResponse.apply)
 
     def store(index: Index, id: Id, obj: JsonObject): F[Response[IndexResponse]] =
-      client.execute {
-        indexInto(index.name).source(obj.json).id(id.value)
-      }
+      client.execute(indexInto(index.name).source(obj.json).id(id.value))
 
     def storeBulk(index: Index, objs: List[(String, JsonObject)]): F[Unit] =
       if (objs.isEmpty) ().pure[F]
@@ -70,9 +66,7 @@ object ESClient {
         }.void
 
     def deleteOne(index: Index, id: Id): F[Response[DeleteResponse]] =
-      client.execute {
-        deleteById(index.toES, id.value)
-      }
+      client.execute(deleteById(index.toES, id.value))
 
     def deleteMany(index: Index, ids: List[Id]): F[Response[BulkResponse]] =
       client.execute {
@@ -96,17 +90,13 @@ object ESClient {
 
     def refreshIndex(index: Index): F[Unit] =
       client
-        .execute {
-          ElasticDsl.refreshIndex(index.name)
-        }
+        .execute(ElasticDsl.refreshIndex(index.name))
         .void
         .recover { case _: Exception =>
           println(s"Failed to refresh index $index")
         }
 
     private def dropIndex(index: Index) =
-      client.execute {
-        deleteIndex(index.name)
-      }
+      client.execute { deleteIndex(index.name) }
   }
 }
