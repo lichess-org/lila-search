@@ -58,6 +58,7 @@ lazy val play = project
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
+    scalaVersion := scala3,
     name := "lila-search-api",
     libraryDependencies ++= Seq(
       "com.disneystreaming.smithy4s" %% "smithy4s-core" % smithy4sVersion.value
@@ -69,6 +70,7 @@ lazy val app = (project in file("modules/app"))
   .settings(
     name := "lila-search",
     commonSettings,
+    scalaVersion := scala3,
     libraryDependencies ++= Seq(
       "com.disneystreaming.smithy4s" %% "smithy4s-http4s"         % smithy4sVersion.value,
       "com.disneystreaming.smithy4s" %% "smithy4s-http4s-swagger" % smithy4sVersion.value,

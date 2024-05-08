@@ -2,12 +2,12 @@ package lila.search
 package app
 
 import cats.effect.IO
-import cats.syntax.all._
-import ciris._
-import ciris.http4s._
-import com.comcast.ip4s._
+import cats.syntax.all.*
+import ciris.*
+import ciris.http4s.*
+import com.comcast.ip4s.*
 
-object AppConfig {
+object AppConfig:
 
   def load: IO[AppConfig] = appConfig.load[IO]
 
@@ -16,8 +16,6 @@ object AppConfig {
     ElasticConfig.config
   ).parMapN(AppConfig.apply)
 
-}
-
 case class AppConfig(
     server: HttpServerConfig,
     elastic: ElasticConfig
@@ -25,17 +23,15 @@ case class AppConfig(
 
 case class HttpServerConfig(host: Host, port: Port, shutdownTimeout: Int)
 
-object HttpServerConfig {
+object HttpServerConfig:
   private def host = env("HTTP_HOST").or(prop("http.host")).as[Host].default(ip"0.0.0.0")
-  private def port = env("HTTP_PORT").or(prop("http.port")).as[Port].default(port"9669")
+  private def port = env("HTTP_PORT").or(prop("http.port")).as[Port].default(port"9673")
   private def shutdownTimeout =
     env("HTTP_SHUTDOWN_TIMEOUT").or(prop("http.shutdown.timeout")).as[Int].default(30)
   def config = (host, port, shutdownTimeout).parMapN(HttpServerConfig.apply)
-}
 
 case class ElasticConfig(uri: String)
 
-object ElasticConfig {
-  private def uri = env("ELASTIC_URI").or(prop("elastic.uri")).as[String]
+object ElasticConfig:
+  private def uri = env("ELASTIC_URI").or(prop("elastic.uri")).as[String].default("http://127.0.0.1:9200")
   def config      = uri.map(ElasticConfig.apply)
-}

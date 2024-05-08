@@ -39,7 +39,7 @@ object TeamQuery {
 
     private def makeQuery(team: Team) = must {
       parsed(team).terms.map { term =>
-        multiMatchQuery(term).fields(searchableFields*)
+        multiMatchQuery(term).fields(searchableFields *)
       }
     }
   }
