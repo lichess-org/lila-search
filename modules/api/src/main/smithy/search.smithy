@@ -4,6 +4,7 @@ namespace lila.search.spec
 
 use alloy#simpleRestJson
 use smithy4s.meta#adt
+use smithy.api#default
 
 @simpleRestJson
 service SearchService {
@@ -64,9 +65,62 @@ structure Study {
   userId: String
 }
 
+structure Game {
+  user1: String
+  user2: String
+  winner: String
+  loser: String
+  winnerColor: Integer
+  @default
+  perf: Perfs
+  source: Integer
+  status: Integer
+  turns: IntRange
+  averageRating: IntRange
+  hasAi: Boolean
+  aiLevel: IntRange
+  rated: Boolean
+  date: DateRange
+  duration: IntRange
+  clock: Clocking
+  sorting: Sorting
+  analysed: Boolean
+  whiteUser: String
+  blackUser: String
+}
+
+structure IntRange {
+  a: Integer
+  b: Integer
+}
+
+structure DateRange {
+  a: Timestamp
+  b: Timestamp
+}
+
+structure Clocking {
+  initMin: Integer
+  initMax: Integer
+  incMin: Integer
+  incMax: Integer
+}
+
+structure Sorting {
+  @required
+  f: String
+  @required
+  order: String
+}
+
+list Perfs {
+  member: Integer
+}
+
 @adt
 union Query {
   forum: Forum
-  team: Team
+  game: Game
   study: Study
+  team: Team
 }
