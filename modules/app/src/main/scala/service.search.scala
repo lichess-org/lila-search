@@ -35,13 +35,16 @@ object SearchServiceImpl:
       query match
         case q: Query.Forum => forum.ForumQuery.query.searchDef(q.to[lila.search.Forum])(from, size)
         case q: Query.Team  => team.TeamQuery.query.searchDef(q.to[lila.search.Team])(from, size)
+        case q: Query.Study => study.StudyQuery.query.searchDef(q.to[lila.search.Study])(from, size)
 
     def countDef(query: Query) =
       query match
         case q: Query.Forum => forum.ForumQuery.query.countDef(q.to[lila.search.Forum])
         case q: Query.Team  => team.TeamQuery.query.countDef(q.to[lila.search.Team])
+        case q: Query.Study => study.StudyQuery.query.countDef(q.to[lila.search.Study])
 
   extension (query: Query)
     def index = query match
       case q: Query.Forum => Index("forum")
       case q: Query.Team  => Index("team")
+      case q: Query.Study => Index("study")

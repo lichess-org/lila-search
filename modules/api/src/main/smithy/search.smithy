@@ -58,8 +58,15 @@ structure Team {
   text: String
 }
 
+structure Study {
+  @required
+  text: String
+  userId: String
+}
+
 @adt
 union Query {
   forum: Forum
   team: Team
+  study: Study
 }
