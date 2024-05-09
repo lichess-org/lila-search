@@ -61,10 +61,21 @@ lazy val api = (project in file("modules/api"))
   .settings(
     scalaVersion := scala3,
     name := "lila-search-api",
+    smithy4sWildcardArgument := "?",
     libraryDependencies ++= Seq(
       "com.disneystreaming.smithy4s" %% "smithy4s-core" % smithy4sVersion.value
     )
   )
+
+lazy val client = (project in file("modules/client"))
+  .enablePlugins(Smithy4sCodegenPlugin)
+  .settings(
+    scalaVersion := scala3,
+    name := "lila-search-client",
+    libraryDependencies ++= Seq(
+      "com.disneystreaming.smithy4s"  %% "smithy4s-http4s" % smithy4sVersion.value
+    )
+  ).dependsOn(api)
 
 lazy val app = (project in file("modules/app"))
   .enablePlugins(Smithy4sCodegenPlugin)
