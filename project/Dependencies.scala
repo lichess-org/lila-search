@@ -15,8 +15,8 @@ object Dependencies {
   val catsCore   = "org.typelevel" %% "cats-core"   % "2.10.0"
   val catsEffect = "org.typelevel" %% "cats-effect" % V.catsEffect
 
-  val fs2         = "co.fs2"  %% "fs2-core"           % V.fs2
-  val fs2IO       = "co.fs2"  %% "fs2-io"             % V.fs2
+  val fs2   = "co.fs2" %% "fs2-core" % V.fs2
+  val fs2IO = "co.fs2" %% "fs2-io"   % V.fs2
 
   val cirisCore  = "is.cir"             %% "ciris"        % V.ciris
   val cirisHtt4s = "is.cir"             %% "ciris-http4s" % V.ciris
@@ -28,10 +28,9 @@ object Dependencies {
   val http4sEmberClient = http4s("ember-client")
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
-  val logbackX  = "ch.qos.logback" % "logback-classic" % "1.5.6"
+  val logbackX = "ch.qos.logback" % "logback-classic" % "1.5.6"
 
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.0"
-
 
   val testContainers    = "com.dimafeng"        %% "testcontainers-scala-postgresql" % "0.41.3"     % Test
   val weaver            = "com.disneystreaming" %% "weaver-cats"                     % "0.8.4"      % Test
