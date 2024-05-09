@@ -21,19 +21,29 @@ inThisBuild(
 )
 
 val commonSettings = Seq(
+  scalaVersion := scala3,
+  excludeDependencies ++= Seq(
+    "org.typelevel"                % "cats-core_2.13",
+    "org.typelevel"                % "cats-kernel_2.13",
+    "com.sksamuel.elastic4s"       % "elastic4s-core_2.13",
+    "com.sksamuel.elastic4s"       % "elastic4s-domain_2.13",
+    "com.sksamuel.elastic4s"       % "elastic4s-http_2.13",
+    "com.fasterxml.jackson.module" % "jackson-module-scala_2.13",
+    "org.scala-lang.modules"       % "scala-collection-compat_2.13",
+    "com.disneystreaming.smithy4s" % "smithy4s-core_2.13"
+  )
 )
 
 lazy val core = project
   .in(file("modules/core"))
   .settings(
-    commonSettings,
     crossScalaVersions := supportedScalaVersions,
     tpolecatScalacOptions ++= Set(ScalacOptions.source3),
     name := "lila-search-core",
     libraryDependencies ++= Seq(
-      "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.5",
-      "org.typelevel"          %% "cats-core"               % "2.10.0",
-      "joda-time"               % "joda-time"               % "2.12.7"
+      elastic4sJavaClient,
+      catsCore,
+      "joda-time" % "joda-time" % "2.12.7"
     )
   )
 
@@ -42,7 +52,6 @@ lazy val play = project
   .enablePlugins(PlayScala)
   .disablePlugins(PlayFilters)
   .settings(
-    commonSettings,
     tpolecatExcludeOptions += ScalacOptions.fatalWarnings,
     name := "lila-search",
     libraryDependencies ++= Seq(
@@ -59,8 +68,8 @@ lazy val play = project
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
-    scalaVersion             := scala3,
     name                     := "lila-search-api",
+    commonSettings,
     smithy4sWildcardArgument := "?",
     libraryDependencies ++= Seq(
       smithy4sCore
@@ -68,10 +77,9 @@ lazy val api = (project in file("modules/api"))
   )
 
 lazy val client = (project in file("modules/client"))
-  .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
-    scalaVersion := scala3,
-    name         := "lila-search-client",
+    name := "lila-search-client",
+    commonSettings,
     libraryDependencies ++= Seq(
       smithy4sJson,
       playWS
@@ -80,15 +88,13 @@ lazy val client = (project in file("modules/client"))
   .dependsOn(api)
 
 lazy val app = (project in file("modules/app"))
-  .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     name := "lila-search-v3",
     commonSettings,
-    scalaVersion := scala3,
     libraryDependencies ++= Seq(
       smithy4sHttp4s,
       smithy4sHttp4sSwagger,
-      elastic4s,
+      elastic4sCatsEffect,
       catsCore,
       catsEffect,
       ducktape,
@@ -97,14 +103,6 @@ lazy val app = (project in file("modules/app"))
       cirisCore,
       cirisHtt4s,
       logbackX
-    ),
-    excludeDependencies ++= Seq(
-      "org.typelevel"                % "cats-core_2.13",
-      "org.typelevel"                % "cats-kernel_2.13",
-      "com.sksamuel.elastic4s"       % "elastic4s-core_2.13",
-      "com.sksamuel.elastic4s"       % "elastic4s-domain_2.13",
-      "com.sksamuel.elastic4s"       % "elastic4s-http_2.13",
-      "com.fasterxml.jackson.module" % "jackson-module-scala_2.13"
     ),
     Compile / run / fork := true
   )

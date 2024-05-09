@@ -5,6 +5,7 @@ object Dependencies {
   object V {
     val catsEffect = "3.5.4"
     val ciris      = "3.5.0"
+    val elastic4s  = "8.11.5"
     val fs2        = "3.10.2"
     val http4s     = "0.23.27"
     val iron       = "2.5.0"
@@ -36,7 +37,8 @@ object Dependencies {
 
   val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.7"
 
-  val elastic4s = "com.sksamuel.elastic4s" %% "elastic4s-effect-cats" % "8.11.5"
+  val elastic4sJavaClient = "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % V.elastic4s
+  val elastic4sCatsEffect = "com.sksamuel.elastic4s" %% "elastic4s-effect-cats"   % V.elastic4s
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
   val logbackX = "ch.qos.logback" % "logback-classic" % "1.5.6"
