@@ -3,9 +3,6 @@ package lila.search
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.fields.ElasticField
 import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index => ESIndex, Response }
-import com.sksamuel.elastic4s.requests.indexes.IndexResponse
-import com.sksamuel.elastic4s.requests.delete.DeleteResponse
-import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import com.sksamuel.elastic4s.{ Executor, Functor }
 import cats.syntax.all.*
 import cats.MonadThrow
@@ -20,10 +17,10 @@ trait ESClient[F[_]] {
 
   def search[A](index: Index, query: A, from: From, size: Size)(implicit q: Queryable[A]): F[SearchResponse]
   def count[A](index: Index, query: A)(implicit q: Queryable[A]): F[CountResponse]
-  def store(index: Index, id: Id, obj: JsonObject): F[Response[IndexResponse]]
+  def store(index: Index, id: Id, obj: JsonObject): F[Unit]
   def storeBulk(index: Index, objs: List[(String, JsonObject)]): F[Unit]
-  def deleteOne(index: Index, id: Id): F[Response[DeleteResponse]]
-  def deleteMany(index: Index, ids: List[Id]): F[Response[BulkResponse]]
+  def deleteOne(index: Index, id: Id): F[Unit]
+  def deleteMany(index: Index, ids: List[Id]): F[Unit]
   def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit]
   def refreshIndex(index: Index): F[Unit]
 
@@ -51,8 +48,8 @@ object ESClient {
         .flatMap(toResult)
         .map(CountResponse.apply)
 
-    def store(index: Index, id: Id, obj: JsonObject): F[Response[IndexResponse]] =
-      client.execute(indexInto(index.name).source(obj.json).id(id.value))
+    def store(index: Index, id: Id, obj: JsonObject): F[Unit] =
+      client.execute(indexInto(index.name).source(obj.json).id(id.value)).void
 
     def storeBulk(index: Index, objs: List[(String, JsonObject)]): F[Unit] =
       if (objs.isEmpty) ().pure[F]
@@ -65,17 +62,17 @@ object ESClient {
           }
         }.void
 
-    def deleteOne(index: Index, id: Id): F[Response[DeleteResponse]] =
-      client.execute(deleteById(index.toES, id.value))
+    def deleteOne(index: Index, id: Id): F[Unit] =
+      client.execute(deleteById(index.toES, id.value)).void
 
-    def deleteMany(index: Index, ids: List[Id]): F[Response[BulkResponse]] =
+    def deleteMany(index: Index, ids: List[Id]): F[Unit] =
       client.execute {
         ElasticDsl.bulk {
           ids.map { id =>
             deleteById(index.toES, id.value)
           }
         }
-      }
+      }.void
 
     def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit] =
       dropIndex(index) >> client.execute {

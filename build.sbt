@@ -102,6 +102,7 @@ lazy val app = (project in file("modules/app"))
       http4sEmberClient,
       cirisCore,
       cirisHtt4s,
+      log4Cats,
       logbackX
     ),
     Compile / run / fork := true
@@ -109,7 +110,16 @@ lazy val app = (project in file("modules/app"))
   .enablePlugins(JavaAppPackaging)
   .dependsOn(api, core)
 
+val e2e = (project in file("modules/e2e"))
+  .settings(
+    commonSettings,
+    libraryDependencies ++= Seq(
+      weaver
+    )
+  )
+  .dependsOn(client, app)
+
 lazy val root = project
   .in(file("."))
   .settings(publish := {}, publish / skip := true)
-  .aggregate(core, play, api, app, client)
+  .aggregate(core, play, api, app, client, e2e)

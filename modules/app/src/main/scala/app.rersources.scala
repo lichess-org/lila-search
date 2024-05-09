@@ -7,7 +7,7 @@ import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.cats.effect.instances.*
 import com.sksamuel.elastic4s.{ ElasticClient, ElasticProperties }
 
-class AppResources private (val esClient: ESClient[IO])
+class AppResources(val esClient: ESClient[IO])
 
 object AppResources:
 

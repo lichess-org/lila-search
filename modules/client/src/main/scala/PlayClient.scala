@@ -19,10 +19,10 @@ class PlayClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionCon
   import implicits.given
 
   override def count(query: Query): Future[CountResponse] =
-    request(s"$baseUrl/count", query)
+    request(s"$baseUrl/count", SearchInput(query))
 
   override def search(query: Query, from: Int, size: Int): Future[SearchResponse] =
-    request(s"$baseUrl/search/{from}/{int}", query)
+    request(s"$baseUrl/search/$from/$size", SearchInput(query))
 
   private def request[D: Schema, R: Schema](url: String, data: D): Future[R] =
     client
@@ -30,9 +30,17 @@ class PlayClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionCon
       .post(data)
       .flatMap:
         case res if res.status == 200 => Future(res.body[R])
-        case res                      => Future.failed(Exception(s"$url ${res.status}"))
+        case res                      => Future.failed(Exception(s"$url ${res.status} ${res.body}"))
+
+final case class SearchInput(query: Query)
 
 object implicits:
+
+  import smithy4s.schema.Schema.struct
+
+  given Schema[SearchInput] = struct(
+    Query.schema.required[SearchInput]("query", _.query)
+  )(SearchInput.apply)
 
   given [A](using JsonCodec[A]): BodyWritable[A] =
     BodyWritable(a => InMemoryBody(ByteString.fromArrayUnsafe(writeToArray(a))), "application/json")
