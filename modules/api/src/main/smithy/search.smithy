@@ -3,33 +3,34 @@ $version: "2"
 namespace lila.search.spec
 
 use alloy#simpleRestJson
+use smithy4s.meta#adt
 
 @simpleRestJson
 service SearchService {
   version: "3.0.0",
-  operations: [SearchForum, CountForum]
+  operations: [Search, Count]
 }
 
 @readonly
-@http(method: "POST", uri: "/search/forum/{from}/{size}", code: 200)
-operation SearchForum {
-  input: SearchForumInput
+@http(method: "POST", uri: "/search/{from}/{size}", code: 200)
+operation Search {
+  input: SearchInput
   output: SearchResponse
   errors: [InternalServerError]
 }
 
 @readonly
-@http(method: "POST", uri: "/count/forum", code: 200)
-operation CountForum {
-  input: ForumInputBody
+@http(method: "POST", uri: "/count", code: 200)
+operation Count {
+  input: CountInput
   output: CountResponse
   errors: [InternalServerError]
 }
 
-structure SearchForumInput {
+structure SearchInput {
 
   @required
-  body: ForumInputBody
+  query: Query
 
   @required
   @httpLabel
@@ -40,9 +41,25 @@ structure SearchForumInput {
   size: Integer
 }
 
-structure ForumInputBody {
+structure CountInput {
+  @required
+  query: Query
+}
+
+structure Forum {
   @required
   text: String
   @required
   troll: Boolean = false
+}
+
+structure Team {
+  @required
+  text: String
+}
+
+@adt
+union Query {
+  forum: Forum
+  team: Team
 }

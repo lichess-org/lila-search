@@ -13,6 +13,25 @@ import smithy4s.json.Json.given
 import smithy4s.schema.Schema
 import play.api.libs.ws.BodyReadable
 
+class PlayClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionContext)
+    extends SearchService[Future]:
+
+  import implicits.given
+
+  override def count(query: Query): Future[CountResponse] =
+    request(s"$baseUrl/count", query)
+
+  override def search(query: Query, from: Int, size: Int): Future[SearchResponse] =
+    request(s"$baseUrl/search/{from}/{int}", query)
+
+  private def request[D: Schema, R: Schema](url: String, data: D): Future[R] =
+    client
+      .url(url)
+      .post(data)
+      .flatMap:
+        case res if res.status == 200 => Future(res.body[R])
+        case res                      => Future.failed(Exception(s"$url ${res.status}"))
+
 object implicits:
 
   given [A](using JsonCodec[A]): BodyWritable[A] =
@@ -23,20 +42,3 @@ object implicits:
 
   def apply(client: StandaloneWSClient, url: String)(using ExecutionContext): SearchService[Future] =
     PlayClient(client, url)
-
-class PlayClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionContext)
-    extends SearchService[Future]:
-
-  import implicits.given
-
-  override def countForum(text: String, troll: Boolean): Future[CountResponse] =
-    request(s"$baseUrl/count/forum", ForumInputBody(text, troll))
-
-  override def searchForum(body: ForumInputBody, from: Int, size: Int): Future[SearchResponse] =
-    request(s"$baseUrl/search/forum/{from}/{int}", body)
-
-  private def request[D: Schema, R: Schema](url: String, data: D): Future[R] =
-    client.url(url).post(data).flatMap {
-      case res if res.status == 200 => Future(res.body[R])
-      case res                      => Future.failed(Exception(s"$url ${res.status}"))
-    }

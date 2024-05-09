@@ -10,18 +10,38 @@ import io.github.arainko.ducktape.*
 
 class SearchServiceImpl(esClient: ESClient[IO])(using Logger[IO]) extends SearchService[IO]:
 
-  override def countForum(text: String, troll: Boolean): IO[CountResponse] =
+  import SearchServiceImpl.{ given, * }
+
+  override def count(query: Query): IO[CountResponse] =
     esClient
-      .count(Index("forum"), Forum(text, troll))
+      .count(Index("forum"), query)
       .map(_.to[CountResponse])
       .handleErrorWith: e =>
-        error"Error in countForum: text=$text, troll=$troll" *>
+        error"Error in countForum: query=$query" *>
           IO.raiseError(InternalServerError("Internal server error"))
 
-  override def searchForum(body: ForumInputBody, from: Int, size: Int): IO[SearchResponse] =
+  override def search(query: Query, from: Int, size: Int): IO[SearchResponse] =
     esClient
-      .search(Index("forum"), Forum(body.text, body.troll), From(from), Size(size))
+      .search(query.index, query, From(from), Size(size))
       .map(_.to[SearchResponse])
       .handleErrorWith: e =>
-        error"Error in searchForum: body=$body, from=$from, size=$size" *>
+        error"Error in searchForum: query=$query, from=$from, size=$size" *>
           IO.raiseError(InternalServerError("Internal server error"))
+
+object SearchServiceImpl:
+
+  given Queryable[Query] with
+    def searchDef(query: Query)(from: From, size: Size) =
+      query match
+        case q: Query.Forum => forum.ForumQuery.query.searchDef(q.to[lila.search.Forum])(from, size)
+        case q: Query.Team  => team.TeamQuery.query.searchDef(q.to[lila.search.Team])(from, size)
+
+    def countDef(query: Query) =
+      query match
+        case q: Query.Forum => forum.ForumQuery.query.countDef(q.to[lila.search.Forum])
+        case q: Query.Team  => team.TeamQuery.query.countDef(q.to[lila.search.Team])
+
+  extension (query: Query)
+    def index = query match
+      case q: Query.Forum => Index("forum")
+      case q: Query.Team  => Index("team")
