@@ -63,7 +63,7 @@ lazy val api = (project in file("modules/api"))
     name                     := "lila-search-api",
     smithy4sWildcardArgument := "?",
     libraryDependencies ++= Seq(
-      "com.disneystreaming.smithy4s" %% "smithy4s-core" % smithy4sVersion.value
+      smithy4sCore
     )
   )
 
@@ -73,9 +73,8 @@ lazy val client = (project in file("modules/client"))
     scalaVersion := scala3,
     name         := "lila-search-client",
     libraryDependencies ++= Seq(
-      "com.disneystreaming.smithy4s" %% "smithy4s-http4s" % smithy4sVersion.value,
-      "com.typesafe.play" %% "play-ahc-ws-standalone"  % "2.2.7",
-      http4sEmberClient
+      smithy4sJson,
+      playWS
     )
   )
   .dependsOn(api)
@@ -87,9 +86,9 @@ lazy val app = (project in file("modules/app"))
     commonSettings,
     scalaVersion := scala3,
     libraryDependencies ++= Seq(
-      "com.disneystreaming.smithy4s" %% "smithy4s-http4s"         % smithy4sVersion.value,
-      "com.disneystreaming.smithy4s" %% "smithy4s-http4s-swagger" % smithy4sVersion.value,
-      "com.sksamuel.elastic4s"       %% "elastic4s-effect-cats"   % "8.11.5",
+      smithy4sHttp4s,
+      smithy4sHttp4sSwagger,
+      elastic4s,
       catsCore,
       catsEffect,
       ducktape,
