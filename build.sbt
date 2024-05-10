@@ -25,9 +25,9 @@ val commonSettings = Seq(
   excludeDependencies ++= Seq(
     "org.typelevel"                % "cats-core_2.13",
     "org.typelevel"                % "cats-kernel_2.13",
-    "com.sksamuel.elastic4s"       % "elastic4s-core_2.13",
-    "com.sksamuel.elastic4s"       % "elastic4s-domain_2.13",
-    "com.sksamuel.elastic4s"       % "elastic4s-http_2.13",
+    "nl.gn0s1s"                    % "elastic4s-core_2.13",
+    "nl.gn0s1s"                    % "elastic4s-domain_2.13",
+    "nl.gn0s1s"                    % "elastic4s-http_2.13",
     "com.fasterxml.jackson.module" % "jackson-module-scala_2.13",
     "org.scala-lang.modules"       % "scala-collection-compat_2.13",
     "com.disneystreaming.smithy4s" % "smithy4s-core_2.13"
@@ -68,7 +68,7 @@ lazy val play = project
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
-    name                     := "lila-search-api",
+    name := "lila-search-api",
     commonSettings,
     smithy4sWildcardArgument := "?",
     libraryDependencies ++= Seq(
