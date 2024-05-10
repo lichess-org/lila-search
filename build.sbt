@@ -21,13 +21,14 @@ lazy val core = project
   .in(file("modules/core"))
   .settings(
     commonSettings,
-    name := "core",
+    name         := "core",
     libraryDependencies ++= Seq(
-      "com.github.ornicar" %% "scalalib"                % "7.1.0",
-      "nl.gn0s1s"          %% "elastic4s-client-esjava" % "8.12.0",
-      "joda-time"           % "joda-time"               % "2.12.7"
+      "com.github.ornicar"     %% "scalalib"                % "7.1.0",
+      "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.5",
+      "joda-time" % "joda-time" % "2.12.7"
     )
   )
+
 
 lazy val play = project
   .in(file("play"))
@@ -36,18 +37,19 @@ lazy val play = project
   .settings(
     commonSettings,
     tpolecatExcludeOptions += ScalacOptions.fatalWarnings,
-    name := "lila-search",
+    name         := "lila-search",
     libraryDependencies ++= Seq(
-      "com.github.ornicar" %% "scalalib"       % "7.1.0",
-      "com.typesafe.play"  %% "play-json"      % "2.9.4",
-      "com.typesafe.play"  %% "play-json-joda" % "2.9.4"
+      "com.github.ornicar"     %% "scalalib"                % "7.1.0",
+      "com.typesafe.play"      %% "play-json"               % "2.9.4",
+      "com.typesafe.play"      %% "play-json-joda"          % "2.9.4"
     ),
     // Play provides two styles of routers, one expects its actions to be injected, the
     // other, legacy style, accesses its actions statically.
     routesGenerator := InjectedRoutesGenerator
-  )
-  .dependsOn(core)
+  ).dependsOn(core)
+
 
 lazy val root = project
   .in(file("."))
   .aggregate(core, play)
+
