@@ -43,6 +43,9 @@ object CompatSuite extends weaver.IOSuite:
   test("deleteByIds endpoint"): client =>
     IO.fromFuture(IO(client.deleteByIds(SpecIndex.Game, List("a", "b", "c")))).map(expect.same(_, ()))
 
+  test("mapping endpoint"): client =>
+    IO.fromFuture(IO(client.mapping(SpecIndex.Study))).map(expect.same(_, ()))
+
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", shutdownTimeout = 1),
     elastic = ElasticConfig("http://0.0.0.0:9200")

@@ -14,6 +14,13 @@ class SearchServiceImpl(esClient: ESClient[IO])(using Logger[IO]) extends Search
 
   import SearchServiceImpl.{ given, * }
 
+  override def mapping(index: Index): IO[Unit] =
+    esClient
+      .putMapping(index.transform, index.mapping)
+      .handleErrorWith: e =>
+        error"Error in mapping: index=$index" *>
+          IO.raiseError(InternalServerError("Internal server error"))
+
   override def deleteById(index: Index, id: String): IO[Unit] =
     esClient
       .deleteOne(index.transform, Id(id))
@@ -65,7 +72,13 @@ object SearchServiceImpl:
 
   extension (game: Query.Game) def transform: Game = game.to[Game]
 
-  extension (index: Index) def transform: lila.search.Index = lila.search.Index(index.value)
+  extension (index: Index)
+    def transform: lila.search.Index = lila.search.Index(index.value)
+    def mapping = index match
+      case Index.Forum => forum.Mapping.fields
+      case Index.Game  => game.Mapping.fields
+      case Index.Study => study.Mapping.fields
+      case Index.Team  => team.Mapping.fields
 
   given Queryable[Query] with
     def searchDef(query: Query)(from: From, size: Size) =

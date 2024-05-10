@@ -18,6 +18,12 @@ class PlayClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionCon
 
   import implicits.given
 
+  override def mapping(index: Index): Future[Unit] =
+    client
+      .url(s"$baseUrl/mapping/${index.name}")
+      .execute("POST")
+      .map(_ => ())
+
   override def deleteById(index: Index, id: String): Future[Unit] =
     client
       .url(s"$baseUrl/delete/${index.name}/$id")
