@@ -18,6 +18,12 @@ class PlayClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionCon
 
   import implicits.given
 
+  override def refresh(index: Index): Future[Unit] =
+    client
+      .url(s"$baseUrl/refresh/${index.name}")
+      .execute("POST")
+      .map(_ => ())
+
   override def mapping(index: Index): Future[Unit] =
     client
       .url(s"$baseUrl/mapping/${index.name}")

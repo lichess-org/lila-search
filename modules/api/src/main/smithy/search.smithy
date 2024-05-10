@@ -9,7 +9,7 @@ use smithy.api#default
 @simpleRestJson
 service SearchService {
   version: "3.0.0"
-  operations: [Search, Count, DeleteById, DeleteByIds, Mapping]
+  operations: [Search, Count, DeleteById, DeleteByIds, Mapping, Refresh]
 }
 
 @readonly
@@ -43,6 +43,12 @@ operation DeleteByIds {
 @http(method: "POST", uri: "/mapping/{index}", code: 200)
 operation Mapping {
   input: MappingInput
+  errors: [InternalServerError]
+}
+
+@http(method: "POST", uri: "/refresh/{index}", code: 200)
+operation Refresh {
+  input: RefreshInput
   errors: [InternalServerError]
 }
 
@@ -85,6 +91,12 @@ structure DeleteByIdsInput {
 }
 
 structure MappingInput {
+  @required
+  @httpLabel
+  index: Index
+}
+
+structure RefreshInput {
   @required
   @httpLabel
   index: Index

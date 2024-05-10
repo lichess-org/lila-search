@@ -14,6 +14,13 @@ class SearchServiceImpl(esClient: ESClient[IO])(using Logger[IO]) extends Search
 
   import SearchServiceImpl.{ given, * }
 
+  override def refresh(index: Index): IO[Unit] =
+    esClient
+      .refreshIndex(index.transform)
+      .handleErrorWith: e =>
+        error"Error in refresh: index=$index" *>
+          IO.raiseError(InternalServerError("Internal server error"))
+
   override def mapping(index: Index): IO[Unit] =
     esClient
       .putMapping(index.transform, index.mapping)
