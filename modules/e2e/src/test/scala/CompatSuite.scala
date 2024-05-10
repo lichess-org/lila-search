@@ -68,6 +68,47 @@ object CompatSuite extends weaver.IOSuite:
     )
     IO.fromFuture(IO(client.storeBulkForum(sources))).map(expect.same(_, ()))
 
+  test("store bulk game endpoint"): client =>
+    val sources = List(
+      lila.search.spec.GameSourceWithId(
+        "id1",
+        lila.search.spec
+          .GameSource("status1", 1, true, "perf1", 1, Timestamp(0, 0), "w1", "b1")
+      ),
+      lila.search.spec.GameSourceWithId(
+        "id2",
+        lila.search.spec
+          .GameSource("status2", 2, false, "perf2", 2, Timestamp(0, 0), "w2", "b2")
+      )
+    )
+    IO.fromFuture(IO(client.storeBulkGame(sources))).map(expect.same(_, ()))
+
+  test("store bulk study endpoint"): client =>
+    val sources = List(
+      lila.search.spec.StudySourceWithId(
+        "id1",
+        lila.search.spec.StudySource("name1", "owner1", Nil, "chapter names", "chapter texts", 12, true)
+      ),
+      lila.search.spec.StudySourceWithId(
+        "id2",
+        lila.search.spec.StudySource("name2", "owner2", Nil, "chapter names", "chapter texts", 12, false)
+      )
+    )
+    IO.fromFuture(IO(client.storeBulkStudy(sources))).map(expect.same(_, ()))
+
+  test("store bulk team endpoint"): client =>
+    val sources = List(
+      lila.search.spec.TeamSourceWithId(
+        "id1",
+        lila.search.spec.TeamSource("names1", "desc1", 100)
+      ),
+      lila.search.spec.TeamSourceWithId(
+        "id2",
+        lila.search.spec.TeamSource("names2", "desc2", 200)
+      )
+    )
+    IO.fromFuture(IO(client.storeBulkTeam(sources))).map(expect.same(_, ()))
+
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", shutdownTimeout = 1),
     elastic = ElasticConfig("http://0.0.0.0:9200")

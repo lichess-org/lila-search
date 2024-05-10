@@ -18,6 +18,24 @@ class PlayClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionCon
 
   import implicits.given
 
+  override def storeBulkTeam(sources: List[TeamSourceWithId]): Future[Unit] =
+    client
+      .url(s"$baseUrl/store-bulk/team")
+      .post(StoreBulkTeamInput(sources))
+      .map(_ => ())
+
+  override def storeBulkStudy(sources: List[StudySourceWithId]): Future[Unit] =
+    client
+      .url(s"$baseUrl/store-bulk/study")
+      .post(StoreBulkStudyInput(sources))
+      .map(_ => ())
+
+  override def storeBulkGame(sources: List[GameSourceWithId]): Future[Unit] =
+    client
+      .url(s"$baseUrl/store-bulk/game")
+      .post(StoreBulkGameInput(sources))
+      .map(_ => ())
+
   override def storeBulkForum(sources: List[ForumSourceWithId]): Future[Unit] =
     client
       .url(s"$baseUrl/store-bulk/forum")

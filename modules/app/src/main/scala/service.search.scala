@@ -16,6 +16,36 @@ class SearchServiceImpl(esClient: ESClient[IO])(using Logger[IO]) extends Search
 
   import SearchServiceImpl.{ given, * }
 
+  override def storeBulkTeam(sources: List[TeamSourceWithId]): IO[Unit] =
+    esClient
+      .storeBulk(
+        Index.Team.transform,
+        sources.map(s => s.id -> s.source)
+      )
+      .handleErrorWith: e =>
+        error"Error in storeBulkTeam: sources=$sources" *>
+          IO.raiseError(InternalServerError("Internal server error"))
+
+  override def storeBulkStudy(sources: List[StudySourceWithId]): IO[Unit] =
+    esClient
+      .storeBulk(
+        Index.Study.transform,
+        sources.map(s => s.id -> s.source)
+      )
+      .handleErrorWith: e =>
+        error"Error in storeBulkStudy: sources=$sources" *>
+          IO.raiseError(InternalServerError("Internal server error"))
+
+  override def storeBulkGame(sources: List[GameSourceWithId]): IO[Unit] =
+    esClient
+      .storeBulk(
+        Index.Game.transform,
+        sources.map(s => s.id -> s.source)
+      )
+      .handleErrorWith: e =>
+        error"Error in storeBulkGame: sources=$sources" *>
+          IO.raiseError(InternalServerError("Internal server error"))
+
   override def storeBulkForum(sources: List[ForumSourceWithId]): IO[Unit] =
     esClient
       .storeBulk(

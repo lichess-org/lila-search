@@ -10,7 +10,7 @@ use smithy.api#jsonName
 @simpleRestJson
 service SearchService {
   version: "3.0.0"
-  operations: [Search, Count, DeleteById, DeleteByIds, Mapping, Refresh, Store, StoreBulkForum]
+  operations: [Search, Count, DeleteById, DeleteByIds, Mapping, Refresh, Store, StoreBulkForum, StoreBulkGame, StoreBulkStudy, StoreBulkTeam]
 }
 
 @readonly
@@ -62,6 +62,24 @@ operation Store {
 @http(method: "POST", uri: "/store-bulk/forum", code: 200)
 operation StoreBulkForum {
   input: StoreBulkForumInput
+  errors: [InternalServerError]
+}
+
+@http(method: "POST", uri: "/store-bulk/game", code: 200)
+operation StoreBulkGame {
+  input: StoreBulkGameInput
+  errors: [InternalServerError]
+}
+
+@http(method: "POST", uri: "/store-bulk/study", code: 200)
+operation StoreBulkStudy {
+  input: StoreBulkStudyInput
+  errors: [InternalServerError]
+}
+
+@http(method: "POST", uri: "/store-bulk/team", code: 200)
+operation StoreBulkTeam {
+  input: StoreBulkTeamInput
   errors: [InternalServerError]
 }
 
@@ -130,8 +148,35 @@ structure StoreBulkForumInput {
   sources: ForumSources
 }
 
+structure StoreBulkGameInput {
+  @required
+  sources: GameSources
+}
+
+structure StoreBulkStudyInput {
+  @required
+  sources: StudySources
+}
+
+structure StoreBulkTeamInput {
+  @required
+  sources: TeamSources
+}
+
 list ForumSources {
   member: ForumSourceWithId
+}
+
+list GameSources {
+  member: GameSourceWithId
+}
+
+list StudySources {
+  member: StudySourceWithId
+}
+
+list TeamSources {
+  member: TeamSourceWithId
 }
 
 structure ForumSourceWithId {
@@ -139,6 +184,27 @@ structure ForumSourceWithId {
   id: String
   @required
   source: ForumSource
+}
+
+structure TeamSourceWithId {
+  @required
+  id: String
+  @required
+  source: TeamSource
+}
+
+structure StudySourceWithId {
+  @required
+  id: String
+  @required
+  source: StudySource
+}
+
+structure GameSourceWithId {
+  @required
+  id: String
+  @required
+  source: GameSource
 }
 
 structure Forum {
@@ -261,19 +327,15 @@ structure GameSource {
   @required
   @jsonName("c")
   winnerColor: Integer
-  @required
   @jsonName("a")
   averageRating: Integer
-  @required
   @jsonName("i")
-  hasAi: Boolean
+  ai: Integer
   @required
   @jsonName("d")
   date: Timestamp // or string?
-  @required
   @jsonName("l")
   duration: Integer
-  @required
   @jsonName("ct")
   clockInit: Integer
   @jsonName("ci")
