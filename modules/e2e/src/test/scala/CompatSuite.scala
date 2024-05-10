@@ -15,6 +15,7 @@ import play.api.libs.ws.*
 import play.api.libs.ws.ahc.*
 import lila.search.spec.{ Query, Index as SpecIndex }
 import scala.concurrent.ExecutionContext.Implicits.*
+import com.sksamuel.elastic4s.Indexable
 
 object CompatSuite extends weaver.IOSuite:
 
@@ -56,13 +57,17 @@ object CompatSuite extends weaver.IOSuite:
 
   def fakeClient: ESClient[IO] = new ESClient[IO]:
 
+    override def store[A](index: lila.search.Index, id: Id, obj: A)(implicit
+        indexable: Indexable[A]
+    ): IO[Unit] = IO.unit
+
+    override def storeBulk[A](index: lila.search.Index, objs: Seq[(String, A)])(implicit
+        indexable: Indexable[A]
+    ): IO[Unit] = IO.unit
+
     override def putMapping(index: Index, fields: Seq[ElasticField]): IO[Unit] = IO.unit
 
     override def refreshIndex(index: Index): IO[Unit] = IO.unit
-
-    override def storeBulk(index: Index, objs: List[(String, JsonObject)]): IO[Unit] = IO.unit
-
-    override def store(index: Index, id: Id, obj: JsonObject): IO[Unit] = IO.unit
 
     override def deleteOne(index: Index, id: Id): IO[Unit] = IO.unit
 

@@ -6,13 +6,17 @@ import play.api.libs.json._
 import play.api.mvc._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import com.sksamuel.elastic4s.Indexable
 
 class WebApi @Inject() (cc: ControllerComponents, client: ESClient[Future])(implicit ec: ExecutionContext)
     extends AbstractController(cc) {
 
+  implicit val indexableJsValue: Indexable[JsValue]   = (t: JsValue) => Json.stringify(t)
+  implicit val indexableJsObject: Indexable[JsObject] = (t: JsObject) => Json.stringify(t)
+
   def store(index: String, id: String) =
     JsObjectBody { obj =>
-      client.store(Index(index), Id(id), JsonObject(Json.stringify(obj))).inject(Ok(s"inserted $index/$id"))
+      client.store(Index(index), Id(id), obj).inject(Ok(s"inserted $index/$id"))
     }
 
   def deleteById(index: String, id: String) =
@@ -64,11 +68,8 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient[Future])(impl
 
   def storeBulk(index: String) =
     JsObjectBody { objs =>
-      val jsonObjs = objs.fields.collect { case (id, obj) =>
-        (id, JsonObject(Json.stringify(obj)))
-      }.toList
       Chronometer(s"bulk ${objs.fields.size} $index") {
-        client.storeBulk(Index(index), jsonObjs).map { _ =>
+        client.storeBulk(Index(index), objs.fields.toList).map { _ =>
           Ok("thx")
         }
       }

@@ -3,11 +3,9 @@ package lila.search
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
 import com.sksamuel.elastic4s.fields.ElasticField
 import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index => ESIndex, Response }
-import com.sksamuel.elastic4s.{ Executor, Functor }
+import com.sksamuel.elastic4s.{ Executor, Functor, Indexable }
 import cats.syntax.all.*
 import cats.MonadThrow
-
-case class JsonObject(json: String) extends AnyVal
 
 case class Index(name: String) extends AnyVal {
   def toES: ESIndex = ESIndex(name)
@@ -17,8 +15,8 @@ trait ESClient[F[_]] {
 
   def search[A](index: Index, query: A, from: From, size: Size)(implicit q: Queryable[A]): F[SearchResponse]
   def count[A](index: Index, query: A)(implicit q: Queryable[A]): F[CountResponse]
-  def store(index: Index, id: Id, obj: JsonObject): F[Unit]
-  def storeBulk(index: Index, objs: List[(String, JsonObject)]): F[Unit]
+  def store[A](index: Index, id: Id, obj: A)(implicit indexable: Indexable[A]): F[Unit]
+  def storeBulk[A](index: Index, objs: Seq[(String, A)])(implicit indexable: Indexable[A]): F[Unit]
   def deleteOne(index: Index, id: Id): F[Unit]
   def deleteMany(index: Index, ids: List[Id]): F[Unit]
   def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit]
@@ -48,16 +46,16 @@ object ESClient {
         .flatMap(toResult)
         .map(CountResponse.apply)
 
-    def store(index: Index, id: Id, obj: JsonObject): F[Unit] =
-      client.execute(indexInto(index.name).source(obj.json).id(id.value)).void
+    def store[A](index: Index, id: Id, obj: A)(implicit indexable: Indexable[A]): F[Unit] =
+      client.execute(indexInto(index.name).source(obj).id(id.value)).void
 
-    def storeBulk(index: Index, objs: List[(String, JsonObject)]): F[Unit] =
+    def storeBulk[A](index: Index, objs: Seq[(String, A)])(implicit indexable: Indexable[A]): F[Unit] =
       if (objs.isEmpty) ().pure[F]
       else
         client.execute {
           ElasticDsl.bulk {
             objs.map { case (id, obj) =>
-              indexInto(index.name).source(obj.json).id(id)
+              indexInto(index.name).source(obj).id(id)
             }
           }
         }.void
