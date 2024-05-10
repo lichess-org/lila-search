@@ -10,7 +10,7 @@ use smithy.api#jsonName
 @simpleRestJson
 service SearchService {
   version: "3.0.0"
-  operations: [Search, Count, DeleteById, DeleteByIds, Mapping, Refresh, Store]
+  operations: [Search, Count, DeleteById, DeleteByIds, Mapping, Refresh, Store, StoreBulkForum]
 }
 
 @readonly
@@ -56,6 +56,12 @@ operation Refresh {
 @http(method: "POST", uri: "/store/{id}", code: 200)
 operation Store {
   input: StoreInput
+  errors: [InternalServerError]
+}
+
+@http(method: "POST", uri: "/store-bulk/forum", code: 200)
+operation StoreBulkForum {
+  input: StoreBulkForumInput
   errors: [InternalServerError]
 }
 
@@ -117,6 +123,22 @@ structure StoreInput {
   @httpLabel
   @required
   id: String
+}
+
+structure StoreBulkForumInput {
+  @required
+  sources: ForumSources
+}
+
+list ForumSources {
+  member: ForumSourceWithId
+}
+
+structure ForumSourceWithId {
+  @required
+  id: String
+  @required
+  source: ForumSource
 }
 
 structure Forum {
@@ -300,7 +322,6 @@ structure TeamSource {
   nbMembers: Integer
 }
 
-@adt
 union Source {
   forum: ForumSource
   game: GameSource

@@ -16,9 +16,20 @@ class SearchServiceImpl(esClient: ESClient[IO])(using Logger[IO]) extends Search
 
   import SearchServiceImpl.{ given, * }
 
-  override def store(source: Source, id: String): IO[Unit] =
+  override def storeBulkForum(sources: List[ForumSourceWithId]): IO[Unit] =
     esClient
-      .store(source.index, Id(id), source)
+      .storeBulk(
+        Index.Forum.transform,
+        sources.map(s => s.id -> s.source)
+      )
+      .handleErrorWith: e =>
+        error"Error in storeBulkForum: sources=$sources" *>
+          IO.raiseError(InternalServerError("Internal server error"))
+
+  override def store(source: Source, id: String): IO[Unit] =
+    val (index, src) = source.extract
+    esClient
+      .store(index, Id(id), src)
       .handleErrorWith: e =>
         error"Error in store: source=$source, id=$id" *>
           IO.raiseError(InternalServerError("Internal server error"))
@@ -118,25 +129,21 @@ object SearchServiceImpl:
       case q: Query.Study => lila.search.Index("study")
       case q: Query.Team  => lila.search.Index("team")
 
-  // given Indexable[Source] = (s: Source) => writeToString(s)
-
   import smithy4s.json.Json.given
   import com.github.plokhotnyuk.jsoniter_scala.core._
-  given Schema[Source.ForumSource] = lila.search.spec.Source.ForumSource.schema
-  given Schema[Source.GameSource]  = lila.search.spec.Source.GameSource.schema
-  given Schema[Source.StudySource] = lila.search.spec.Source.StudySource.schema
-  given Schema[Source.TeamSource]  = lila.search.spec.Source.TeamSource.schema
 
-  given Indexable[Source] = (s: Source) =>
-    s match
-      case s: Source.ForumSource => writeToString[Source.ForumSource](s)
-      case s: Source.GameSource  => writeToString[Source.GameSource](s)
-      case s: Source.StudySource => writeToString[Source.StudySource](s)
-      case s: Source.TeamSource  => writeToString[Source.TeamSource](s)
+  given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
+  given Indexable[ForumSource | GameSource | StudySource | TeamSource] =
+    (a: ForumSource | GameSource | StudySource | TeamSource) =>
+      a match
+        case f: ForumSource => writeToString(f)
+        case g: GameSource  => writeToString(g)
+        case s: StudySource => writeToString(s)
+        case t: TeamSource  => writeToString(t)
 
   extension (source: Source)
-    def index = source match
-      case s: Source.ForumSource => lila.search.Index("forum")
-      case s: Source.GameSource  => lila.search.Index("game")
-      case s: Source.StudySource => lila.search.Index("study")
-      case s: Source.TeamSource  => lila.search.Index("team")
+    def extract = source match
+      case s: Source.ForumCase => lila.search.Index("forum") -> s.forum
+      case s: Source.GameCase  => lila.search.Index("game")  -> s.game
+      case s: Source.StudyCase => lila.search.Index("study") -> s.study
+      case s: Source.TeamCase  => lila.search.Index("team")  -> s.team

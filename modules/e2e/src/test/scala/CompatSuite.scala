@@ -16,6 +16,7 @@ import play.api.libs.ws.ahc.*
 import lila.search.spec.{ Query, Index as SpecIndex, Source }
 import scala.concurrent.ExecutionContext.Implicits.*
 import com.sksamuel.elastic4s.Indexable
+import smithy4s.Timestamp
 
 object CompatSuite extends weaver.IOSuite:
 
@@ -51,8 +52,21 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.refresh(SpecIndex.Forum))).map(expect.same(_, ()))
 
   test("store endpoint"): client =>
-    val source = Source.teamSource("names", "desc", 100)
+    val source = Source.team(lila.search.spec.TeamSource("names", "desc", 100))
     IO.fromFuture(IO(client.store(source, "id"))).map(expect.same(_, ()))
+
+  test("store bulk forum endpoint"): client =>
+    val sources = List(
+      lila.search.spec.ForumSourceWithId(
+        "id1",
+        lila.search.spec.ForumSource("body1", "topic1", "topid1", true, Timestamp(0, 0))
+      ),
+      lila.search.spec.ForumSourceWithId(
+        "id2",
+        lila.search.spec.ForumSource("body2", "topic2", "topid2", true, Timestamp(0, 0))
+      )
+    )
+    IO.fromFuture(IO(client.storeBulkForum(sources))).map(expect.same(_, ()))
 
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", shutdownTimeout = 1),

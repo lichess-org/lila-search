@@ -18,6 +18,12 @@ class PlayClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionCon
 
   import implicits.given
 
+  override def storeBulkForum(sources: List[ForumSourceWithId]): Future[Unit] =
+    client
+      .url(s"$baseUrl/store-bulk/forum")
+      .post(StoreBulkForumInput(sources))
+      .map(_ => ())
+
   override def store(source: Source, id: String): Future[Unit] =
     client
       .url(s"$baseUrl/store/$id")
