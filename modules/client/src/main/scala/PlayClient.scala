@@ -18,6 +18,12 @@ class PlayClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionCon
 
   import implicits.given
 
+  override def store(source: Source, id: String): Future[Unit] =
+    client
+      .url(s"$baseUrl/store/$id")
+      .post(source)
+      .map(_ => ())
+
   override def refresh(index: Index): Future[Unit] =
     client
       .url(s"$baseUrl/refresh/${index.name}")

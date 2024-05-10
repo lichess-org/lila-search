@@ -13,7 +13,7 @@ import com.comcast.ip4s.*
 import akka.actor.ActorSystem
 import play.api.libs.ws.*
 import play.api.libs.ws.ahc.*
-import lila.search.spec.{ Query, Index as SpecIndex }
+import lila.search.spec.{ Query, Index as SpecIndex, Source }
 import scala.concurrent.ExecutionContext.Implicits.*
 import com.sksamuel.elastic4s.Indexable
 
@@ -49,6 +49,10 @@ object CompatSuite extends weaver.IOSuite:
 
   test("refresh endpoint"): client =>
     IO.fromFuture(IO(client.refresh(SpecIndex.Forum))).map(expect.same(_, ()))
+
+  test("store endpoint"): client =>
+    val source = Source.teamSource("names", "desc", 100)
+    IO.fromFuture(IO(client.store(source, "id"))).map(expect.same(_, ()))
 
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", shutdownTimeout = 1),

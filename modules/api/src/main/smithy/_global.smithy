@@ -20,6 +20,10 @@ list Ids {
   member: String
 }
 
+list Strings {
+  member: String
+}
+
 structure CountResponse {
   @required
   count: Integer

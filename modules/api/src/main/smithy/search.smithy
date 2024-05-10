@@ -5,11 +5,12 @@ namespace lila.search.spec
 use alloy#simpleRestJson
 use smithy4s.meta#adt
 use smithy.api#default
+use smithy.api#jsonName
 
 @simpleRestJson
 service SearchService {
   version: "3.0.0"
-  operations: [Search, Count, DeleteById, DeleteByIds, Mapping, Refresh]
+  operations: [Search, Count, DeleteById, DeleteByIds, Mapping, Refresh, Store]
 }
 
 @readonly
@@ -49,6 +50,12 @@ operation Mapping {
 @http(method: "POST", uri: "/refresh/{index}", code: 200)
 operation Refresh {
   input: RefreshInput
+  errors: [InternalServerError]
+}
+
+@http(method: "POST", uri: "/store/{id}", code: 200)
+operation Store {
+  input: StoreInput
   errors: [InternalServerError]
 }
 
@@ -100,6 +107,16 @@ structure RefreshInput {
   @required
   @httpLabel
   index: Index
+}
+
+structure StoreInput {
+
+  @required
+  source: Source
+
+  @httpLabel
+  @required
+  id: String
 }
 
 structure Forum {
@@ -178,6 +195,117 @@ union Query {
   game: Game
   study: Study
   team: Team
+}
+
+structure ForumSource {
+  @required
+  @jsonName("bo")
+  body: String
+  @required
+  @jsonName("to")
+  topic: String
+  @required
+  @jsonName("ti")
+  topicId: String
+  @jsonName("au")
+  author: String
+  @required
+  @jsonName("tr")
+  troll: Boolean
+  @required
+  @jsonName("da")
+  date: Timestamp
+}
+
+structure GameSource {
+  @required
+  @jsonName("s")
+  status: String
+  @required
+  @jsonName("t")
+  turns: Integer
+  @required
+  @jsonName("r")
+  rated: Boolean
+  @required
+  @jsonName("p")
+  perf: String
+  @jsonName("u")
+  uids: Ids
+  @jsonName("w")
+  winner: String
+  @jsonName("o")
+  loser: String
+  @required
+  @jsonName("c")
+  winnerColor: Integer
+  @required
+  @jsonName("a")
+  averageRating: Integer
+  @required
+  @jsonName("i")
+  hasAi: Boolean
+  @required
+  @jsonName("d")
+  date: Timestamp // or string?
+  @required
+  @jsonName("l")
+  duration: Integer
+  @required
+  @jsonName("ct")
+  clockInit: Integer
+  @jsonName("ci")
+  clockInc: Integer
+  @jsonName("n")
+  analysed: Boolean
+  @required
+  @jsonName("wu")
+  whiteUser: String
+  @required
+  @jsonName("bu")
+  blackUser: String
+  @jsonName("so")
+  source: Integer
+}
+
+structure StudySource {
+  @required
+  name: String
+  @required
+  owner: String
+  @required
+  members: Ids
+  @required
+  chapterNames: String
+
+  @required
+  chapterTexts: String
+  @default
+  topics: Strings
+  @required
+  likes: Integer
+  @required
+  public: Boolean
+}
+
+structure TeamSource {
+  @required
+  @jsonName("na")
+  name: String
+  @required
+  @jsonName("de")
+  description: String
+  @required
+  @jsonName("nbm")
+  nbMembers: Integer
+}
+
+@adt
+union Source {
+  forum: ForumSource
+  game: GameSource
+  study: StudySource
+  team: TeamSource
 }
 
 enum Index {

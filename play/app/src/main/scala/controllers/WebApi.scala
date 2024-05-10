@@ -14,11 +14,6 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient[Future])(impl
   implicit val indexableJsValue: Indexable[JsValue]   = (t: JsValue) => Json.stringify(t)
   implicit val indexableJsObject: Indexable[JsObject] = (t: JsObject) => Json.stringify(t)
 
-  def store(index: String, id: String) =
-    JsObjectBody { obj =>
-      client.store(Index(index), Id(id), obj).inject(Ok(s"inserted $index/$id"))
-    }
-
   def deleteById(index: String, id: String) =
     Action.async {
       client.deleteOne(Index(index), Id(id)).inject(Ok(s"deleted $index/$id"))
@@ -64,6 +59,11 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient[Future])(impl
         case Some(m) =>
           client.putMapping(Index(index), m).inject(Ok(s"put $index mapping"))
       }
+    }
+
+  def store(index: String, id: String) =
+    JsObjectBody { obj =>
+      client.store(Index(index), Id(id), obj).inject(Ok(s"inserted $index/$id"))
     }
 
   def storeBulk(index: String) =

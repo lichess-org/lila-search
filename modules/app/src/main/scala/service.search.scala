@@ -9,10 +9,19 @@ import forum.ForumQuery.*
 import io.github.arainko.ducktape.*
 import org.joda.time.DateTime
 import smithy4s.Timestamp
+import com.sksamuel.elastic4s.Indexable
+import smithy4s.schema.Schema
 
 class SearchServiceImpl(esClient: ESClient[IO])(using Logger[IO]) extends SearchService[IO]:
 
   import SearchServiceImpl.{ given, * }
+
+  override def store(source: Source, id: String): IO[Unit] =
+    esClient
+      .store(source.index, Id(id), source)
+      .handleErrorWith: e =>
+        error"Error in store: source=$source, id=$id" *>
+          IO.raiseError(InternalServerError("Internal server error"))
 
   override def refresh(index: Index): IO[Unit] =
     esClient
@@ -108,3 +117,26 @@ object SearchServiceImpl:
       case q: Query.Game  => lila.search.Index("game")
       case q: Query.Study => lila.search.Index("study")
       case q: Query.Team  => lila.search.Index("team")
+
+  // given Indexable[Source] = (s: Source) => writeToString(s)
+
+  import smithy4s.json.Json.given
+  import com.github.plokhotnyuk.jsoniter_scala.core._
+  given Schema[Source.ForumSource] = lila.search.spec.Source.ForumSource.schema
+  given Schema[Source.GameSource]  = lila.search.spec.Source.GameSource.schema
+  given Schema[Source.StudySource] = lila.search.spec.Source.StudySource.schema
+  given Schema[Source.TeamSource]  = lila.search.spec.Source.TeamSource.schema
+
+  given Indexable[Source] = (s: Source) =>
+    s match
+      case s: Source.ForumSource => writeToString[Source.ForumSource](s)
+      case s: Source.GameSource  => writeToString[Source.GameSource](s)
+      case s: Source.StudySource => writeToString[Source.StudySource](s)
+      case s: Source.TeamSource  => writeToString[Source.TeamSource](s)
+
+  extension (source: Source)
+    def index = source match
+      case s: Source.ForumSource => lila.search.Index("forum")
+      case s: Source.GameSource  => lila.search.Index("game")
+      case s: Source.StudySource => lila.search.Index("study")
+      case s: Source.TeamSource  => lila.search.Index("team")
