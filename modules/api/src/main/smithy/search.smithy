@@ -8,8 +8,8 @@ use smithy.api#default
 
 @simpleRestJson
 service SearchService {
-  version: "3.0.0",
-  operations: [Search, Count]
+  version: "3.0.0"
+  operations: [Search, Count, DeleteById, DeleteByIds]
 }
 
 @readonly
@@ -25,6 +25,18 @@ operation Search {
 operation Count {
   input: CountInput
   output: CountResponse
+  errors: [InternalServerError]
+}
+
+@http(method: "POST", uri: "/delete/id/{index}/{id}", code: 200)
+operation DeleteById {
+  input: DeleteByIdInput
+  errors: [InternalServerError]
+}
+
+@http(method: "POST", uri: "/delete/ids/{index}", code: 200)
+operation DeleteByIds {
+  input: DeleteByIdsInput
   errors: [InternalServerError]
 }
 
@@ -45,6 +57,24 @@ structure SearchInput {
 structure CountInput {
   @required
   query: Query
+}
+
+structure DeleteByIdInput {
+  @required
+  @httpLabel
+  index: Index
+  @required
+  @httpLabel
+  id: String
+}
+
+structure DeleteByIdsInput {
+  @required
+  @httpLabel
+  index: Index
+
+  @required
+  ids: Ids
 }
 
 structure Forum {
@@ -123,4 +153,11 @@ union Query {
   game: Game
   study: Study
   team: Team
+}
+
+enum Index {
+  Forum = "forum"
+  Game = "game"
+  Study = "study"
+  Team = "team"
 }

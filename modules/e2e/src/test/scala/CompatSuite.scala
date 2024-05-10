@@ -13,7 +13,7 @@ import com.comcast.ip4s.*
 import akka.actor.ActorSystem
 import play.api.libs.ws.*
 import play.api.libs.ws.ahc.*
-import lila.search.spec.Query
+import lila.search.spec.{ Query, Index as SpecIndex }
 import scala.concurrent.ExecutionContext.Implicits.*
 
 object CompatSuite extends weaver.IOSuite:
@@ -36,6 +36,12 @@ object CompatSuite extends weaver.IOSuite:
   test("count endpoint"): client =>
     val query = Query.Team("foo")
     IO.fromFuture(IO(client.count(query))).map(expect.same(_, lila.search.spec.CountResponse(0)))
+
+  test("deleteById endpoint"): client =>
+    IO.fromFuture(IO(client.deleteById(SpecIndex.Game, "iddddd"))).map(expect.same(_, ()))
+
+  test("deleteByIds endpoint"): client =>
+    IO.fromFuture(IO(client.deleteByIds(SpecIndex.Game, List("a", "b", "c")))).map(expect.same(_, ()))
 
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", shutdownTimeout = 1),

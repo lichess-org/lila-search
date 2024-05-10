@@ -14,9 +14,23 @@ class SearchServiceImpl(esClient: ESClient[IO])(using Logger[IO]) extends Search
 
   import SearchServiceImpl.{ given, * }
 
+  override def deleteById(index: Index, id: String): IO[Unit] =
+    esClient
+      .deleteOne(index.transform, Id(id))
+      .handleErrorWith: e =>
+        error"Error in deleteById: index=$index, id=$id" *>
+          IO.raiseError(InternalServerError("Internal server error"))
+
+  override def deleteByIds(index: Index, ids: List[String]): IO[Unit] =
+    esClient
+      .deleteMany(index.transform, ids.map(Id))
+      .handleErrorWith: e =>
+        error"Error in deleteByIds: index=$index, ids=$ids" *>
+          IO.raiseError(InternalServerError("Internal server error"))
+
   override def count(query: Query): IO[CountResponse] =
     esClient
-      .count(Index("forum"), query)
+      .count(query.index, query)
       .map(_.to[CountResponse])
       .handleErrorWith: e =>
         error"Error in countForum: query=$query" *>
@@ -51,6 +65,8 @@ object SearchServiceImpl:
 
   extension (game: Query.Game) def transform: Game = game.to[Game]
 
+  extension (index: Index) def transform: lila.search.Index = lila.search.Index(index.value)
+
   given Queryable[Query] with
     def searchDef(query: Query)(from: From, size: Size) =
       query match
@@ -68,7 +84,7 @@ object SearchServiceImpl:
 
   extension (query: Query)
     def index = query match
-      case q: Query.Forum => Index("forum")
-      case q: Query.Game  => Index("game")
-      case q: Query.Study => Index("study")
-      case q: Query.Team  => Index("team")
+      case q: Query.Forum => lila.search.Index("forum")
+      case q: Query.Game  => lila.search.Index("game")
+      case q: Query.Study => lila.search.Index("study")
+      case q: Query.Team  => lila.search.Index("team")

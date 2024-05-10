@@ -18,6 +18,18 @@ class PlayClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionCon
 
   import implicits.given
 
+  override def deleteById(index: Index, id: String): Future[Unit] =
+    client
+      .url(s"$baseUrl/delete/${index.name}/$id")
+      .execute("POST")
+      .map(_ => ())
+
+  override def deleteByIds(index: Index, ids: List[String]): Future[Unit] =
+    client
+      .url(s"$baseUrl/delete/${index.name}")
+      .post(Ids(ids))
+      .map(_ => ())
+
   override def count(query: Query): Future[CountResponse] =
     request(s"$baseUrl/count", SearchInput(query))
 
