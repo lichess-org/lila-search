@@ -11,6 +11,7 @@ inThisBuild(
     scalaVersion  := scala213,
     versionScheme := Some("early-semver"),
     version       := "3.0.0-SNAPSHOT",
+    organization  := "org.lichess.search",
     run / fork    := true,
     run / javaOptions += "-Dconfig.override_with_env_vars=true",
     Compile / doc / sources                := Seq.empty,
@@ -68,7 +69,7 @@ lazy val play = project
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
-    name := "lila-search-api",
+    name := "api",
     commonSettings,
     smithy4sWildcardArgument := "?",
     libraryDependencies ++= Seq(
@@ -78,7 +79,7 @@ lazy val api = (project in file("modules/api"))
 
 lazy val client = (project in file("modules/client"))
   .settings(
-    name := "lila-search-client",
+    name := "client",
     commonSettings,
     libraryDependencies ++= Seq(
       smithy4sJson,
