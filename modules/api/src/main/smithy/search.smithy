@@ -308,7 +308,7 @@ structure ForumSource {
 structure GameSource {
   @required
   @jsonName("s")
-  status: String
+  status: Integer
   @required
   @jsonName("t")
   turns: Integer
@@ -317,7 +317,7 @@ structure GameSource {
   rated: Boolean
   @required
   @jsonName("p")
-  perf: String
+  perf: Integer
   @jsonName("u")
   uids: Ids
   @jsonName("w")
@@ -340,12 +340,11 @@ structure GameSource {
   clockInit: Integer
   @jsonName("ci")
   clockInc: Integer
+  @required
   @jsonName("n")
   analysed: Boolean
-  @required
   @jsonName("wu")
   whiteUser: String
-  @required
   @jsonName("bu")
   blackUser: String
   @jsonName("so")

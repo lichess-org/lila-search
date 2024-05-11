@@ -73,12 +73,12 @@ object CompatSuite extends weaver.IOSuite:
       lila.search.spec.GameSourceWithId(
         "id1",
         lila.search.spec
-          .GameSource("status1", 1, true, "perf1", 1, Timestamp(0, 0), "w1", "b1")
+          .GameSource(1, 1, true, 4, 1, Timestamp(0, 0), true)
       ),
       lila.search.spec.GameSourceWithId(
         "id2",
         lila.search.spec
-          .GameSource("status2", 2, false, "perf2", 2, Timestamp(0, 0), "w2", "b2")
+          .GameSource(2, 2, true, 4, 1, Timestamp(0, 0), false)
       )
     )
     IO.fromFuture(IO(client.storeBulkGame(sources))).map(expect.same(_, ()))
