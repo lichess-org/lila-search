@@ -9,7 +9,7 @@ import org.http4s.{ HttpApp, HttpRoutes }
 import org.typelevel.log4cats.Logger
 import smithy4s.http4s.SimpleRestJsonBuilder
 
-def Routes(resources: AppResources)(using Logger[IO]): Resource[IO, HttpApp[IO]] =
+def Routes(resources: AppResources, config: HttpServerConfig)(using Logger[IO]): Resource[IO, HttpApp[IO]] =
 
   val healthServiceImpl: HealthService[IO] = new HealthService.Default[IO](IO.stub)
 
@@ -28,4 +28,4 @@ def Routes(resources: AppResources)(using Logger[IO]): Resource[IO, HttpApp[IO]]
     .sequence
     .map(_.reduceK)
     .map(_ <+> docs)
-    .map(ApplyMiddleware)
+    .map(ApplyMiddleware(config))

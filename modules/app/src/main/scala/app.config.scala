@@ -21,14 +21,15 @@ case class AppConfig(
     elastic: ElasticConfig
 )
 
-case class HttpServerConfig(host: Host, port: Port, shutdownTimeout: Int)
+case class HttpServerConfig(host: Host, port: Port, apiLogger: Boolean, shutdownTimeout: Int)
 
 object HttpServerConfig:
-  private def host = env("HTTP_HOST").or(prop("http.host")).as[Host].default(ip"0.0.0.0")
-  private def port = env("HTTP_PORT").or(prop("http.port")).as[Port].default(port"9673")
+  private def host   = env("HTTP_HOST").or(prop("http.host")).as[Host].default(ip"0.0.0.0")
+  private def port   = env("HTTP_PORT").or(prop("http.port")).as[Port].default(port"9673")
+  private def logger = env("HTTP_API_LOGGER").or(prop("http.api.logger")).as[Boolean].default(false)
   private def shutdownTimeout =
     env("HTTP_SHUTDOWN_TIMEOUT").or(prop("http.shutdown.timeout")).as[Int].default(30)
-  def config = (host, port, shutdownTimeout).parMapN(HttpServerConfig.apply)
+  def config = (host, port, logger, shutdownTimeout).parMapN(HttpServerConfig.apply)
 
 case class ElasticConfig(uri: String)
 
