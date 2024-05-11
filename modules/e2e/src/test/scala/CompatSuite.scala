@@ -1,35 +1,35 @@
 package lila.search
 package test
 
+import akka.actor.ActorSystem
 import cats.effect.{ IO, Resource }
+import com.comcast.ip4s.*
+import com.sksamuel.elastic4s.Indexable
 import com.sksamuel.elastic4s.fields.ElasticField
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.noop.NoOpLogger
 import lila.search.app.AppResources
 import lila.search.app.SearchApp
-import lila.search.client.PlaySearchClient
 import lila.search.app.{ AppConfig, ElasticConfig, HttpServerConfig }
-import com.comcast.ip4s.*
-import akka.actor.ActorSystem
+import lila.search.client.SearchClient
+import lila.search.spec.{ Query, Index as SpecIndex, Source }
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.noop.NoOpLogger
 import play.api.libs.ws.*
 import play.api.libs.ws.ahc.*
-import lila.search.spec.{ Query, Index as SpecIndex, Source }
 import scala.concurrent.ExecutionContext.Implicits.*
-import com.sksamuel.elastic4s.Indexable
 import smithy4s.Timestamp
 
 object CompatSuite extends weaver.IOSuite:
 
   given Logger[IO] = NoOpLogger[IO]
 
-  override type Res = PlaySearchClient
+  override type Res = SearchClient
 
   override def sharedResource: Resource[IO, Res] =
     val res = AppResources(fakeClient)
     SearchApp(res, testAppConfig)
       .run()
       .flatMap(_ => wsClient)
-      .map(PlaySearchClient(_, "http://localhost:9999"))
+      .map(SearchClient.play(_, "http://localhost:9999"))
 
   test("search endpoint"): client =>
     val query = Query.Forum("foo")

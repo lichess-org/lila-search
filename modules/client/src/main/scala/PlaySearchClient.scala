@@ -19,58 +19,31 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
   import implicits.given
 
   override def storeBulkTeam(sources: List[TeamSourceWithId]): Future[Unit] =
-    client
-      .url(s"$baseUrl/store-bulk/team")
-      .post(StoreBulkTeamInput(sources))
-      .map(_ => ())
+    request_(s"$baseUrl/store-bulk/team", StoreBulkTeamInput(sources))
 
   override def storeBulkStudy(sources: List[StudySourceWithId]): Future[Unit] =
-    client
-      .url(s"$baseUrl/store-bulk/study")
-      .post(StoreBulkStudyInput(sources))
-      .map(_ => ())
+    request_(s"$baseUrl/store-bulk/study", StoreBulkStudyInput(sources))
 
   override def storeBulkGame(sources: List[GameSourceWithId]): Future[Unit] =
-    client
-      .url(s"$baseUrl/store-bulk/game")
-      .post(StoreBulkGameInput(sources))
-      .map(_ => ())
+    request_(s"$baseUrl/store-bulk/game", StoreBulkGameInput(sources))
 
   override def storeBulkForum(sources: List[ForumSourceWithId]): Future[Unit] =
-    client
-      .url(s"$baseUrl/store-bulk/forum")
-      .post(StoreBulkForumInput(sources))
-      .map(_ => ())
+    request_(s"$baseUrl/store-bulk/forum", StoreBulkForumInput(sources))
 
   override def store(id: String, source: Source): Future[Unit] =
-    client
-      .url(s"$baseUrl/store/$id")
-      .post(source)
-      .map(_ => ())
+    request_(s"$baseUrl/store/$id", SourceInput(source))
 
   override def refresh(index: Index): Future[Unit] =
-    client
-      .url(s"$baseUrl/refresh/${index.name}")
-      .execute("POST")
-      .map(_ => ())
+    request_(s"$baseUrl/refresh/${index.name}")
 
   override def mapping(index: Index): Future[Unit] =
-    client
-      .url(s"$baseUrl/mapping/${index.name}")
-      .execute("POST")
-      .map(_ => ())
+    request_(s"$baseUrl/mapping/${index.name}")
 
   override def deleteById(index: Index, id: String): Future[Unit] =
-    client
-      .url(s"$baseUrl/delete/${index.name}/$id")
-      .execute("POST")
-      .map(_ => ())
+    request_(s"$baseUrl/delete/${index.name}/$id")
 
   override def deleteByIds(index: Index, ids: List[String]): Future[Unit] =
-    client
-      .url(s"$baseUrl/delete/${index.name}")
-      .post(Ids(ids))
-      .map(_ => ())
+    request_(s"$baseUrl/delete/${index.name}", Ids(ids))
 
   override def count(query: Query): Future[CountResponse] =
     request(s"$baseUrl/count", SearchInput(query))
@@ -86,7 +59,24 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
         case res if res.status == 200 => Future(res.body[R])
         case res                      => Future.failed(Exception(s"$url ${res.status} ${res.body}"))
 
-final case class SearchInput(query: Query)
+  private def request_[D: Schema](url: String, data: D): Future[Unit] =
+    client
+      .url(url)
+      .post(data)
+      .flatMap:
+        case res if res.status == 200 => Future(())
+        case res                      => Future.failed(Exception(s"$url ${res.status} ${res.body}"))
+
+  private def request_(url: String): Future[Unit] =
+    client
+      .url(url)
+      .execute("POST")
+      .flatMap:
+        case res if res.status == 200 => Future(())
+        case res                      => Future.failed(Exception(s"$url ${res.status} ${res.body}"))
+
+final private case class SearchInput(query: Query)
+final private case class SourceInput(source: Source)
 
 object implicits:
 
@@ -95,6 +85,10 @@ object implicits:
   given Schema[SearchInput] = struct(
     Query.schema.required[SearchInput]("query", _.query)
   )(SearchInput.apply)
+
+  given Schema[SourceInput] = struct(
+    Source.schema.required[SourceInput]("source", _.source)
+  )(SourceInput.apply)
 
   given [A](using JsonCodec[A]): BodyWritable[A] =
     BodyWritable(a => InMemoryBody(ByteString.fromArrayUnsafe(writeToArray(a))), "application/json")
