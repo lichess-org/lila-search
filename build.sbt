@@ -41,6 +41,8 @@ lazy val core = project
     crossScalaVersions := supportedScalaVersions,
     tpolecatScalacOptions ++= Set(ScalacOptions.source3),
     name := "lila-search-core",
+    publish        := {},
+    publish / skip := true,
     libraryDependencies ++= Seq(
       elastic4sJavaClient,
       catsCore,
@@ -55,6 +57,8 @@ lazy val play = project
   .settings(
     tpolecatExcludeOptions += ScalacOptions.fatalWarnings,
     name := "lila-search",
+    publish        := {},
+    publish / skip := true,
     libraryDependencies ++= Seq(
       "com.github.ornicar" %% "scalalib"       % "7.1.0",
       "com.typesafe.play"  %% "play-json"      % "2.9.4",
@@ -91,6 +95,8 @@ lazy val client = (project in file("modules/client"))
 lazy val app = (project in file("modules/app"))
   .settings(
     name := "lila-search-v3",
+    publish        := {},
+    publish / skip := true,
     commonSettings,
     libraryDependencies ++= Seq(
       smithy4sHttp4s,
@@ -114,6 +120,8 @@ lazy val app = (project in file("modules/app"))
 val e2e = (project in file("modules/e2e"))
   .settings(
     commonSettings,
+    publish        := {},
+    publish / skip := true,
     libraryDependencies ++= Seq(
       weaver
     )
