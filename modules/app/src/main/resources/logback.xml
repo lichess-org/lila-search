@@ -19,4 +19,5 @@
     </root>
 
     <logger name="http4s"/>
+    <logger name="com.sksamuel.elastic4s" level="WARN"/>
 </configuration>
