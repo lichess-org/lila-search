@@ -56,7 +56,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using Logger[IO]) extends Search
         error"Error in storeBulkForum: sources=$sources" *>
           IO.raiseError(InternalServerError("Internal server error"))
 
-  override def store(source: Source, id: String): IO[Unit] =
+  override def store(id: String, source: Source): IO[Unit] =
     val (index, src) = source.extract
     esClient
       .store(index, Id(id), src)

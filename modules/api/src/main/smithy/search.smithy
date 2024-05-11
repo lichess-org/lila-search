@@ -135,12 +135,13 @@ structure RefreshInput {
 
 structure StoreInput {
 
-  @required
-  source: Source
-
   @httpLabel
   @required
   id: String
+
+  @required
+  source: Source
+
 }
 
 structure StoreBulkForumInput {

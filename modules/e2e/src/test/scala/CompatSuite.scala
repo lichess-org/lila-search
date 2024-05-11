@@ -7,7 +7,7 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 import lila.search.app.AppResources
 import lila.search.app.SearchApp
-import lila.search.client.PlayClient
+import lila.search.client.PlaySearchClient
 import lila.search.app.{ AppConfig, ElasticConfig, HttpServerConfig }
 import com.comcast.ip4s.*
 import akka.actor.ActorSystem
@@ -22,14 +22,14 @@ object CompatSuite extends weaver.IOSuite:
 
   given Logger[IO] = NoOpLogger[IO]
 
-  override type Res = PlayClient
+  override type Res = PlaySearchClient
 
   override def sharedResource: Resource[IO, Res] =
     val res = AppResources(fakeClient)
     SearchApp(res, testAppConfig)
       .run()
       .flatMap(_ => wsClient)
-      .map(PlayClient(_, "http://localhost:9999"))
+      .map(PlaySearchClient(_, "http://localhost:9999"))
 
   test("search endpoint"): client =>
     val query = Query.Forum("foo")
@@ -53,7 +53,7 @@ object CompatSuite extends weaver.IOSuite:
 
   test("store endpoint"): client =>
     val source = Source.team(lila.search.spec.TeamSource("names", "desc", 100))
-    IO.fromFuture(IO(client.store(source, "id"))).map(expect.same(_, ()))
+    IO.fromFuture(IO(client.store("id", source))).map(expect.same(_, ()))
 
   test("store bulk forum endpoint"): client =>
     val sources = List(
