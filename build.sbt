@@ -17,6 +17,7 @@ inThisBuild(
     Compile / doc / sources                := Seq.empty,
     Compile / packageDoc / publishArtifact := false,
     Compile / packageSrc / publishArtifact := false,
+    publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", "")))),
     resolvers += "lila-maven" at "https://raw.githubusercontent.com/ornicar/lila-maven/master"
   )
 )
@@ -40,7 +41,7 @@ lazy val core = project
   .settings(
     crossScalaVersions := supportedScalaVersions,
     tpolecatScalacOptions ++= Set(ScalacOptions.source3),
-    name := "lila-search-core",
+    name           := "lila-search-core",
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -56,7 +57,7 @@ lazy val play = project
   .disablePlugins(PlayFilters)
   .settings(
     tpolecatExcludeOptions += ScalacOptions.fatalWarnings,
-    name := "lila-search",
+    name           := "lila-search",
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -94,7 +95,7 @@ lazy val client = (project in file("modules/client"))
 
 lazy val app = (project in file("modules/app"))
   .settings(
-    name := "lila-search-v3",
+    name           := "lila-search-v3",
     publish        := {},
     publish / skip := true,
     commonSettings,
