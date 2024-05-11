@@ -34,16 +34,16 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
     request_(s"$baseUrl/store/$id", SourceInput(source))
 
   override def refresh(index: Index): Future[Unit] =
-    request_(s"$baseUrl/refresh/${index.name}")
+    request_(s"$baseUrl/refresh/${index.value}")
 
   override def mapping(index: Index): Future[Unit] =
-    request_(s"$baseUrl/mapping/${index.name}")
+    request_(s"$baseUrl/mapping/${index.value}")
 
   override def deleteById(index: Index, id: String): Future[Unit] =
-    request_(s"$baseUrl/delete/${index.name}/$id")
+    request_(s"$baseUrl/delete/id/${index.value}/$id")
 
   override def deleteByIds(index: Index, ids: List[String]): Future[Unit] =
-    request_(s"$baseUrl/delete/${index.name}", Ids(ids))
+    request_(s"$baseUrl/delete/ids/${index.value}", IdsInput(ids))
 
   override def count(query: Query): Future[CountResponse] =
     request(s"$baseUrl/count", SearchInput(query))
@@ -77,6 +77,7 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
 
 final private case class SearchInput(query: Query)
 final private case class SourceInput(source: Source)
+final private case class IdsInput(ids: List[String])
 
 object implicits:
 
@@ -89,6 +90,10 @@ object implicits:
   given Schema[SourceInput] = struct(
     Source.schema.required[SourceInput]("source", _.source)
   )(SourceInput.apply)
+
+  given Schema[IdsInput] = struct(
+    Ids.schema.required[IdsInput]("ids", x => Ids(x.ids))
+  )(x => IdsInput(x.value))
 
   given [A](using JsonCodec[A]): BodyWritable[A] =
     BodyWritable(a => InMemoryBody(ByteString.fromArrayUnsafe(writeToArray(a))), "application/json")
