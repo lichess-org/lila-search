@@ -32,7 +32,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
-        logger.error(e)("Error in storeBulkStudy: sources=$sources") *>
+        logger.error(e)(s"Error in storeBulkStudy: sources=$sources") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def storeBulkGame(sources: List[GameSourceWithId]): IO[Unit] =
@@ -42,7 +42,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
-        logger.error(e)("Error in storeBulkGame: sources=$sources") *>
+        logger.error(e)(s"Error in storeBulkGame: sources=$sources") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def storeBulkForum(sources: List[ForumSourceWithId]): IO[Unit] =
@@ -52,7 +52,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
-        logger.error(e)("Error in storeBulkForum: sources=$sources") *>
+        logger.error(e)(s"Error in storeBulkForum: sources=$sources") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def store(id: String, source: Source): IO[Unit] =
@@ -60,35 +60,35 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
     esClient
       .store(index, Id(id), src)
       .handleErrorWith: e =>
-        logger.error(e)("Error in store: source=$source, id=$id") *>
+        logger.error(e)(s"Error in store: source=$source, id=$id") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def refresh(index: Index): IO[Unit] =
     esClient
       .refreshIndex(index.transform)
       .handleErrorWith: e =>
-        logger.error(e)("Error in refresh: index=$index") *>
+        logger.error(e)(s"Error in refresh: index=$index") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def mapping(index: Index): IO[Unit] =
     esClient
       .putMapping(index.transform, index.mapping)
       .handleErrorWith: e =>
-        logger.error(e)("Error in mapping: index=$index") *>
+        logger.error(e)(s"Error in mapping: index=$index") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def deleteById(index: Index, id: String): IO[Unit] =
     esClient
       .deleteOne(index.transform, Id(id))
       .handleErrorWith: e =>
-        logger.error(e)("Error in deleteById: index=$index, id=$id") *>
+        logger.error(e)(s"Error in deleteById: index=$index, id=$id") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def deleteByIds(index: Index, ids: List[String]): IO[Unit] =
     esClient
       .deleteMany(index.transform, ids.map(Id))
       .handleErrorWith: e =>
-        logger.error(e)("Error in deleteByIds: index=$index, ids=$ids") *>
+        logger.error(e)(s"Error in deleteByIds: index=$index, ids=$ids") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def count(query: Query): IO[CountResponse] =
@@ -96,7 +96,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
       .count(query.index, query)
       .map(_.to[CountResponse])
       .handleErrorWith: e =>
-        logger.error(e)("Error in count: query=$query") *>
+        logger.error(e)(s"Error in count: query=$query") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def search(query: Query, from: Int, size: Int): IO[SearchResponse] =
@@ -104,7 +104,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
       .search(query.index, query, From(from), Size(size))
       .map(_.to[SearchResponse])
       .handleErrorWith: e =>
-        logger.error(e)("Error in searchForum: query=$query, from=$from, size=$size") *>
+        logger.error(e)(s"Error in searchForum: query=$query, from=$from, size=$size") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
 object SearchServiceImpl:
