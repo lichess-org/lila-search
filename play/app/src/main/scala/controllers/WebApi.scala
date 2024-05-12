@@ -5,25 +5,25 @@ import lila.search._
 import play.api.libs.json._
 import play.api.mvc._
 import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import com.sksamuel.elastic4s.Indexable
 
-class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec: ExecutionContext)
+class WebApi @Inject() (cc: ControllerComponents, client: ESClient[Future])(implicit ec: ExecutionContext)
     extends AbstractController(cc) {
 
-  def store(index: String, id: String) =
-    JsObjectBody { obj =>
-      client.store(Index(index), Id(id), JsonObject(Json.stringify(obj))) inject Ok(s"inserted $index/$id")
-    }
+  implicit val indexableJsValue: Indexable[JsValue]   = (t: JsValue) => Json.stringify(t)
+  implicit val indexableJsObject: Indexable[JsObject] = (t: JsObject) => Json.stringify(t)
 
   def deleteById(index: String, id: String) =
     Action.async {
-      client.deleteOne(Index(index), Id(id)) inject Ok(s"deleted $index/$id")
+      client.deleteOne(Index(index), Id(id)).inject(Ok(s"deleted $index/$id"))
     }
 
   def deleteByIds(index: String) =
     JsObjectBody { obj =>
       (obj \ "ids").asOpt[List[String]] match {
         case Some(ids) =>
-          client.deleteMany(Index(index), ids map Id) inject Ok(s"deleted ${ids.size} ids from $index")
+          client.deleteMany(Index(index), ids.map(Id)).inject(Ok(s"deleted ${ids.size} ids from $index"))
         case _ => fuccess(BadRequest(obj))
       }
     }
@@ -35,8 +35,8 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
         JsonParser.parse(Index(index))(obj) match {
           case None => fuccess(NotFound(s"Can't parse query for $index"))
           case Some(query) =>
-            client.search(Index(index), query, From(from), Size(size)) map { res =>
-              Ok(res.hitIds mkString ",")
+            client.search(Index(index), query, From(from), Size(size)).map { res =>
+              Ok(res.hitIds.mkString(","))
             }
         }
     }
@@ -46,7 +46,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
       JsonParser.parse(Index(index))(obj) match {
         case None => fuccess(NotFound(s"Can't parse query for $index"))
         case Some(query) =>
-          client.count(Index(index), query) map { res =>
+          client.count(Index(index), query).map { res =>
             Ok(res.count.toString)
           }
       }
@@ -54,20 +54,22 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
 
   def mapping(index: String) =
     Action.async {
-      Which mapping Index(index) match {
+      Which.mapping(Index(index)) match {
         case None => fuccess(NotFound(s"No such mapping: $index"))
         case Some(m) =>
-          client.putMapping(Index(index), m) inject Ok(s"put $index mapping")
+          client.putMapping(Index(index), m).inject(Ok(s"put $index mapping"))
       }
+    }
+
+  def store(index: String, id: String) =
+    JsObjectBody { obj =>
+      client.store(Index(index), Id(id), obj).inject(Ok(s"inserted $index/$id"))
     }
 
   def storeBulk(index: String) =
     JsObjectBody { objs =>
-      val jsonObjs = objs.fields.collect { case (id, obj) =>
-        (id, JsonObject(Json.stringify(obj)))
-      }.toList
       Chronometer(s"bulk ${objs.fields.size} $index") {
-        client.storeBulk(Index(index), jsonObjs) map { _ =>
+        client.storeBulk(Index(index), objs.fields.toList).map { _ =>
           Ok("thx")
         }
       }
@@ -75,7 +77,7 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
 
   def refresh(index: String) =
     JsObjectBody { _ =>
-      client.refreshIndex(Index(index)) map { _ =>
+      client.refreshIndex(Index(index)).map { _ =>
         Ok("thx")
       }
     }
@@ -87,12 +89,13 @@ class WebApi @Inject() (cc: ControllerComponents, client: ESClient)(implicit ec:
         .fold(
           err => fuccess(BadRequest(err.toString)),
           obj =>
-            f(obj) recover { case e: Exception =>
+            f(obj).recover { case e: Exception =>
               val msg = s"${Json.prettyPrint(obj)}\n\n${e.getMessage}"
               logger.warn(msg, e)
               BadRequest(msg)
             }
-        ) map (_ as TEXT)
+        )
+        .map(_.as(TEXT))
     }
 
   private val logger = play.api.Logger("search")

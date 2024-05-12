@@ -57,11 +57,14 @@ object GameQuery {
 
     def searchDef(query: Game)(from: From, size: Size) =
       index =>
-        search(index.name).query(
-          makeQuery(query)
-        ) sortBy query.sorting.definition start from.value size size.value timeout timeout
+        (search(index.name)
+          .query(
+            makeQuery(query)
+          )
+          .sortBy(query.sorting.definition)
+          .start(from.value) size size.value).timeout(timeout)
 
-    def countDef(query: Game) = index => search(index.name) query makeQuery(query) size 0 timeout timeout
+    def countDef(query: Game) = index => (search(index.name).query(makeQuery(query)) size 0).timeout(timeout)
 
     private def makeQuery(query: Game) = {
 
@@ -69,29 +72,29 @@ object GameQuery {
       def usernames = List(user1, user2).flatten
 
       def hasAiQueries =
-        hasAi.toList map { a =>
+        hasAi.toList.map { a =>
           a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
         }
 
-      def toQueries(query: Option[_], name: String) =
-        query.toList map {
+      def toQueries(query: Option[?], name: String) =
+        query.toList.map {
           case s: String => termQuery(name, s.toLowerCase)
           case x         => termQuery(name, x)
         }
 
       List(
-        usernames map { termQuery(Fields.uids, _) },
+        usernames.map { termQuery(Fields.uids, _) },
         toQueries(winner, Fields.winner),
         toQueries(loser, Fields.loser),
         toQueries(winnerColor, Fields.winnerColor),
-        turns queries Fields.turns,
-        averageRating queries Fields.averageRating,
-        duration queries Fields.duration,
-        clock.init queries Fields.clockInit,
-        clock.inc queries Fields.clockInc,
-        date map Date.formatter.print queries Fields.date,
+        turns.queries(Fields.turns),
+        averageRating.queries(Fields.averageRating),
+        duration.queries(Fields.duration),
+        clock.init.queries(Fields.clockInit),
+        clock.inc.queries(Fields.clockInc),
+        date.map(Date.formatter.print).queries(Fields.date),
         hasAiQueries,
-        (hasAi | true).fold(aiLevel queries Fields.ai, Nil),
+        (hasAi.getOrElse(true)).fold(aiLevel.queries(Fields.ai), Nil),
         if (perf.nonEmpty) List(termsQuery(Fields.perf, perf)) else Nil,
         toQueries(source, Fields.source),
         toQueries(rated, Fields.rated),
@@ -113,7 +116,7 @@ case class Sorting(f: String, order: String) {
   def definition =
     fieldSort {
       (Sorting.fieldKeys contains f).fold(f, Sorting.default.f)
-    } order (order.toLowerCase == "asc").fold(SortOrder.ASC, SortOrder.DESC)
+    }.order((order.toLowerCase == "asc").fold(SortOrder.ASC, SortOrder.DESC))
 }
 
 object Sorting {

@@ -26,17 +26,20 @@ object TeamQuery {
 
     def searchDef(query: Team)(from: From, size: Size) =
       index =>
-        search(index.name) query makeQuery(query) sortBy (
-          fieldSort(Fields.nbMembers) order SortOrder.DESC
-        ) start from.value size size.value
+        search(index.name)
+          .query(makeQuery(query))
+          .sortBy(
+            fieldSort(Fields.nbMembers).order(SortOrder.DESC)
+          )
+          .start(from.value) size size.value
 
-    def countDef(query: Team) = index => search(index.name) query makeQuery(query) size 0
+    def countDef(query: Team) = index => search(index.name).query(makeQuery(query)) size 0
 
     private def parsed(query: Team) = QueryParser(query.text, Nil)
 
     private def makeQuery(team: Team) = must {
       parsed(team).terms.map { term =>
-        multiMatchQuery(term) fields (searchableFields: _*)
+        multiMatchQuery(term).fields(searchableFields *)
       }
     }
   }

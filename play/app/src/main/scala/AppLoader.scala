@@ -3,6 +3,8 @@ import play.api.routing.Router
 import lila.search.ESClient
 import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.{ ElasticClient, ElasticProperties }
+import scala.concurrent.Future
+import cats.instances.future._
 
 class AppLoader extends ApplicationLoader {
   private var components: AppComponents = _
@@ -17,7 +19,7 @@ class AppComponents(context: ApplicationLoader.Context) extends BuiltInComponent
 
   def httpFilters = Nil
 
-  lazy val client = new ESClient({
+  lazy val client = ESClient.apply[Future]({
 
     val c = ElasticClient(JavaClient(ElasticProperties(configuration.get[String]("elasticsearch.uri"))))
 
@@ -25,7 +27,7 @@ class AppComponents(context: ApplicationLoader.Context) extends BuiltInComponent
       scala.concurrent.Future {
         play.api.Logger("search").info("closing now!")
         c.close()
-        Thread sleep 1000
+        Thread.sleep(1000)
       }
     )
 

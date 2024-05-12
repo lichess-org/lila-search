@@ -11,3 +11,4 @@ target
 /RUNNING_PID
 # docker sbt
 /?
+.sbtopts

@@ -31,20 +31,23 @@ object ForumQuery {
 
     def searchDef(query: Forum)(from: From, size: Size) =
       index =>
-        search(index.name) query makeQuery(query) sortBy (
-          fieldSort(Fields.date) order SortOrder.DESC
-        ) start from.value size size.value
+        search(index.name)
+          .query(makeQuery(query))
+          .sortBy(
+            fieldSort(Fields.date).order(SortOrder.DESC)
+          )
+          .start(from.value) size size.value
 
-    def countDef(query: Forum) = index => search(index.name) query makeQuery(query) size 0
+    def countDef(query: Forum) = index => search(index.name).query(makeQuery(query)) size 0
 
     private def parsed(text: String) = QueryParser(text, List("user"))
 
     private def makeQuery(query: Forum) = boolQuery().must(
       parsed(query.text).terms.map { term =>
-        multiMatchQuery(term) fields (searchableFields: _*)
+        multiMatchQuery(term).fields(searchableFields *)
       } ::: List(
-        parsed(query.text)("user") map { termQuery(Fields.author, _) },
-        !query.troll option termQuery(Fields.troll, false)
+        parsed(query.text)("user").map { termQuery(Fields.author, _) },
+        (!query.troll).option(termQuery(Fields.troll, false))
       ).flatten
     )
   }
