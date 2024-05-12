@@ -303,7 +303,7 @@ structure ForumSource {
   troll: Boolean
   @required
   @jsonName("da")
-  date: Timestamp
+  date: DateTime
 }
 
 structure GameSource {
@@ -334,7 +334,7 @@ structure GameSource {
   ai: Integer
   @required
   @jsonName("d")
-  date: Timestamp // or string?
+  date: DateTime
   @jsonName("l")
   duration: Integer
   @jsonName("ct")
