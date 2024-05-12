@@ -112,7 +112,7 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.storeBulkTeam(sources))).map(expect.same(_, ()))
 
   def testAppConfig = AppConfig(
-    server = HttpServerConfig(ip"0.0.0.0", port"9999", false, shutdownTimeout = 1),
+    server = HttpServerConfig(ip"0.0.0.0", port"9999", false, shutdownTimeout = 1, false),
     elastic = ElasticConfig("http://0.0.0.0:9200")
   )
 
