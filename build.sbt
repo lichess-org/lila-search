@@ -17,8 +17,7 @@ inThisBuild(
     Compile / doc / sources                := Seq.empty,
     Compile / packageDoc / publishArtifact := false,
     Compile / packageSrc / publishArtifact := false,
-    publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", "")))),
-    resolvers += "lila-maven" at "https://raw.githubusercontent.com/ornicar/lila-maven/master"
+    publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", ""))))
   )
 )
 
@@ -61,7 +60,6 @@ lazy val play = project
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "com.github.ornicar" %% "scalalib"       % "7.1.0",
       "com.typesafe.play"  %% "play-json"      % "2.9.4",
       "com.typesafe.play"  %% "play-json-joda" % "2.9.4"
     ),
