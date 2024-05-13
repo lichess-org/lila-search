@@ -60,8 +60,8 @@ lazy val play = project
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "com.typesafe.play"  %% "play-json"      % "2.9.4",
-      "com.typesafe.play"  %% "play-json-joda" % "2.9.4"
+      "com.typesafe.play" %% "play-json"      % "2.9.4",
+      "com.typesafe.play" %% "play-json-joda" % "2.9.4"
     ),
     // Play provides two styles of routers, one expects its actions to be injected, the
     // other, legacy style, accesses its actions statically.
@@ -122,9 +122,7 @@ val e2e = (project in file("modules/e2e"))
     commonSettings,
     publish        := {},
     publish / skip := true,
-    libraryDependencies ++= Seq(
-      weaver
-    )
+    libraryDependencies ++= Seq(weaver)
   )
   .dependsOn(client, app)
 
