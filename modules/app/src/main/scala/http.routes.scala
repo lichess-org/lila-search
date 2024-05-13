@@ -23,9 +23,14 @@ def Routes(resources: AppResources, config: HttpServerConfig)(using Logger[IO]):
 
   val docs = smithy4s.http4s.swagger.docs[IO](SearchService, HealthService)
 
-  NonEmptyList
-    .of(search, health)
-    .sequence
-    .map(_.reduceK)
-    .map(_ <+> docs)
-    .map(ApplyMiddleware(config))
+  val apiRoutes =
+    NonEmptyList
+      .of(search, health)
+      .sequence
+      .map(_.reduceK)
+
+  val allRoutes =
+    if config.enableDocs then apiRoutes.map(_ <+> docs)
+    else apiRoutes
+
+  allRoutes.map(ApplyMiddleware(config))
