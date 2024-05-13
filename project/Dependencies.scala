@@ -35,7 +35,7 @@ object Dependencies {
   val smithy4sHttp4sSwagger = smithy4s("http4s-swagger")
   val smithy4sJson          = smithy4s("json")
 
-  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.7"
+  val playWS = "org.playframework" %% "play-ahc-ws-standalone" % "3.0.3"
 
   val elastic4sJavaClient = "nl.gn0s1s" %% "elastic4s-client-esjava" % V.elastic4s
   val elastic4sCatsEffect = "nl.gn0s1s" %% "elastic4s-effect-cats"   % V.elastic4s
