@@ -35,7 +35,7 @@ object HttpServerConfig:
   private def logger = env("HTTP_API_LOGGER").or(prop("http.api.logger")).as[Boolean].default(false)
   private def shutdownTimeout =
     env("HTTP_SHUTDOWN_TIMEOUT").or(prop("http.shutdown.timeout")).as[Int].default(30)
-  private def enableDocs = env("HTTP_ENABLE_DOCS").or(prop("http.enable.docs")).as[Boolean].default(true)
+  private def enableDocs = env("HTTP_ENABLE_DOCS").or(prop("http.enable.docs")).as[Boolean].default(false)
   def config             = (host, port, logger, shutdownTimeout, enableDocs).parMapN(HttpServerConfig.apply)
 
 case class ElasticConfig(uri: String)
