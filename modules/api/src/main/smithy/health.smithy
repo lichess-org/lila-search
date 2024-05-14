@@ -13,15 +13,14 @@ service HealthService {
 @readonly
 @http(method: "GET", uri: "/health", code: 200)
 operation HealthCheck {
-  output: HealthStatusOutput
+  output := {
+    @required
+    elastic: ElasticStatus
+  }
 }
 
 enum ElasticStatus {
-  Ok = "ok"
-  Unreachable = "unreachable"
-}
-
-structure HealthStatusOutput {
-  @required
-  elastic: ElasticStatus
+  red = "red"
+  green = "green"
+  yellow = "yellow"
 }

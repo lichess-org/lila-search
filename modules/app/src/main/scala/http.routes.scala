@@ -11,7 +11,7 @@ import smithy4s.http4s.SimpleRestJsonBuilder
 
 def Routes(resources: AppResources, config: HttpServerConfig)(using Logger[IO]): Resource[IO, HttpApp[IO]] =
 
-  val healthServiceImpl: HealthService[IO] = new HealthService.Default[IO](IO.stub)
+  val healthServiceImpl: HealthService[IO] = HealthServiceImpl(resources.esClient)
 
   val searchServiceImpl: SearchService[IO] = SearchServiceImpl(resources.esClient)
 

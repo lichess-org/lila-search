@@ -21,12 +21,19 @@ trait ESClient[F[_]] {
   def deleteMany(index: Index, ids: List[Id]): F[Unit]
   def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit]
   def refreshIndex(index: Index): F[Unit]
+  def status: F[String]
 
 }
 
 object ESClient {
 
   def apply[F[_]: MonadThrow: Functor: Executor](client: ElasticClient) = new ESClient[F] {
+
+    def status: F[String] =
+      client
+        .execute(ElasticDsl.clusterHealth())
+        .flatMap(toResult)
+        .map(_.status)
 
     def toResult[A](response: Response[A]): F[A] =
       response
@@ -94,4 +101,5 @@ object ESClient {
     private def dropIndex(index: Index) =
       client.execute { deleteIndex(index.name) }
   }
+
 }

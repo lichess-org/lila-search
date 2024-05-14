@@ -141,6 +141,8 @@ object CompatSuite extends weaver.IOSuite:
         q: Queryable[A]
     ): IO[SearchResponse] = IO.pure(SearchResponse(Nil))
 
+    override def status: IO[String] = IO.pure("yellow")
+
   given system: ActorSystem = ActorSystem()
 
   def wsClient = Resource.make(IO(StandaloneAhcWSClient()))(x =>
