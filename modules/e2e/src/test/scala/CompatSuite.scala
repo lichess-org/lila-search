@@ -29,7 +29,7 @@ object CompatSuite extends weaver.IOSuite:
     SearchApp(res, testAppConfig)
       .run()
       .flatMap(_ => wsClient)
-      .map(SearchClient.play(_, "http://localhost:9999"))
+      .map(SearchClient.play(_, "http://localhost:9999/api"))
 
   val now = lila.search.spec.SearchDateTime.fromInstant(Instant.now())
 
