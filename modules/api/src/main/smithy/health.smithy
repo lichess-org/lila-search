@@ -11,7 +11,7 @@ service HealthService {
 }
 
 @readonly
-@http(method: "GET", uri: "/health", code: 200)
+@http(method: "GET", uri: "/api/health", code: 200)
 operation HealthCheck {
   output := {
     @required

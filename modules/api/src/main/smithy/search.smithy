@@ -14,7 +14,7 @@ service SearchService {
 }
 
 @readonly
-@http(method: "POST", uri: "/search/{from}/{size}", code: 200)
+@http(method: "POST", uri: "/api/search/{from}/{size}", code: 200)
 operation Search {
   input: SearchInput
   output: SearchResponse
@@ -22,62 +22,62 @@ operation Search {
 }
 
 @readonly
-@http(method: "POST", uri: "/count", code: 200)
+@http(method: "POST", uri: "/api/count", code: 200)
 operation Count {
   input: CountInput
   output: CountResponse
   errors: [InternalServerError]
 }
 
-@http(method: "POST", uri: "/delete/id/{index}/{id}", code: 200)
+@http(method: "POST", uri: "/api/delete/id/{index}/{id}", code: 200)
 operation DeleteById {
   input: DeleteByIdInput
   errors: [InternalServerError]
 }
 
-@http(method: "POST", uri: "/delete/ids/{index}", code: 200)
+@http(method: "POST", uri: "/api/delete/ids/{index}", code: 200)
 operation DeleteByIds {
   input: DeleteByIdsInput
   errors: [InternalServerError]
 }
 
-@http(method: "POST", uri: "/mapping/{index}", code: 200)
+@http(method: "POST", uri: "/api/mapping/{index}", code: 200)
 operation Mapping {
   input: MappingInput
   errors: [InternalServerError]
 }
 
-@http(method: "POST", uri: "/refresh/{index}", code: 200)
+@http(method: "POST", uri: "/api/refresh/{index}", code: 200)
 operation Refresh {
   input: RefreshInput
   errors: [InternalServerError]
 }
 
-@http(method: "POST", uri: "/store/{id}", code: 200)
+@http(method: "POST", uri: "/api/store/{id}", code: 200)
 operation Store {
   input: StoreInput
   errors: [InternalServerError]
 }
 
-@http(method: "POST", uri: "/store-bulk/forum", code: 200)
+@http(method: "POST", uri: "/api/store-bulk/forum", code: 200)
 operation StoreBulkForum {
   input: StoreBulkForumInput
   errors: [InternalServerError]
 }
 
-@http(method: "POST", uri: "/store-bulk/game", code: 200)
+@http(method: "POST", uri: "/api/store-bulk/game", code: 200)
 operation StoreBulkGame {
   input: StoreBulkGameInput
   errors: [InternalServerError]
 }
 
-@http(method: "POST", uri: "/store-bulk/study", code: 200)
+@http(method: "POST", uri: "/api/store-bulk/study", code: 200)
 operation StoreBulkStudy {
   input: StoreBulkStudyInput
   errors: [InternalServerError]
 }
 
-@http(method: "POST", uri: "/store-bulk/team", code: 200)
+@http(method: "POST", uri: "/api/store-bulk/team", code: 200)
 operation StoreBulkTeam {
   input: StoreBulkTeamInput
   errors: [InternalServerError]
