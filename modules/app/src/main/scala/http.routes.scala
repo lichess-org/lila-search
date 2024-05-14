@@ -21,7 +21,7 @@ def Routes(resources: AppResources, config: HttpServerConfig)(using Logger[IO]):
   val health: Resource[IO, HttpRoutes[IO]] =
     SimpleRestJsonBuilder.routes(healthServiceImpl).resource
 
-  val docs = smithy4s.http4s.swagger.docs[IO](SearchService, HealthService)
+  def docs = smithy4s.http4s.swagger.docs[IO](SearchService, HealthService)
 
   val apiRoutes =
     NonEmptyList
