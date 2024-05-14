@@ -13,11 +13,6 @@ structure InternalServerError {
   message: String
 }
 
-structure SearchResponse {
-  @required
-  hitIds: Ids
-}
-
 list Ids {
   member: String
 }
@@ -26,15 +21,8 @@ list Strings {
   member: String
 }
 
-structure CountResponse {
-  @required
-  count: Integer
-}
-
-
 @trait(selector: "string")
 structure DateTimeFormat {}
-
 
 apply lila.search.spec#DateTimeFormat @refinement(
    targetType: "lila.search.spec.SearchDateTime"

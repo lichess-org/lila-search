@@ -10,7 +10,7 @@ import lila.search.app.AppResources
 import lila.search.app.SearchApp
 import lila.search.app.{ AppConfig, ElasticConfig, HttpServerConfig }
 import lila.search.client.SearchClient
-import lila.search.spec.{ Query, Index as SpecIndex, Source }
+import lila.search.spec.{ Query, Index as SpecIndex, Source, SearchOutput, CountOutput }
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 import play.api.libs.ws.*
@@ -35,11 +35,11 @@ object CompatSuite extends weaver.IOSuite:
 
   test("search endpoint"): client =>
     val query = Query.Forum("foo")
-    IO.fromFuture(IO(client.search(query, 0, 10))).map(expect.same(_, lila.search.spec.SearchResponse(Nil)))
+    IO.fromFuture(IO(client.search(query, 0, 10))).map(expect.same(_, lila.search.spec.SearchOutput(Nil)))
 
   test("count endpoint"): client =>
     val query = Query.Team("foo")
-    IO.fromFuture(IO(client.count(query))).map(expect.same(_, lila.search.spec.CountResponse(0)))
+    IO.fromFuture(IO(client.count(query))).map(expect.same(_, lila.search.spec.CountOutput(0)))
 
   test("deleteById endpoint"): client =>
     IO.fromFuture(IO(client.deleteById(SpecIndex.Game, "iddddd"))).map(expect.same(_, ()))

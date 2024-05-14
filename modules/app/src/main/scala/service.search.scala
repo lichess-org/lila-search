@@ -91,18 +91,18 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
         logger.error(e)(s"Error in deleteByIds: index=$index, ids=$ids") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
-  override def count(query: Query): IO[CountResponse] =
+  override def count(query: Query): IO[CountOutput] =
     esClient
       .count(query.index, query)
-      .map(_.to[CountResponse])
+      .map(x => CountOutput(x.count))
       .handleErrorWith: e =>
         logger.error(e)(s"Error in count: query=$query") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
-  override def search(query: Query, from: Int, size: Int): IO[SearchResponse] =
+  override def search(query: Query, from: Int, size: Int): IO[SearchOutput] =
     esClient
       .search(query.index, query, From(from), Size(size))
-      .map(_.to[SearchResponse])
+      .map(x => SearchOutput(x.hitIds))
       .handleErrorWith: e =>
         logger.error(e)(s"Error in searchForum: query=$query, from=$from, size=$size") *>
           IO.raiseError(InternalServerError("Internal server error"))
