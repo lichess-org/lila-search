@@ -16,8 +16,8 @@ object NoopSearchClient extends SearchClient:
 
   override def deleteById(index: Index, id: String): Future[Unit] = Future.successful(())
 
-  override def search(query: Query, from: Int, size: Int): Future[SearchResponse] =
-    Future.successful(SearchResponse(Nil))
+  override def search(query: Query, from: Int, size: Int): Future[SearchOutput] =
+    Future.successful(SearchOutput(Nil))
 
   override def store(id: String, source: Source): Future[Unit] = Future.successful(())
 
@@ -25,6 +25,6 @@ object NoopSearchClient extends SearchClient:
 
   override def storeBulkStudy(sources: List[StudySourceWithId]): Future[Unit] = Future.successful(())
 
-  override def count(query: Query): Future[CountResponse] = Future.successful(CountResponse(0))
+  override def count(query: Query): Future[CountOutput] = Future.successful(CountOutput(0))
 
   override def mapping(index: Index): Future[Unit] = Future.successful(())

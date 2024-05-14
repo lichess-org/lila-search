@@ -10,7 +10,7 @@ inThisBuild(
   Seq(
     scalaVersion  := scala213,
     versionScheme := Some("early-semver"),
-    version       := "3.0.0-RC2",
+    version       := "3.0.0-RC3",
     organization  := "org.lichess.search",
     run / fork    := true,
     run / javaOptions += "-Dconfig.override_with_env_vars=true",

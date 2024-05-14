@@ -31,7 +31,10 @@ operation Search {
     size: Integer
   }
 
-  output: SearchResponse
+  output := {
+    @required
+    hitIds: Ids
+  }
 
   errors: [InternalServerError]
 }
@@ -44,7 +47,10 @@ operation Count {
     query: Query
   }
 
-  output: CountResponse
+  output := {
+    @required
+    count: Integer
+  }
 
   errors: [InternalServerError]
 }
