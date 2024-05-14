@@ -16,152 +16,142 @@ service SearchService {
 @readonly
 @http(method: "POST", uri: "/api/search/{from}/{size}", code: 200)
 operation Search {
-  input: SearchInput
+
+  input := {
+
+    @required
+    query: Query
+
+    @required
+    @httpLabel
+    from: Integer
+
+    @required
+    @httpLabel
+    size: Integer
+  }
+
   output: SearchResponse
+
   errors: [InternalServerError]
 }
 
 @readonly
 @http(method: "POST", uri: "/api/count", code: 200)
 operation Count {
-  input: CountInput
+  input := {
+    @required
+    query: Query
+  }
+
   output: CountResponse
+
   errors: [InternalServerError]
 }
 
 @http(method: "POST", uri: "/api/delete/id/{index}/{id}", code: 200)
 operation DeleteById {
-  input: DeleteByIdInput
+  input := {
+    @required
+    @httpLabel
+    index: Index
+
+    @required
+    @httpLabel
+    id: String
+  }
+
   errors: [InternalServerError]
 }
 
 @http(method: "POST", uri: "/api/delete/ids/{index}", code: 200)
 operation DeleteByIds {
-  input: DeleteByIdsInput
+  input := {
+    @required
+    @httpLabel
+    index: Index
+
+    @required
+    ids: Ids
+  }
   errors: [InternalServerError]
 }
 
 @http(method: "POST", uri: "/api/mapping/{index}", code: 200)
 operation Mapping {
-  input: MappingInput
+  input := {
+    @required
+    @httpLabel
+    index: Index
+  }
+
   errors: [InternalServerError]
 }
 
 @http(method: "POST", uri: "/api/refresh/{index}", code: 200)
 operation Refresh {
-  input: RefreshInput
+  input := {
+    @required
+    @httpLabel
+    index: Index
+  }
+
   errors: [InternalServerError]
 }
 
 @http(method: "POST", uri: "/api/store/{id}", code: 200)
 operation Store {
-  input: StoreInput
+  input := {
+
+    @httpLabel
+    @required
+    id: String
+
+    @required
+    source: Source
+  }
+
   errors: [InternalServerError]
 }
 
 @http(method: "POST", uri: "/api/store-bulk/forum", code: 200)
 operation StoreBulkForum {
-  input: StoreBulkForumInput
+  input := {
+    @required
+    sources: ForumSources
+  }
+
   errors: [InternalServerError]
 }
 
 @http(method: "POST", uri: "/api/store-bulk/game", code: 200)
 operation StoreBulkGame {
-  input: StoreBulkGameInput
+  input := {
+    @required
+    sources: GameSources
+  }
+
   errors: [InternalServerError]
 }
 
 @http(method: "POST", uri: "/api/store-bulk/study", code: 200)
 operation StoreBulkStudy {
-  input: StoreBulkStudyInput
+  input := {
+    @required
+    sources: StudySources
+  }
+
   errors: [InternalServerError]
 }
 
 @http(method: "POST", uri: "/api/store-bulk/team", code: 200)
 operation StoreBulkTeam {
-  input: StoreBulkTeamInput
+  input := {
+    @required
+    sources: TeamSources
+  }
+
   errors: [InternalServerError]
-}
-
-structure SearchInput {
-
-  @required
-  query: Query
-
-  @required
-  @httpLabel
-  from: Integer
-
-  @required
-  @httpLabel
-  size: Integer
-}
-
-structure CountInput {
-  @required
-  query: Query
-}
-
-structure DeleteByIdInput {
-  @required
-  @httpLabel
-  index: Index
-
-  @required
-  @httpLabel
-  id: String
-}
-
-structure DeleteByIdsInput {
-  @required
-  @httpLabel
-  index: Index
-
-  @required
-  ids: Ids
-}
-
-structure MappingInput {
-  @required
-  @httpLabel
-  index: Index
-}
-
-structure RefreshInput {
-  @required
-  @httpLabel
-  index: Index
-}
-
-structure StoreInput {
-
-  @httpLabel
-  @required
-  id: String
-
-  @required
-  source: Source
-
-}
-
-structure StoreBulkForumInput {
-  @required
-  sources: ForumSources
-}
-
-structure StoreBulkGameInput {
-  @required
-  sources: GameSources
-}
-
-structure StoreBulkStudyInput {
-  @required
-  sources: StudySources
-}
-
-structure StoreBulkTeamInput {
-  @required
-  sources: TeamSources
 }
 
 list ForumSources {
