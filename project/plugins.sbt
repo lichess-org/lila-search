@@ -1,4 +1,4 @@
-addSbtPlugin("com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.19")
+addSbtPlugin("com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.20")
 addSbtPlugin("com.typesafe.play"            % "sbt-plugin"           % "2.9.2")
 addSbtPlugin("nl.gn0s1s"                    % "sbt-dotenv"           % "3.0.0")
 addSbtPlugin("org.scalameta"                % "sbt-scalafmt"         % "2.5.2")
