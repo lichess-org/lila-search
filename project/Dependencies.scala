@@ -1,4 +1,5 @@
 import sbt.*
+import smithy4s.codegen.BuildInfo.version as smithy4sVersion
 
 object Dependencies {
 
@@ -9,11 +10,10 @@ object Dependencies {
     val fs2        = "3.10.2"
     val http4s     = "0.23.27"
     val iron       = "2.5.0"
-    val smithy4s   = "0.18.20"
   }
 
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
-  def smithy4s(artifact: String) = "com.disneystreaming.smithy4s" %% s"smithy4s-$artifact" % V.smithy4s
+  def smithy4s(artifact: String): ModuleID = "com.disneystreaming.smithy4s" %% s"smithy4s-$artifact" % smithy4sVersion
 
   val catsCore   = "org.typelevel" %% "cats-core"   % "2.10.0"
   val catsEffect = "org.typelevel" %% "cats-effect" % V.catsEffect
@@ -30,10 +30,10 @@ object Dependencies {
   val http4sClient      = http4s("client")
   val http4sEmberClient = http4s("ember-client")
 
-  val smithy4sCore          = smithy4s("core")
-  val smithy4sHttp4s        = smithy4s("http4s")
-  val smithy4sHttp4sSwagger = smithy4s("http4s-swagger")
-  val smithy4sJson          = smithy4s("json")
+  lazy val smithy4sCore          = smithy4s("core")
+  lazy val smithy4sHttp4s        = smithy4s("http4s")
+  lazy val smithy4sHttp4sSwagger = smithy4s("http4s-swagger")
+  lazy val smithy4sJson          = smithy4s("json")
 
   val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.7"
 
