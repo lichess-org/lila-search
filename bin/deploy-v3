@@ -33,6 +33,6 @@ echo "rsync complete"
 read -n 1 -p "Press [Enter] to continue."
 
 echo "Restart lila-search-v3"
-ssh $REMOTE "systemctl restart lichess-search-v3"
+ssh $REMOTE "chown -R lila-search-v3:lila-search-v3 /home/lila-search-v3 && systemctl restart lichess-search-v3"
 
 echo "Deploy complete"
