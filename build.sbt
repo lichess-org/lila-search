@@ -1,5 +1,4 @@
-import org.typelevel.scalacoptions.ScalacOption
-import org.typelevel.scalacoptions.ScalacOptions
+import org.typelevel.scalacoptions.{ ScalacOption, ScalacOptions }
 import Dependencies.*
 
 lazy val scala213               = "2.13.14"
@@ -34,6 +33,8 @@ val commonSettings = Seq(
     "com.disneystreaming.smithy4s" % "smithy4s-core_2.13"
   )
 )
+
+val x = smithy4sVersion
 
 lazy val core = project
   .in(file("modules/core"))
