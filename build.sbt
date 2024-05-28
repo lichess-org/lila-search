@@ -34,8 +34,6 @@ val commonSettings = Seq(
   )
 )
 
-val x = smithy4sVersion
-
 lazy val core = project
   .in(file("modules/core"))
   .settings(
