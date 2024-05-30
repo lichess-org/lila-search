@@ -15,7 +15,7 @@ object Dependencies {
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
   def smithy4s(artifact: String): ModuleID = "com.disneystreaming.smithy4s" %% s"smithy4s-$artifact" % smithy4sVersion
 
-  val catsCore   = "org.typelevel" %% "cats-core"   % "2.10.0"
+  val catsCore   = "org.typelevel" %% "cats-core"   % "2.12.0"
   val catsEffect = "org.typelevel" %% "cats-effect" % V.catsEffect
 
   val fs2   = "co.fs2" %% "fs2-core" % V.fs2
