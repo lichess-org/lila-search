@@ -104,7 +104,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
       .search(query.index, query, From(from), Size(size))
       .map(x => SearchOutput(x.hitIds))
       .handleErrorWith: e =>
-        logger.error(e)(s"Error in searchForum: query=$query, from=$from, size=$size") *>
+        logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
 object SearchServiceImpl:
