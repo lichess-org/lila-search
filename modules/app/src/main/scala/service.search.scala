@@ -110,7 +110,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
 object SearchServiceImpl:
 
   given Transformer.Derived[Timestamp, DateTime] =
-    Transformer.Derived.FromFunction(x => DateTime(x.epochSecond))
+    Transformer.Derived.FromFunction(x => DateTime(x.epochMilli))
 
   given intRange: Transformer.Derived[Option[IntRange], Range[Int]] =
     Transformer.Derived.FromFunction(_.fold(Range.none)(r => Range(r.a, r.b)))
