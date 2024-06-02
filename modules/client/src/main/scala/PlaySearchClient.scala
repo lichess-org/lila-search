@@ -12,6 +12,11 @@ import scala.concurrent.Future
 import smithy4s.json.Json.given
 import smithy4s.schema.Schema
 import play.api.libs.ws.BodyReadable
+import scala.util.control.NoStackTrace
+
+enum SearchError extends NoStackTrace:
+  case BadRequest(message: String)
+  case InternalServerError(message: String)
 
 class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionContext)
     extends SearchClient:
@@ -52,20 +57,29 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
     request(s"$baseUrl/search/$from/$size", SearchInput(query))
 
   private def request[D: Schema, R: Schema](url: String, data: D): Future[R] =
-    client
-      .url(url)
-      .post(data)
-      .flatMap:
-        case res if res.status == 200 => Future(res.body[R])
-        case res                      => Future.failed(Exception(s"$url ${res.status} ${res.body}"))
+    try
+      client
+        .url(url)
+        .post(data)
+        .flatMap:
+          case res if res.status == 200 => Future(res.body[R])
+          case res if res.status == 400 => Future.failed(SearchError.BadRequest(s"$url ${res.status} ${res.body}"))
+          case res => Future.failed(SearchError.InternalServerError(s"$url ${res.status} ${res.body}"))
+    catch
+      case e: JsonWriterException => Future.failed(SearchError.BadRequest(e.getMessage))
 
   private def request_[D: Schema](url: String, data: D): Future[Unit] =
-    client
-      .url(url)
-      .post(data)
-      .flatMap:
-        case res if res.status == 200 => Future(())
-        case res                      => Future.failed(Exception(s"$url ${res.status} ${res.body}"))
+    try
+      client
+        .url(url)
+        .post(data)
+        .flatMap:
+          case res if res.status == 200 => Future(())
+          case res if res.status == 400 => Future.failed(SearchError.BadRequest(s"$url ${res.status} ${res.body}"))
+          case res => Future.failed(SearchError.InternalServerError(s"$url ${res.status} ${res.body}"))
+    catch
+        case e: JsonWriterException =>
+          Future.failed(SearchError.BadRequest(e.getMessage))
 
   private def request_(url: String): Future[Unit] =
     client
@@ -73,7 +87,8 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
       .execute("POST")
       .flatMap:
         case res if res.status == 200 => Future(())
-        case res                      => Future.failed(Exception(s"$url ${res.status} ${res.body}"))
+        case res if res.status == 400 => Future.failed(SearchError.BadRequest(s"$url ${res.status} ${res.body}"))
+        case res => Future.failed(SearchError.InternalServerError(s"$url ${res.status} ${res.body}"))
 
 final private case class SearchInput(query: Query)
 final private case class SourceInput(source: Source)
