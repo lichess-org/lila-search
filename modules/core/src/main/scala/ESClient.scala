@@ -36,8 +36,7 @@ object ESClient {
         .map(_.status)
 
     def toResult[A](response: Response[A]): F[A] =
-      response
-        .fold[F[A]](MonadThrow[F].raiseError[A](new Exception(response.error.reason)))(MonadThrow[F].pure)
+      response.fold(MonadThrow[F].raiseError[A](response.error.asException))(MonadThrow[F].pure)
 
     def search[A](index: Index, query: A, from: From, size: Size)(implicit
         q: Queryable[A]
