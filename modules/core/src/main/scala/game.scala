@@ -58,9 +58,8 @@ object GameQuery {
     def searchDef(query: Game)(from: From, size: Size) =
       index =>
         (search(index.name)
-          .query(
-            makeQuery(query)
-          )
+          .query(makeQuery(query))
+          .fetchSource(false)
           .sortBy(query.sorting.definition)
           .start(from.value) size size.value).timeout(timeout)
 

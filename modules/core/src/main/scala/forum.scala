@@ -33,6 +33,7 @@ object ForumQuery {
       index =>
         search(index.name)
           .query(makeQuery(query))
+          .fetchSource(false)
           .sortBy(
             fieldSort(Fields.date).order(SortOrder.DESC)
           )

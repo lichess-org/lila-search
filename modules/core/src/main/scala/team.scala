@@ -28,6 +28,7 @@ object TeamQuery {
       index =>
         search(index.name)
           .query(makeQuery(query))
+          .fetchSource(false)
           .sortBy(
             fieldSort(Fields.nbMembers).order(SortOrder.DESC)
           )

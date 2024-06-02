@@ -41,6 +41,7 @@ object StudyQuery {
       index =>
         search(index.name)
           .query(makeQuery(query))
+          .fetchSource(false)
           .sortBy(
             fieldSort("_score").order(SortOrder.DESC),
             fieldSort(Fields.likes).order(SortOrder.DESC)
