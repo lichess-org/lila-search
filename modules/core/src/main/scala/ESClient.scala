@@ -51,15 +51,16 @@ object ESClient:
       client.execute(indexInto(index.name).source(obj).id(id.value)).void
 
     def storeBulk[A](index: Index, objs: Seq[(String, A)])(using indexable: Indexable[A]): F[Unit] =
-      if objs.isEmpty then ().pure[F]
-      else
-        client.execute {
+      client
+        .execute {
           ElasticDsl.bulk {
             objs.map { case (id, obj) =>
               indexInto(index.name).source(obj).id(id)
             }
           }
-        }.void
+        }
+        .void
+        .whenA(objs.nonEmpty)
 
     def deleteOne(index: Index, id: Id): F[Unit] =
       client.execute(deleteById(index.toES, id.value)).void
