@@ -93,7 +93,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def count(query: Query): IO[CountOutput] =
     esClient
       .count(query.index, query)
-      .map(x => CountOutput(x.count))
+      .map(_.to[CountOutput])
       .handleErrorWith: e =>
         logger.error(e)(s"Error in count: query=$query") *>
           IO.raiseError(InternalServerError("Internal server error"))
@@ -101,7 +101,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def search(query: Query, from: Int, size: Int): IO[SearchOutput] =
     esClient
       .search(query.index, query, From(from), Size(size))
-      .map(x => SearchOutput(x.hitIds))
+      .map(_.to[SearchOutput])
       .handleErrorWith: e =>
         logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
           IO.raiseError(InternalServerError("Internal server error"))
