@@ -1,8 +1,7 @@
 package lila.search
 
+import lila.search.game.{ Clocking, Sorting }
 import org.joda.time.DateTime
-import lila.search.game.Clocking
-import lila.search.game.Sorting
 
 sealed abstract class Query
 

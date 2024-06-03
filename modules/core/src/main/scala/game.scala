@@ -2,6 +2,7 @@ package lila.search
 package game
 
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
+
 import scala.concurrent.duration.*
 
 object Fields:

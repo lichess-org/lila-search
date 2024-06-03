@@ -2,10 +2,10 @@ package lila.search
 package app
 
 import cats.effect.*
-import org.typelevel.log4cats.Logger
-import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.cats.effect.instances.*
+import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.{ ElasticClient, ElasticProperties }
+import org.typelevel.log4cats.Logger
 
 class AppResources(val esClient: ESClient[IO])
 

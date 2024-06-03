@@ -3,9 +3,9 @@ package client
 
 import lila.search.spec.*
 import play.api.libs.ws.StandaloneWSClient
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+
 import scala.annotation.targetName
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait SearchClient extends SearchService[Future]:
   client =>
