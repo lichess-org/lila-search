@@ -5,6 +5,8 @@ import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
 import com.sksamuel.elastic4s.requests.searches.queries.Query as QueryDefinition
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
+case class Study(text: String, userId: Option[String])
+
 object Fields:
   val name         = "name"
   val owner        = "owner"

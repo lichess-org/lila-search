@@ -4,7 +4,11 @@ package app
 import cats.effect.*
 import com.sksamuel.elastic4s.Indexable
 import io.github.arainko.ducktape.*
+import lila.search.forum.Forum
+import lila.search.game.Game
 import lila.search.spec.*
+import lila.search.study.Study
+import lila.search.team.Team
 import org.joda.time.DateTime
 import org.typelevel.log4cats.Logger
 import smithy4s.Timestamp

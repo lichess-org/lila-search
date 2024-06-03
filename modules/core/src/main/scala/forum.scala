@@ -4,6 +4,8 @@ package forum
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
+case class Forum(text: String, troll: Boolean)
+
 object Fields:
   val body    = "bo"
   val topic   = "to"

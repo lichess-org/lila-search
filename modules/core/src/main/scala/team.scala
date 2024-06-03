@@ -4,6 +4,8 @@ package team
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
+case class Team(text: String)
+
 private object Fields:
   val name        = "na"
   val description = "de"
