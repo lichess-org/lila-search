@@ -9,6 +9,7 @@ inThisBuild(
     organization  := "org.lichess.search",
     run / fork    := true,
     run / javaOptions += "-Dconfig.override_with_env_vars=true",
+    semanticdbEnabled                      := true, // for scalafix
     Compile / doc / sources                := Seq.empty,
     Compile / packageDoc / publishArtifact := false,
     Compile / packageSrc / publishArtifact := false,
