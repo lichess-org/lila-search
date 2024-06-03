@@ -1,33 +1,30 @@
 package lila.search
 
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
+import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
 import com.sksamuel.elastic4s.fields.ElasticField
-import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index => ESIndex, Response }
+import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index as ESIndex, Response }
 import com.sksamuel.elastic4s.{ Executor, Functor, Indexable }
 import cats.syntax.all.*
 import cats.MonadThrow
 
-case class Index(name: String) extends AnyVal {
+case class Index(name: String) extends AnyVal:
   def toES: ESIndex = ESIndex(name)
-}
 
-trait ESClient[F[_]] {
+trait ESClient[F[_]]:
 
-  def search[A](index: Index, query: A, from: From, size: Size)(implicit q: Queryable[A]): F[SearchResponse]
-  def count[A](index: Index, query: A)(implicit q: Queryable[A]): F[CountResponse]
-  def store[A](index: Index, id: Id, obj: A)(implicit indexable: Indexable[A]): F[Unit]
-  def storeBulk[A](index: Index, objs: Seq[(String, A)])(implicit indexable: Indexable[A]): F[Unit]
+  def search[A](index: Index, query: A, from: From, size: Size)(using Queryable[A]): F[SearchResponse]
+  def count[A](index: Index, query: A)(using Queryable[A]): F[CountResponse]
+  def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): F[Unit]
+  def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): F[Unit]
   def deleteOne(index: Index, id: Id): F[Unit]
   def deleteMany(index: Index, ids: List[Id]): F[Unit]
   def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit]
   def refreshIndex(index: Index): F[Unit]
   def status: F[String]
 
-}
+object ESClient:
 
-object ESClient {
-
-  def apply[F[_]: MonadThrow: Functor: Executor](client: ElasticClient) = new ESClient[F] {
+  def apply[F[_]: MonadThrow: Functor: Executor](client: ElasticClient) = new ESClient[F]:
 
     def status: F[String] =
       client
@@ -38,33 +35,32 @@ object ESClient {
     def toResult[A](response: Response[A]): F[A] =
       response.fold(MonadThrow[F].raiseError[A](response.error.asException))(MonadThrow[F].pure)
 
-    def search[A](index: Index, query: A, from: From, size: Size)(implicit
-        q: Queryable[A]
-    ): F[SearchResponse] =
+    def search[A](index: Index, query: A, from: From, size: Size)(using q: Queryable[A]): F[SearchResponse] =
       client
         .execute(q.searchDef(query)(from, size)(index))
         .flatMap(toResult)
         .map(SearchResponse.apply)
 
-    def count[A](index: Index, query: A)(implicit q: Queryable[A]): F[CountResponse] =
+    def count[A](index: Index, query: A)(using q: Queryable[A]): F[CountResponse] =
       client
         .execute(q.countDef(query)(index))
         .flatMap(toResult)
         .map(CountResponse.apply)
 
-    def store[A](index: Index, id: Id, obj: A)(implicit indexable: Indexable[A]): F[Unit] =
+    def store[A](index: Index, id: Id, obj: A)(using indexable: Indexable[A]): F[Unit] =
       client.execute(indexInto(index.name).source(obj).id(id.value)).void
 
-    def storeBulk[A](index: Index, objs: Seq[(String, A)])(implicit indexable: Indexable[A]): F[Unit] =
-      if (objs.isEmpty) ().pure[F]
-      else
-        client.execute {
+    def storeBulk[A](index: Index, objs: Seq[(String, A)])(using indexable: Indexable[A]): F[Unit] =
+      client
+        .execute {
           ElasticDsl.bulk {
             objs.map { case (id, obj) =>
               indexInto(index.name).source(obj).id(id)
             }
           }
-        }.void
+        }
+        .void
+        .whenA(objs.nonEmpty)
 
     def deleteOne(index: Index, id: Id): F[Unit] =
       client.execute(deleteById(index.toES, id.value)).void
@@ -99,6 +95,3 @@ object ESClient {
 
     private def dropIndex(index: Index) =
       client.execute { deleteIndex(index.name) }
-  }
-
-}

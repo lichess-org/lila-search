@@ -7,7 +7,8 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.annotation.targetName
 
-trait SearchClient extends SearchService[Future] { client =>
+trait SearchClient extends SearchService[Future]:
+  client =>
   @targetName("storeBulkTeamWithPair")
   def storeBulkTeam(sources: List[(String, TeamSource)]): Future[Unit] =
     client.storeBulkTeam(sources.map(TeamSourceWithId.apply.tupled))
@@ -35,7 +36,6 @@ trait SearchClient extends SearchService[Future] { client =>
 
   def storeTeam(id: String, source: TeamSource): Future[Unit] =
     client.store(id, Source.team(source))
-}
 
 object SearchClient:
 

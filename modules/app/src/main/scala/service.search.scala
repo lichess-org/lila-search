@@ -4,7 +4,6 @@ package app
 import cats.effect.*
 import lila.search.spec.*
 import org.typelevel.log4cats.Logger
-import forum.ForumQuery.*
 import io.github.arainko.ducktape.*
 import org.joda.time.DateTime
 import smithy4s.Timestamp
@@ -94,7 +93,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def count(query: Query): IO[CountOutput] =
     esClient
       .count(query.index, query)
-      .map(x => CountOutput(x.count))
+      .map(_.to[CountOutput])
       .handleErrorWith: e =>
         logger.error(e)(s"Error in count: query=$query") *>
           IO.raiseError(InternalServerError("Internal server error"))
@@ -102,7 +101,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def search(query: Query, from: Int, size: Int): IO[SearchOutput] =
     esClient
       .search(query.index, query, From(from), Size(size))
-      .map(x => SearchOutput(x.hitIds))
+      .map(_.to[SearchOutput])
       .handleErrorWith: e =>
         logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
           IO.raiseError(InternalServerError("Internal server error"))
@@ -159,7 +158,7 @@ object SearchServiceImpl:
       case q: Query.Team  => lila.search.Index("team")
 
   import smithy4s.json.Json.given
-  import com.github.plokhotnyuk.jsoniter_scala.core._
+  import com.github.plokhotnyuk.jsoniter_scala.core.*
 
   given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
   given Indexable[ForumSource | GameSource | StudySource | TeamSource] =

@@ -1,11 +1,11 @@
 package lila.search
 package study
 
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
-import com.sksamuel.elastic4s.requests.searches.queries.{ Query => QueryDefinition }
+import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
+import com.sksamuel.elastic4s.requests.searches.queries.{ Query as QueryDefinition }
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
-object Fields {
+object Fields:
   val name         = "name"
   val owner        = "owner"
   val members      = "members"
@@ -17,10 +17,9 @@ object Fields {
   // val rank = "rank"
   val likes  = "likes"
   val public = "public"
-}
 
-object Mapping {
-  import Fields._
+object Mapping:
+  import Fields.*
   def fields =
     Seq(
       textField(name).copy(boost = Some(10), analyzer = Some("english")),
@@ -32,10 +31,9 @@ object Mapping {
       shortField(likes).copy(docValues = Some(true)), // sort by likes
       booleanField(public).copy(docValues = Some(false))
     )
-}
 
-object StudyQuery {
-  implicit val query: lila.search.Queryable[Study] = new lila.search.Queryable[Study] {
+object StudyQuery:
+  given query: lila.search.Queryable[Study] = new lila.search.Queryable[Study]:
 
     def searchDef(query: Study)(from: From, size: Size) =
       index =>
@@ -46,7 +44,8 @@ object StudyQuery {
             fieldSort("_score").order(SortOrder.DESC),
             fieldSort(Fields.likes).order(SortOrder.DESC)
           )
-          .start(from.value) size size.value
+          .start(from.value)
+          .size(size.value)
 
     def countDef(query: Study) = index => search(index.name).query(makeQuery(query)) size 0
 
@@ -54,7 +53,7 @@ object StudyQuery {
 
     private def makeQuery(query: Study) = {
       val matcher: QueryDefinition =
-        if (parsed(query.text).terms.isEmpty) matchAllQuery()
+        if parsed(query.text).terms.isEmpty then matchAllQuery()
         else
           multiMatchQuery(
             parsed(query.text).terms.mkString(" ")
@@ -77,7 +76,6 @@ object StudyQuery {
     private val selectPublic = termQuery(Fields.public, true)
 
     private def selectUserId(userId: String) = termQuery(Fields.members, userId)
-  }
 
   private val searchableFields = List(
     Fields.name,
@@ -87,5 +85,3 @@ object StudyQuery {
     Fields.chapterNames,
     Fields.chapterTexts
   )
-
-}

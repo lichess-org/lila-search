@@ -2,7 +2,7 @@ package lila.search
 package client
 
 import akka.util.ByteString
-import com.github.plokhotnyuk.jsoniter_scala.core._
+import com.github.plokhotnyuk.jsoniter_scala.core.*
 import lila.search.spec.*
 import play.api.libs.ws.BodyWritable
 import play.api.libs.ws.InMemoryBody

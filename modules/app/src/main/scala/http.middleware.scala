@@ -18,8 +18,7 @@ def ApplyMiddleware(config: HttpServerConfig)(routes: HttpRoutes[IO])(using Logg
   val middleware = autoSlash.andThen(timeout)
 
   def verboseLogger =
-    RequestLogger.httpApp[IO](true, true) andThen
-      ResponseLogger.httpApp[IO, Request[IO]](true, true)
+    RequestLogger.httpApp[IO](true, true).andThen(ResponseLogger.httpApp[IO, Request[IO]](true, true))
 
   val logger =
     if config.apiLogger then verboseLogger

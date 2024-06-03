@@ -6,26 +6,22 @@ import lila.search.game.Sorting
 
 sealed abstract class Query
 
-object Query {
-  implicit val query: Queryable[Query] =
-    new Queryable[Query] {
+object Query:
+  given query: Queryable[Query] =
+    new Queryable[Query]:
       def searchDef(query: Query)(from: From, size: Size) =
-        query match {
+        query match
           case q: Game  => game.GameQuery.query.searchDef(q)(from, size)
           case q: Study => study.StudyQuery.query.searchDef(q)(from, size)
           case q: Forum => forum.ForumQuery.query.searchDef(q)(from, size)
           case q: Team  => team.TeamQuery.query.searchDef(q)(from, size)
-        }
 
       def countDef(query: Query) =
-        query match {
+        query match
           case q: Game  => game.GameQuery.query.countDef(q)
           case q: Study => study.StudyQuery.query.countDef(q)
           case q: Forum => forum.ForumQuery.query.countDef(q)
           case q: Team  => team.TeamQuery.query.countDef(q)
-        }
-    }
-}
 
 case class Team(text: String) extends Query
 
