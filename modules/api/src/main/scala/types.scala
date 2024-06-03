@@ -3,6 +3,7 @@ package spec
 
 import cats.syntax.all.*
 import smithy4s.*
+
 import java.time.ZoneId
 
 opaque type SearchDateTime = String

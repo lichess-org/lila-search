@@ -1,8 +1,8 @@
 package lila.search
 package app
 
-import cats.syntax.all.*
 import cats.effect.*
+import cats.syntax.all.*
 import lila.search.spec.*
 import org.typelevel.log4cats.Logger
 

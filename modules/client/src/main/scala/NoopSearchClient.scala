@@ -2,6 +2,7 @@ package lila.search
 package client
 
 import lila.search.spec.*
+
 import scala.concurrent.Future
 
 object NoopSearchClient extends SearchClient:

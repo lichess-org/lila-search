@@ -1,6 +1,6 @@
 package lila.search
 
-import com.sksamuel.elastic4s.requests.searches.{ SearchResponse as ESR }
+import com.sksamuel.elastic4s.requests.searches.SearchResponse as ESR
 
 case class Id(value: String)
 

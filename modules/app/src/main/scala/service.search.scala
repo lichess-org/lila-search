@@ -2,12 +2,12 @@ package lila.search
 package app
 
 import cats.effect.*
-import lila.search.spec.*
-import org.typelevel.log4cats.Logger
-import io.github.arainko.ducktape.*
-import org.joda.time.DateTime
-import smithy4s.Timestamp
 import com.sksamuel.elastic4s.Indexable
+import io.github.arainko.ducktape.*
+import lila.search.spec.*
+import org.joda.time.DateTime
+import org.typelevel.log4cats.Logger
+import smithy4s.Timestamp
 import smithy4s.schema.Schema
 
 class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extends SearchService[IO]:

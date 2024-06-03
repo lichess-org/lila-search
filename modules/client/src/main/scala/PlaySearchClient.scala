@@ -4,14 +4,11 @@ package client
 import akka.util.ByteString
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import lila.search.spec.*
-import play.api.libs.ws.BodyWritable
-import play.api.libs.ws.InMemoryBody
-import play.api.libs.ws.StandaloneWSClient
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import play.api.libs.ws.{ BodyReadable, BodyWritable, InMemoryBody, StandaloneWSClient }
 import smithy4s.json.Json.given
 import smithy4s.schema.Schema
-import play.api.libs.ws.BodyReadable
+
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
 enum SearchError extends NoStackTrace:

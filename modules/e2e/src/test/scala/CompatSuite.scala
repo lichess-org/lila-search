@@ -6,18 +6,16 @@ import cats.effect.{ IO, Resource }
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.Indexable
 import com.sksamuel.elastic4s.fields.ElasticField
-import lila.search.app.AppResources
-import lila.search.app.SearchApp
-import lila.search.app.{ AppConfig, ElasticConfig, HttpServerConfig }
-import lila.search.client.SearchClient
-import lila.search.spec.{ Query, Index as SpecIndex, Source, SearchOutput, CountOutput }
+import lila.search.app.{ AppConfig, AppResources, ElasticConfig, HttpServerConfig, SearchApp }
+import lila.search.client.{ SearchClient, SearchError }
+import lila.search.spec.{ CountOutput, Index as SpecIndex, Query, SearchOutput, Source }
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 import play.api.libs.ws.*
 import play.api.libs.ws.ahc.*
-import scala.concurrent.ExecutionContext.Implicits.*
+
 import java.time.Instant
-import lila.search.client.SearchError
+import scala.concurrent.ExecutionContext.Implicits.*
 
 object CompatSuite extends weaver.IOSuite:
 
