@@ -28,3 +28,8 @@ Run tests:
 ```sh
 sbt test
 ```
+
+Run code format and auto code refactor with scalafmt & scalafix:
+```sh
+sbt prepare
+```

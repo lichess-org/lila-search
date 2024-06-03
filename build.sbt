@@ -104,3 +104,6 @@ lazy val root = project
   .in(file("."))
   .settings(publish := {}, publish / skip := true)
   .aggregate(core, api, app, client, e2e)
+
+addCommandAlias("prepare", "scalafixAll; scalafmtAll")
+addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")
