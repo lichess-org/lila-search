@@ -299,7 +299,7 @@ structure ForumSource {
   troll: Boolean
   @required
   @jsonName("da")
-  date: DateTime
+  date: Timestamp
 }
 
 structure GameSource {
