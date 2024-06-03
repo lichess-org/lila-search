@@ -19,8 +19,8 @@ case class Index(name: String) extends AnyVal:
 
 trait ESClient[F[_]]:
 
-  def search[A](index: Index, query: A, from: From, size: Size)(using Queryable[A]): F[SearchResponse]
-  def count[A](index: Index, query: A)(using Queryable[A]): F[CountResponse]
+  def search[A](query: A, from: From, size: Size)(using Queryable[A]): F[SearchResponse]
+  def count[A](query: A)(using Queryable[A]): F[CountResponse]
   def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): F[Unit]
   def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): F[Unit]
   def deleteOne(index: Index, id: Id): F[Unit]
@@ -45,15 +45,15 @@ object ESClient:
     private def unitOrFail[A](response: Response[A]): F[Unit] =
       response.fold(MonadThrow[F].raiseError[Unit](response.error.asException))(_ => MonadThrow[F].unit)
 
-    def search[A](index: Index, query: A, from: From, size: Size)(using q: Queryable[A]): F[SearchResponse] =
+    def search[A](query: A, from: From, size: Size)(using q: Queryable[A]): F[SearchResponse] =
       client
-        .execute(q.searchDef(query)(from, size)(index))
+        .execute(q.searchDef(query)(from, size))
         .flatMap(toResult)
         .map(SearchResponse.apply)
 
-    def count[A](index: Index, query: A)(using q: Queryable[A]): F[CountResponse] =
+    def count[A](query: A)(using q: Queryable[A]): F[CountResponse] =
       client
-        .execute(q.countDef(query)(index))
+        .execute(q.countDef(query))
         .flatMap(toResult)
         .map(CountResponse.apply)
 

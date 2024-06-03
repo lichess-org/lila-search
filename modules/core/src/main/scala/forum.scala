@@ -27,18 +27,18 @@ object Mapping:
     )
 
 object ForumQuery:
-  given query: lila.search.Queryable[Forum] = new lila.search.Queryable[Forum]:
+  given query: Queryable[Forum] = new:
+    val index = "forum"
 
     def searchDef(query: Forum)(from: From, size: Size) =
-      index =>
-        search(index.name)
-          .query(makeQuery(query))
-          .fetchSource(false)
-          .sortBy(fieldSort(Fields.date).order(SortOrder.DESC))
-          .start(from.value)
-          .size(size.value)
+      search(index)
+        .query(makeQuery(query))
+        .fetchSource(false)
+        .sortBy(fieldSort(Fields.date).order(SortOrder.DESC))
+        .start(from.value)
+        .size(size.value)
 
-    def countDef(query: Forum) = index => search(index.name).query(makeQuery(query)) size 0
+    def countDef(query: Forum) = search(index).query(makeQuery(query)).size(0)
 
     private def parsed(text: String) = QueryParser(text, List("user"))
 

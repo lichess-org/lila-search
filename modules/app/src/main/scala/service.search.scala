@@ -95,7 +95,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
 
   override def count(query: Query): IO[CountOutput] =
     esClient
-      .count(query.index, query)
+      .count(query)
       .map(_.to[CountOutput])
       .handleErrorWith: e =>
         logger.error(e)(s"Error in count: query=$query") *>
@@ -103,7 +103,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
 
   override def search(query: Query, from: Int, size: Int): IO[SearchOutput] =
     esClient
-      .search(query.index, query, From(from), Size(size))
+      .search(query, From(from), Size(size))
       .map(_.to[SearchOutput])
       .handleErrorWith: e =>
         logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
@@ -152,13 +152,6 @@ object SearchServiceImpl:
         case q: Query.Game  => game.GameQuery.query.countDef(q.transform)
         case q: Query.Study => study.StudyQuery.query.countDef(q.to[Study])
         case q: Query.Team  => team.TeamQuery.query.countDef(q.to[Team])
-
-  extension (query: Query)
-    def index = query match
-      case q: Query.Forum => lila.search.Index("forum")
-      case q: Query.Game  => lila.search.Index("game")
-      case q: Query.Study => lila.search.Index("study")
-      case q: Query.Team  => lila.search.Index("team")
 
   import smithy4s.json.Json.given
   import com.github.plokhotnyuk.jsoniter_scala.core.*

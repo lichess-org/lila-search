@@ -77,18 +77,18 @@ object GameQuery:
   given query: lila.search.Queryable[Game] = new lila.search.Queryable[Game]:
 
     val timeout = 5.seconds
+    val index   = "game"
 
     def searchDef(query: Game)(from: From, size: Size) =
-      index =>
-        search(index.name)
-          .query(makeQuery(query))
-          .fetchSource(false)
-          .sortBy(query.sorting.definition)
-          .start(from.value)
-          .size(size.value)
-          .timeout(timeout)
+      search(index)
+        .query(makeQuery(query))
+        .fetchSource(false)
+        .sortBy(query.sorting.definition)
+        .start(from.value)
+        .size(size.value)
+        .timeout(timeout)
 
-    def countDef(query: Game) = index => (search(index.name).query(makeQuery(query)) size 0).timeout(timeout)
+    def countDef(query: Game) = (search(index).query(makeQuery(query)).size(0)).timeout(timeout)
 
     private def makeQuery(query: Game) =
 

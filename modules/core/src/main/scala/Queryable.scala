@@ -4,9 +4,9 @@ import com.sksamuel.elastic4s.requests.searches.SearchRequest
 
 trait Queryable[A]:
 
-  def searchDef(query: A)(from: From, size: Size): Index => SearchRequest
+  def searchDef(query: A)(from: From, size: Size): SearchRequest
 
-  def countDef(query: A): Index => SearchRequest
+  def countDef(query: A): SearchRequest
 
 case class ParsedQuery(terms: List[String], filters: Map[String, String]):
 
