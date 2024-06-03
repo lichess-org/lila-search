@@ -1,13 +1,9 @@
 import org.typelevel.scalacoptions.{ ScalacOption, ScalacOptions }
 import Dependencies.*
 
-lazy val scala213               = "2.13.14"
-lazy val scala3                 = "3.4.2"
-lazy val supportedScalaVersions = List(scala213, scala3)
-
 inThisBuild(
   Seq(
-    scalaVersion  := scala213,
+    scalaVersion  := "3.4.2",
     versionScheme := Some("early-semver"),
     version       := "3.0.0-RC5",
     organization  := "org.lichess.search",
@@ -21,7 +17,6 @@ inThisBuild(
 )
 
 val commonSettings = Seq(
-  scalaVersion := scala3,
   excludeDependencies ++= Seq(
     "org.typelevel"                % "cats-core_2.13",
     "org.typelevel"                % "cats-kernel_2.13",
@@ -37,8 +32,6 @@ val commonSettings = Seq(
 lazy val core = project
   .in(file("modules/core"))
   .settings(
-    crossScalaVersions := supportedScalaVersions,
-    tpolecatScalacOptions ++= Set(ScalacOptions.source3),
     name           := "lila-search-core",
     publish        := {},
     publish / skip := true,
@@ -48,25 +41,6 @@ lazy val core = project
       "joda-time" % "joda-time" % "2.12.7"
     )
   )
-
-lazy val play = project
-  .in(file("play"))
-  .enablePlugins(PlayScala)
-  .disablePlugins(PlayFilters)
-  .settings(
-    tpolecatExcludeOptions += ScalacOptions.fatalWarnings,
-    name           := "lila-search",
-    publish        := {},
-    publish / skip := true,
-    libraryDependencies ++= Seq(
-      "com.typesafe.play" %% "play-json"      % "2.9.4",
-      "com.typesafe.play" %% "play-json-joda" % "2.9.4"
-    ),
-    // Play provides two styles of routers, one expects its actions to be injected, the
-    // other, legacy style, accesses its actions statically.
-    routesGenerator := InjectedRoutesGenerator
-  )
-  .dependsOn(core)
 
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
@@ -128,4 +102,4 @@ val e2e = (project in file("modules/e2e"))
 lazy val root = project
   .in(file("."))
   .settings(publish := {}, publish / skip := true)
-  .aggregate(core, play, api, app, client, e2e)
+  .aggregate(core, api, app, client, e2e)

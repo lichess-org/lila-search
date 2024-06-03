@@ -86,7 +86,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
 
   override def deleteByIds(index: Index, ids: List[String]): IO[Unit] =
     esClient
-      .deleteMany(index.transform, ids.map(Id))
+      .deleteMany(index.transform, ids.map(Id.apply))
       .handleErrorWith: e =>
         logger.error(e)(s"Error in deleteByIds: index=$index, ids=$ids") *>
           IO.raiseError(InternalServerError("Internal server error"))
