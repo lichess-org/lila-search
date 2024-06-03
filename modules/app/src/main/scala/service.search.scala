@@ -59,9 +59,8 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def store(id: String, source: Source): IO[Unit] =
-    val (index, src) = source.extract
     esClient
-      .store(index, Id(id), src)
+      .store(source.index, Id(id), source)
       .handleErrorWith: e =>
         logger.error(e)(s"Error in store: source=$source, id=$id") *>
           IO.raiseError(InternalServerError("Internal server error"))
@@ -165,17 +164,16 @@ object SearchServiceImpl:
   import com.github.plokhotnyuk.jsoniter_scala.core.*
 
   given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
-  given Indexable[ForumSource | GameSource | StudySource | TeamSource] =
-    (a: ForumSource | GameSource | StudySource | TeamSource) =>
-      a match
-        case f: ForumSource => writeToString(f)
-        case g: GameSource  => writeToString(g)
-        case s: StudySource => writeToString(s)
-        case t: TeamSource  => writeToString(t)
+  given Indexable[Source] =
+    _ match
+      case f: Source.ForumCase => writeToString(f.forum)
+      case g: Source.GameCase  => writeToString(g.game)
+      case s: Source.StudyCase => writeToString(s.study)
+      case t: Source.TeamCase  => writeToString(t.team)
 
   extension (source: Source)
-    def extract = source match
-      case s: Source.ForumCase => lila.search.Index("forum") -> s.forum
-      case s: Source.GameCase  => lila.search.Index("game")  -> s.game
-      case s: Source.StudyCase => lila.search.Index("study") -> s.study
-      case s: Source.TeamCase  => lila.search.Index("team")  -> s.team
+    def index = source match
+      case s: Source.ForumCase => lila.search.Index("forum")
+      case s: Source.GameCase  => lila.search.Index("game")
+      case s: Source.StudyCase => lila.search.Index("study")
+      case s: Source.TeamCase  => lila.search.Index("team")
