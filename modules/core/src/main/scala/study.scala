@@ -44,7 +44,8 @@ object StudyQuery:
             fieldSort("_score").order(SortOrder.DESC),
             fieldSort(Fields.likes).order(SortOrder.DESC)
           )
-          .start(from.value) size size.value
+          .start(from.value)
+          .size(size.value)
 
     def countDef(query: Study) = index => search(index.name).query(makeQuery(query)) size 0
 

@@ -27,10 +27,9 @@ object TeamQuery:
         search(index.name)
           .query(makeQuery(query))
           .fetchSource(false)
-          .sortBy(
-            fieldSort(Fields.nbMembers).order(SortOrder.DESC)
-          )
-          .start(from.value) size size.value
+          .sortBy(fieldSort(Fields.nbMembers).order(SortOrder.DESC))
+          .start(from.value)
+          .size(size.value)
 
     def countDef(query: Team) = index => search(index.name).query(makeQuery(query)) size 0
 

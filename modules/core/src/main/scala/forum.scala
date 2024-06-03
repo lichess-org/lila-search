@@ -32,10 +32,9 @@ object ForumQuery:
         search(index.name)
           .query(makeQuery(query))
           .fetchSource(false)
-          .sortBy(
-            fieldSort(Fields.date).order(SortOrder.DESC)
-          )
-          .start(from.value) size size.value
+          .sortBy(fieldSort(Fields.date).order(SortOrder.DESC))
+          .start(from.value)
+          .size(size.value)
 
     def countDef(query: Forum) = index => search(index.name).query(makeQuery(query)) size 0
 

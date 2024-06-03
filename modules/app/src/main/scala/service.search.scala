@@ -4,7 +4,6 @@ package app
 import cats.effect.*
 import lila.search.spec.*
 import org.typelevel.log4cats.Logger
-import forum.ForumQuery.*
 import io.github.arainko.ducktape.*
 import org.joda.time.DateTime
 import smithy4s.Timestamp
