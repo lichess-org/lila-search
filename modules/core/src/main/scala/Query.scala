@@ -7,7 +7,7 @@ import lila.search.game.Sorting
 sealed abstract class Query
 
 object Query:
-  implicit val query: Queryable[Query] =
+  given query: Queryable[Query] =
     new Queryable[Query]:
       def searchDef(query: Query)(from: From, size: Size) =
         query match

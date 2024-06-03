@@ -17,7 +17,7 @@ final class Range[A] private (val a: Option[A], val b: Option[A]):
 
 object Range:
 
-  def apply[A](a: Option[A], b: Option[A])(implicit o: Ordering[A]): Range[A] =
+  def apply[A](a: Option[A], b: Option[A])(using o: Ordering[A]): Range[A] =
     (a, b) match
       case (Some(aa), Some(bb)) =>
         o.lt(aa, bb)

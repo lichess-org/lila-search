@@ -20,7 +20,7 @@ object Mapping:
 
 object TeamQuery:
 
-  implicit val query: lila.search.Queryable[Team] = new lila.search.Queryable[Team]:
+  given query: lila.search.Queryable[Team] = new lila.search.Queryable[Team]:
 
     def searchDef(query: Team)(from: From, size: Size) =
       index =>

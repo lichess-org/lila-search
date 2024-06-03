@@ -49,7 +49,7 @@ object Mapping:
     )
 
 object GameQuery:
-  implicit val query: lila.search.Queryable[Game] = new lila.search.Queryable[Game]:
+  given query: lila.search.Queryable[Game] = new lila.search.Queryable[Game]:
 
     val timeout = 5.seconds
 

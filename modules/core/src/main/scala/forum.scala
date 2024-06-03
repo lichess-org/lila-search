@@ -25,7 +25,7 @@ object Mapping:
     )
 
 object ForumQuery:
-  implicit val query: lila.search.Queryable[Forum] = new lila.search.Queryable[Forum]:
+  given query: lila.search.Queryable[Forum] = new lila.search.Queryable[Forum]:
 
     def searchDef(query: Forum)(from: From, size: Size) =
       index =>

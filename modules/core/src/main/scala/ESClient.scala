@@ -12,10 +12,10 @@ case class Index(name: String) extends AnyVal:
 
 trait ESClient[F[_]]:
 
-  def search[A](index: Index, query: A, from: From, size: Size)(implicit q: Queryable[A]): F[SearchResponse]
-  def count[A](index: Index, query: A)(implicit q: Queryable[A]): F[CountResponse]
-  def store[A](index: Index, id: Id, obj: A)(implicit indexable: Indexable[A]): F[Unit]
-  def storeBulk[A](index: Index, objs: Seq[(String, A)])(implicit indexable: Indexable[A]): F[Unit]
+  def search[A](index: Index, query: A, from: From, size: Size)(using Queryable[A]): F[SearchResponse]
+  def count[A](index: Index, query: A)(using Queryable[A]): F[CountResponse]
+  def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): F[Unit]
+  def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): F[Unit]
   def deleteOne(index: Index, id: Id): F[Unit]
   def deleteMany(index: Index, ids: List[Id]): F[Unit]
   def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit]
@@ -35,24 +35,22 @@ object ESClient:
     def toResult[A](response: Response[A]): F[A] =
       response.fold(MonadThrow[F].raiseError[A](response.error.asException))(MonadThrow[F].pure)
 
-    def search[A](index: Index, query: A, from: From, size: Size)(implicit
-        q: Queryable[A]
-    ): F[SearchResponse] =
+    def search[A](index: Index, query: A, from: From, size: Size)(using q: Queryable[A]): F[SearchResponse] =
       client
         .execute(q.searchDef(query)(from, size)(index))
         .flatMap(toResult)
         .map(SearchResponse.apply)
 
-    def count[A](index: Index, query: A)(implicit q: Queryable[A]): F[CountResponse] =
+    def count[A](index: Index, query: A)(using q: Queryable[A]): F[CountResponse] =
       client
         .execute(q.countDef(query)(index))
         .flatMap(toResult)
         .map(CountResponse.apply)
 
-    def store[A](index: Index, id: Id, obj: A)(implicit indexable: Indexable[A]): F[Unit] =
+    def store[A](index: Index, id: Id, obj: A)(using indexable: Indexable[A]): F[Unit] =
       client.execute(indexInto(index.name).source(obj).id(id.value)).void
 
-    def storeBulk[A](index: Index, objs: Seq[(String, A)])(implicit indexable: Indexable[A]): F[Unit] =
+    def storeBulk[A](index: Index, objs: Seq[(String, A)])(using indexable: Indexable[A]): F[Unit] =
       if objs.isEmpty then ().pure[F]
       else
         client.execute {
