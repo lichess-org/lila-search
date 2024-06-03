@@ -58,7 +58,7 @@ object StudyQuery {
         else
           multiMatchQuery(
             parsed(query.text).terms.mkString(" ")
-          ).fields(searchableFields *).analyzer("english").matchType("most_fields")
+          ).fields(searchableFields*).analyzer("english").matchType("most_fields")
       must {
         matcher :: List(
           parsed(query.text)("owner").map { termQuery(Fields.owner, _) },
