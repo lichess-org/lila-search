@@ -45,7 +45,7 @@ object ForumQuery {
 
     private def makeQuery(query: Forum) = boolQuery().must(
       parsed(query.text).terms.map { term =>
-        multiMatchQuery(term).fields(searchableFields *)
+        multiMatchQuery(term).fields(searchableFields*)
       } ::: List(
         parsed(query.text)("user").map { termQuery(Fields.author, _) },
         (!query.troll).option(termQuery(Fields.troll, false))
