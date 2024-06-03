@@ -1,28 +1,26 @@
 package lila.search
 package team
 
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
+import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
-private object Fields {
+private object Fields:
   val name        = "na"
   val description = "de"
   val nbMembers   = "nbm"
-}
 
-object Mapping {
-  import Fields._
+object Mapping:
+  import Fields.*
   def fields =
     Seq(
       textField(name).copy(boost = Some(10), analyzer = Some("english")),
       textField(description).copy(boost = Some(2), analyzer = Some("english")),
       shortField(nbMembers)
     )
-}
 
-object TeamQuery {
+object TeamQuery:
 
-  implicit val query: lila.search.Queryable[Team] = new lila.search.Queryable[Team] {
+  implicit val query: lila.search.Queryable[Team] = new lila.search.Queryable[Team]:
 
     def searchDef(query: Team)(from: From, size: Size) =
       index =>
@@ -43,7 +41,5 @@ object TeamQuery {
         multiMatchQuery(term).fields(searchableFields*)
       }
     }
-  }
 
   private val searchableFields = List(Fields.name, Fields.description)
-}

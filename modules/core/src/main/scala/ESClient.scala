@@ -1,17 +1,16 @@
 package lila.search
 
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
+import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
 import com.sksamuel.elastic4s.fields.ElasticField
-import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index => ESIndex, Response }
+import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index as ESIndex, Response }
 import com.sksamuel.elastic4s.{ Executor, Functor, Indexable }
 import cats.syntax.all.*
 import cats.MonadThrow
 
-case class Index(name: String) extends AnyVal {
+case class Index(name: String) extends AnyVal:
   def toES: ESIndex = ESIndex(name)
-}
 
-trait ESClient[F[_]] {
+trait ESClient[F[_]]:
 
   def search[A](index: Index, query: A, from: From, size: Size)(implicit q: Queryable[A]): F[SearchResponse]
   def count[A](index: Index, query: A)(implicit q: Queryable[A]): F[CountResponse]
@@ -23,11 +22,9 @@ trait ESClient[F[_]] {
   def refreshIndex(index: Index): F[Unit]
   def status: F[String]
 
-}
+object ESClient:
 
-object ESClient {
-
-  def apply[F[_]: MonadThrow: Functor: Executor](client: ElasticClient) = new ESClient[F] {
+  def apply[F[_]: MonadThrow: Functor: Executor](client: ElasticClient) = new ESClient[F]:
 
     def status: F[String] =
       client
@@ -56,7 +53,7 @@ object ESClient {
       client.execute(indexInto(index.name).source(obj).id(id.value)).void
 
     def storeBulk[A](index: Index, objs: Seq[(String, A)])(implicit indexable: Indexable[A]): F[Unit] =
-      if (objs.isEmpty) ().pure[F]
+      if objs.isEmpty then ().pure[F]
       else
         client.execute {
           ElasticDsl.bulk {
@@ -99,6 +96,3 @@ object ESClient {
 
     private def dropIndex(index: Index) =
       client.execute { deleteIndex(index.name) }
-  }
-
-}

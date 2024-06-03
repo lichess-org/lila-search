@@ -1,10 +1,10 @@
 package lila.search
 package game
 
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture => _, _ }
-import scala.concurrent.duration._
+import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
+import scala.concurrent.duration.*
 
-object Fields {
+object Fields:
   val status        = "s"
   val turns         = "t"
   val rated         = "r"
@@ -23,10 +23,9 @@ object Fields {
   val whiteUser     = "wu"
   val blackUser     = "bu"
   val source        = "so"
-}
 
-object Mapping {
-  import Fields._
+object Mapping:
+  import Fields.*
   def fields =
     Seq( // only keep docValues for sortable fields
       keywordField(status).copy(docValues = Some(false)),
@@ -48,10 +47,9 @@ object Mapping {
       keywordField(blackUser).copy(docValues = Some(false)),
       keywordField(source).copy(docValues = Some(false))
     )
-}
 
-object GameQuery {
-  implicit val query: lila.search.Queryable[Game] = new lila.search.Queryable[Game] {
+object GameQuery:
+  implicit val query: lila.search.Queryable[Game] = new lila.search.Queryable[Game]:
 
     val timeout = 5.seconds
 
@@ -65,9 +63,9 @@ object GameQuery {
 
     def countDef(query: Game) = index => (search(index.name).query(makeQuery(query)) size 0).timeout(timeout)
 
-    private def makeQuery(query: Game) = {
+    private def makeQuery(query: Game) =
 
-      import query._
+      import query.*
       def usernames = List(user1, user2).flatten
 
       def hasAiQueries =
@@ -94,44 +92,36 @@ object GameQuery {
         date.map(Date.formatter.print).queries(Fields.date),
         hasAiQueries,
         (hasAi.getOrElse(true)).fold(aiLevel.queries(Fields.ai), Nil),
-        if (perf.nonEmpty) List(termsQuery(Fields.perf, perf)) else Nil,
+        if perf.nonEmpty then List(termsQuery(Fields.perf, perf)) else Nil,
         toQueries(source, Fields.source),
         toQueries(rated, Fields.rated),
         toQueries(status, Fields.status),
         toQueries(analysed, Fields.analysed),
         toQueries(whiteUser, Fields.whiteUser),
         toQueries(blackUser, Fields.blackUser)
-      ).flatten match {
+      ).flatten match
         case Nil     => matchAllQuery()
         case queries => boolQuery().must(queries)
-      }
 
-    }
-  }
-}
-
-case class Sorting(f: String, order: String) {
+case class Sorting(f: String, order: String):
   import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
   def definition =
     fieldSort {
       (Sorting.fieldKeys contains f).fold(f, Sorting.default.f)
     }.order((order.toLowerCase == "asc").fold(SortOrder.ASC, SortOrder.DESC))
-}
 
-object Sorting {
+object Sorting:
 
   val default = Sorting(Fields.date, "desc")
 
   val fieldKeys = List(Fields.date, Fields.turns, Fields.averageRating)
-}
 
 case class Clocking(
     initMin: Option[Int] = None,
     initMax: Option[Int] = None,
     incMin: Option[Int] = None,
     incMax: Option[Int] = None
-) {
+):
 
   def init = Range(initMin, initMax)
   def inc  = Range(incMin, incMax)
-}

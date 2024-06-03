@@ -159,7 +159,7 @@ object SearchServiceImpl:
       case q: Query.Team  => lila.search.Index("team")
 
   import smithy4s.json.Json.given
-  import com.github.plokhotnyuk.jsoniter_scala.core._
+  import com.github.plokhotnyuk.jsoniter_scala.core.*
 
   given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
   given Indexable[ForumSource | GameSource | StudySource | TeamSource] =

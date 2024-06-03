@@ -1,6 +1,6 @@
 package lila.search
 
-import com.sksamuel.elastic4s.requests.searches.{ SearchResponse => ESR }
+import com.sksamuel.elastic4s.requests.searches.{ SearchResponse as ESR }
 
 case class Id(value: String)
 
@@ -10,16 +10,14 @@ case class Size(value: Int)
 
 case class SearchResponse(hitIds: List[String])
 
-object SearchResponse {
+object SearchResponse:
 
   def apply(res: ESR): SearchResponse =
     SearchResponse(res.hits.hits.toList.map(_.id))
-}
 
 case class CountResponse(count: Int)
 
-object CountResponse {
+object CountResponse:
 
   def apply(res: ESR): CountResponse =
     CountResponse(res.totalHits.toInt)
-}

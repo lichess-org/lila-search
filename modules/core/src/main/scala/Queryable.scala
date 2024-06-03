@@ -2,23 +2,21 @@ package lila.search
 
 import com.sksamuel.elastic4s.requests.searches.SearchRequest
 
-trait Queryable[A] {
+trait Queryable[A]:
 
   def searchDef(query: A)(from: From, size: Size): Index => SearchRequest
 
   def countDef(query: A): Index => SearchRequest
-}
 
-case class ParsedQuery(terms: List[String], filters: Map[String, String]) {
+case class ParsedQuery(terms: List[String], filters: Map[String, String]):
 
   def apply(fk: String): Option[String] = filters.get(fk)
-}
 
-object QueryParser {
+object QueryParser:
 
   private val spaceRegex = "[ +]+".r
 
-  def apply(q: String, filterKeys: Seq[String]): ParsedQuery = {
+  def apply(q: String, filterKeys: Seq[String]): ParsedQuery =
 
     val terms = spaceRegex.split(q.trim.toLowerCase).toList
 
@@ -32,5 +30,3 @@ object QueryParser {
         }
         .getOrElse(parsed.copy(terms = parsed.terms :+ term))
     }
-  }
-}

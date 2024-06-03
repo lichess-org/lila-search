@@ -1,20 +1,19 @@
 package lila.search
 package forum
 
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
-object Fields {
+object Fields:
   val body    = "bo"
   val topic   = "to"
   val topicId = "ti"
   val author  = "au"
   val troll   = "tr"
   val date    = "da"
-}
 
-object Mapping {
-  import Fields._
+object Mapping:
+  import Fields.*
   def fields =
     Seq(
       textField(body).copy(boost = Some(2), analyzer = Some("english")),
@@ -24,10 +23,9 @@ object Mapping {
       booleanField(troll).copy(docValues = Some(false)),
       dateField(date)
     )
-}
 
-object ForumQuery {
-  implicit val query: lila.search.Queryable[Forum] = new lila.search.Queryable[Forum] {
+object ForumQuery:
+  implicit val query: lila.search.Queryable[Forum] = new lila.search.Queryable[Forum]:
 
     def searchDef(query: Forum)(from: From, size: Size) =
       index =>
@@ -51,7 +49,5 @@ object ForumQuery {
         (!query.troll).option(termQuery(Fields.troll, false))
       ).flatten
     )
-  }
 
   private val searchableFields = List(Fields.body, Fields.topic, Fields.author)
-}
