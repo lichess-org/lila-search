@@ -1,11 +1,11 @@
 #!/bin/sh
 
 REMOTE=$1
-REMOTE_DIR="/home/lichess-search"
+REMOTE_DIR="/home/lila-search-v3"
 
 echo "Deploy to server $REMOTE:$REMOTE_DIR"
 
-sbt ";play/stage;exit"
+sbt ";app/stage;exit"
 if [ $? != 0 ]; then
   echo "Deploy canceled"
   exit 1
@@ -23,8 +23,8 @@ RSYNC_OPTIONS=" \
   --exclude RUNNING_PID \
   --exclude '.git/'"
 
-stage="play/target/universal/stage"
-include="bin $stage/bin $stage/lib $stage/conf"
+stage="modules/app/target/universal/stage"
+include="bin $stage/bin $stage/lib"
 rsync_command="rsync $RSYNC_OPTIONS $include $REMOTE:$REMOTE_DIR"
 echo "$rsync_command"
 $rsync_command
@@ -32,7 +32,7 @@ echo "rsync complete"
 
 read -n 1 -p "Press [Enter] to continue."
 
-echo "Restart lichess-search"
-ssh $REMOTE "systemctl restart lichess-search"
+echo "Restart lila-search-v3"
+ssh $REMOTE "chown -R lila-search-v3:lila-search-v3 /home/lila-search-v3 && systemctl restart lichess-search-v3"
 
 echo "Deploy complete"
