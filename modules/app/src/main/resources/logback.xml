@@ -1,5 +1,8 @@
 <configuration>
 
+    <variable name="ELASTIC4S_LOG_LEVEL" value="${ELASTIC4S_LOG_LEVEL:-WARN}" />
+    <variable name="APP_LOG_LEVEL" value="${APP_LOG_LEVEL:-INFO}" />
+
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/application.log</file>
         <encoder>
@@ -13,11 +16,11 @@
         </encoder>
     </appender>
 
-    <root level="INFO">
+    <root level="${APP_LOG_LEVEL}">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>
     </root>
 
     <logger name="http4s"/>
-    <logger name="com.sksamuel.elastic4s" level="WARN"/>
+    <logger name="com.sksamuel.elastic4s" level="${ELASTIC4S_LOG_LEVEL}"/>
 </configuration>
