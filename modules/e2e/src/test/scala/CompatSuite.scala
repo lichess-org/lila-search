@@ -13,6 +13,7 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 import play.api.libs.ws.*
 import play.api.libs.ws.ahc.*
+import smithy4s.Timestamp
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.*
@@ -29,8 +30,6 @@ object CompatSuite extends weaver.IOSuite:
       .run()
       .flatMap(_ => wsClient)
       .map(SearchClient.play(_, "http://localhost:9999/api"))
-
-  val now = lila.search.spec.SearchDateTime.fromInstant(Instant.now())
 
   test("search endpoint"): client =>
     val query = Query.Forum("foo")
@@ -70,19 +69,23 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.store("id", source))).map(expect.same(_, ()))
 
   test("store bulk forum endpoint"): client =>
+    val now = Timestamp(Instant.now().getEpochSecond, 0)
     val sources = List(
       lila.search.spec.ForumSourceWithId(
         "id1",
-        lila.search.spec.ForumSource("body1", "topic1", "topid1", true, now)
+        lila.search.spec
+          .ForumSource("body1", "topic1", "topid1", true, now)
       ),
       lila.search.spec.ForumSourceWithId(
         "id2",
-        lila.search.spec.ForumSource("body2", "topic2", "topid2", true, now)
+        lila.search.spec
+          .ForumSource("body2", "topic2", "topid2", true, now)
       )
     )
     IO.fromFuture(IO(client.storeBulkForum(sources))).map(expect.same(_, ()))
 
   test("store bulk game endpoint"): client =>
+    val now = lila.search.spec.SearchDateTime.fromInstant(Instant.now())
     val sources = List(
       lila.search.spec.GameSourceWithId(
         "id1",
