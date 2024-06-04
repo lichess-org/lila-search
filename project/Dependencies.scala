@@ -41,7 +41,7 @@ object Dependencies {
   val elastic4sCatsEffect = "nl.gn0s1s" %% "elastic4s-effect-cats"   % V.elastic4s
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
-  val logbackX = "ch.qos.logback" % "logback-classic" % "1.5.6"
+  val logback = "ch.qos.logback" % "logback-classic" % "1.5.6"
 
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.2"
 

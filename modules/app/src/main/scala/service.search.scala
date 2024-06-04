@@ -4,7 +4,11 @@ package app
 import cats.effect.*
 import com.sksamuel.elastic4s.Indexable
 import io.github.arainko.ducktape.*
+import lila.search.forum.Forum
+import lila.search.game.Game
 import lila.search.spec.*
+import lila.search.study.Study
+import lila.search.team.Team
 import org.joda.time.DateTime
 import org.typelevel.log4cats.Logger
 import smithy4s.Timestamp
@@ -55,9 +59,8 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def store(id: String, source: Source): IO[Unit] =
-    val (index, src) = source.extract
     esClient
-      .store(index, Id(id), src)
+      .store(source.index, Id(id), source)
       .handleErrorWith: e =>
         logger.error(e)(s"Error in store: source=$source, id=$id") *>
           IO.raiseError(InternalServerError("Internal server error"))
@@ -92,7 +95,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
 
   override def count(query: Query): IO[CountOutput] =
     esClient
-      .count(query.index, query)
+      .count(query)
       .map(_.to[CountOutput])
       .handleErrorWith: e =>
         logger.error(e)(s"Error in count: query=$query") *>
@@ -100,7 +103,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
 
   override def search(query: Query, from: Int, size: Int): IO[SearchOutput] =
     esClient
-      .search(query.index, query, From(from), Size(size))
+      .search(query, From(from), Size(size))
       .map(_.to[SearchOutput])
       .handleErrorWith: e =>
         logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
@@ -150,28 +153,20 @@ object SearchServiceImpl:
         case q: Query.Study => study.StudyQuery.query.countDef(q.to[Study])
         case q: Query.Team  => team.TeamQuery.query.countDef(q.to[Team])
 
-  extension (query: Query)
-    def index = query match
-      case q: Query.Forum => lila.search.Index("forum")
-      case q: Query.Game  => lila.search.Index("game")
-      case q: Query.Study => lila.search.Index("study")
-      case q: Query.Team  => lila.search.Index("team")
-
   import smithy4s.json.Json.given
   import com.github.plokhotnyuk.jsoniter_scala.core.*
 
   given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
-  given Indexable[ForumSource | GameSource | StudySource | TeamSource] =
-    (a: ForumSource | GameSource | StudySource | TeamSource) =>
-      a match
-        case f: ForumSource => writeToString(f)
-        case g: GameSource  => writeToString(g)
-        case s: StudySource => writeToString(s)
-        case t: TeamSource  => writeToString(t)
+  given Indexable[Source] =
+    _ match
+      case f: Source.ForumCase => writeToString(f.forum)
+      case g: Source.GameCase  => writeToString(g.game)
+      case s: Source.StudyCase => writeToString(s.study)
+      case t: Source.TeamCase  => writeToString(t.team)
 
   extension (source: Source)
-    def extract = source match
-      case s: Source.ForumCase => lila.search.Index("forum") -> s.forum
-      case s: Source.GameCase  => lila.search.Index("game")  -> s.game
-      case s: Source.StudyCase => lila.search.Index("study") -> s.study
-      case s: Source.TeamCase  => lila.search.Index("team")  -> s.team
+    def index = source match
+      case s: Source.ForumCase => lila.search.Index("forum")
+      case s: Source.GameCase  => lila.search.Index("game")
+      case s: Source.StudyCase => lila.search.Index("study")
+      case s: Source.TeamCase  => lila.search.Index("team")

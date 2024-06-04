@@ -2,8 +2,32 @@ package lila.search
 package game
 
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
+import org.joda.time.DateTime
 
 import scala.concurrent.duration.*
+
+case class Game(
+    user1: Option[String] = None,
+    user2: Option[String] = None,
+    winner: Option[String] = None,
+    loser: Option[String] = None,
+    winnerColor: Option[Int] = None,
+    perf: List[Int] = List.empty,
+    source: Option[Int] = None,
+    status: Option[Int] = None,
+    turns: Range[Int] = Range.none,
+    averageRating: Range[Int] = Range.none,
+    hasAi: Option[Boolean] = None,
+    aiLevel: Range[Int] = Range.none,
+    rated: Option[Boolean] = None,
+    date: Range[DateTime] = Range.none,
+    duration: Range[Int] = Range.none,
+    clock: Clocking = Clocking(),
+    sorting: Sorting = Sorting.default,
+    analysed: Option[Boolean] = None,
+    whiteUser: Option[String] = None,
+    blackUser: Option[String] = None
+)
 
 object Fields:
   val status        = "s"
@@ -53,18 +77,18 @@ object GameQuery:
   given query: lila.search.Queryable[Game] = new lila.search.Queryable[Game]:
 
     val timeout = 5.seconds
+    val index   = "game"
 
     def searchDef(query: Game)(from: From, size: Size) =
-      index =>
-        search(index.name)
-          .query(makeQuery(query))
-          .fetchSource(false)
-          .sortBy(query.sorting.definition)
-          .start(from.value)
-          .size(size.value)
-          .timeout(timeout)
+      search(index)
+        .query(makeQuery(query))
+        .fetchSource(false)
+        .sortBy(query.sorting.definition)
+        .start(from.value)
+        .size(size.value)
+        .timeout(timeout)
 
-    def countDef(query: Game) = index => (search(index.name).query(makeQuery(query)) size 0).timeout(timeout)
+    def countDef(query: Game) = (search(index).query(makeQuery(query)).size(0)).timeout(timeout)
 
     private def makeQuery(query: Game) =
 

@@ -84,7 +84,7 @@ lazy val app = (project in file("modules/app"))
       cirisCore,
       cirisHtt4s,
       log4Cats,
-      logbackX
+      logback
     ),
     Compile / run / fork := true
   )

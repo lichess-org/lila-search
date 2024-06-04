@@ -4,6 +4,8 @@ package team
 import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
+case class Team(text: String)
+
 private object Fields:
   val name        = "na"
   val description = "de"
@@ -19,19 +21,19 @@ object Mapping:
     )
 
 object TeamQuery:
+  val index = "team"
 
-  given query: lila.search.Queryable[Team] = new lila.search.Queryable[Team]:
+  given query: Queryable[Team] = new:
 
     def searchDef(query: Team)(from: From, size: Size) =
-      index =>
-        search(index.name)
-          .query(makeQuery(query))
-          .fetchSource(false)
-          .sortBy(fieldSort(Fields.nbMembers).order(SortOrder.DESC))
-          .start(from.value)
-          .size(size.value)
+      search(index)
+        .query(makeQuery(query))
+        .fetchSource(false)
+        .sortBy(fieldSort(Fields.nbMembers).order(SortOrder.DESC))
+        .start(from.value)
+        .size(size.value)
 
-    def countDef(query: Team) = index => search(index.name).query(makeQuery(query)) size 0
+    def countDef(query: Team) = search(index).query(makeQuery(query)) size 0
 
     private def parsed(query: Team) = QueryParser(query.text, Nil)
 

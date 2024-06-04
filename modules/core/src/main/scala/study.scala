@@ -5,6 +5,8 @@ import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
 import com.sksamuel.elastic4s.requests.searches.queries.Query as QueryDefinition
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
+case class Study(text: String, userId: Option[String])
+
 object Fields:
   val name         = "name"
   val owner        = "owner"
@@ -33,21 +35,21 @@ object Mapping:
     )
 
 object StudyQuery:
-  given query: lila.search.Queryable[Study] = new lila.search.Queryable[Study]:
+  given query: Queryable[Study] = new:
+    val index = "study"
 
     def searchDef(query: Study)(from: From, size: Size) =
-      index =>
-        search(index.name)
-          .query(makeQuery(query))
-          .fetchSource(false)
-          .sortBy(
-            fieldSort("_score").order(SortOrder.DESC),
-            fieldSort(Fields.likes).order(SortOrder.DESC)
-          )
-          .start(from.value)
-          .size(size.value)
+      search(index)
+        .query(makeQuery(query))
+        .fetchSource(false)
+        .sortBy(
+          fieldSort("_score").order(SortOrder.DESC),
+          fieldSort(Fields.likes).order(SortOrder.DESC)
+        )
+        .start(from.value)
+        .size(size.value)
 
-    def countDef(query: Study) = index => search(index.name).query(makeQuery(query)) size 0
+    def countDef(query: Study) = search(index).query(makeQuery(query)).size(0)
 
     private def parsed(text: String) = QueryParser(text, List("owner", "member"))
 
