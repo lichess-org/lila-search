@@ -39,8 +39,11 @@ object ESClient:
         .flatMap(toResult)
         .map(_.status)
 
-    def toResult[A](response: Response[A]): F[A] =
+    private def toResult[A](response: Response[A]): F[A] =
       response.fold(MonadThrow[F].raiseError[A](response.error.asException))(MonadThrow[F].pure)
+
+    private def unitOrFail[A](response: Response[A]): F[Unit] =
+      response.fold(MonadThrow[F].raiseError[Unit](response.error.asException))(_ => MonadThrow[F].unit)
 
     def search[A](index: Index, query: A, from: From, size: Size)(using q: Queryable[A]): F[SearchResponse] =
       client
@@ -55,7 +58,9 @@ object ESClient:
         .map(CountResponse.apply)
 
     def store[A](index: Index, id: Id, obj: A)(using indexable: Indexable[A]): F[Unit] =
-      client.execute(indexInto(index.name).source(obj).id(id.value)).void
+      client
+        .execute(indexInto(index.name).source(obj).id(id.value))
+        .flatMap(unitOrFail)
 
     def storeBulk[A](index: Index, objs: Seq[(String, A)])(using indexable: Indexable[A]): F[Unit] =
       client
@@ -66,39 +71,45 @@ object ESClient:
             }
           }
         }
-        .void
+        .flatMap(unitOrFail)
         .whenA(objs.nonEmpty)
 
     def deleteOne(index: Index, id: Id): F[Unit] =
-      client.execute(deleteById(index.toES, id.value)).void
+      client
+        .execute(deleteById(index.toES, id.value))
+        .flatMap(unitOrFail)
 
     def deleteMany(index: Index, ids: List[Id]): F[Unit] =
-      client.execute {
-        ElasticDsl.bulk {
-          ids.map { id =>
-            deleteById(index.toES, id.value)
+      client
+        .execute {
+          ElasticDsl.bulk {
+            ids.map { id =>
+              deleteById(index.toES, id.value)
+            }
           }
         }
-      }.void
+        .flatMap(unitOrFail)
+        .whenA(ids.nonEmpty)
 
     def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit] =
-      dropIndex(index) >> client.execute {
-        createIndex(index.name)
-          .mapping(
-            properties(fields).source(false) // all false
-          )
-          .shards(5)
-          .replicas(0)
-          .refreshInterval(Which.refreshInterval(index))
-      }.void
+      dropIndex(index) >> client
+        .execute {
+          createIndex(index.name)
+            .mapping(
+              properties(fields).source(false) // all false
+            )
+            .shards(5)
+            .replicas(0)
+            .refreshInterval(Which.refreshInterval(index))
+        }
+        .flatMap(unitOrFail)
 
     def refreshIndex(index: Index): F[Unit] =
       client
         .execute(ElasticDsl.refreshIndex(index.name))
-        .void
-        .recover { case _: Exception =>
-          println(s"Failed to refresh index $index")
-        }
+        .flatMap(unitOrFail)
 
     private def dropIndex(index: Index) =
-      client.execute { deleteIndex(index.name) }
+      client
+        .execute(deleteIndex(index.name))
+        .flatMap(unitOrFail)
