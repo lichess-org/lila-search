@@ -1,4 +1,4 @@
-name: Compile
+name: CI
 
 on:
   pull_request:
@@ -25,7 +25,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - run: sbt scalafmtCheckAll
+      - run: sbt check
 
   test:
     runs-on: ubuntu-latest
@@ -35,4 +35,4 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - run: sbt check
+      - run: sbt test
