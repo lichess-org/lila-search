@@ -11,8 +11,6 @@ inThisBuild(
     run / javaOptions += "-Dconfig.override_with_env_vars=true",
     semanticdbEnabled                      := true, // for scalafix
     Compile / doc / sources                := Seq.empty,
-    Compile / packageDoc / publishArtifact := false,
-    Compile / packageSrc / publishArtifact := false,
     publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", ""))))
   )
 )
