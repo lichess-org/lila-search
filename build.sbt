@@ -17,19 +17,6 @@ inThisBuild(
   )
 )
 
-val commonSettings = Seq(
-  excludeDependencies ++= Seq(
-    "org.typelevel"                % "cats-core_2.13",
-    "org.typelevel"                % "cats-kernel_2.13",
-    "nl.gn0s1s"                    % "elastic4s-core_2.13",
-    "nl.gn0s1s"                    % "elastic4s-domain_2.13",
-    "nl.gn0s1s"                    % "elastic4s-http_2.13",
-    "com.fasterxml.jackson.module" % "jackson-module-scala_2.13",
-    "org.scala-lang.modules"       % "scala-collection-compat_2.13",
-    "com.disneystreaming.smithy4s" % "smithy4s-core_2.13"
-  )
-)
-
 lazy val core = project
   .in(file("modules/core"))
   .settings(
@@ -47,7 +34,6 @@ lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     name := "api",
-    commonSettings,
     smithy4sWildcardArgument := "?",
     libraryDependencies ++= Seq(
       catsCore,
@@ -58,7 +44,6 @@ lazy val api = (project in file("modules/api"))
 lazy val client = (project in file("modules/client"))
   .settings(
     name := "client",
-    commonSettings,
     libraryDependencies ++= Seq(
       smithy4sJson,
       playWS
@@ -71,7 +56,6 @@ lazy val app = (project in file("modules/app"))
     name           := "lila-search-v3",
     publish        := {},
     publish / skip := true,
-    commonSettings,
     libraryDependencies ++= Seq(
       smithy4sHttp4s,
       smithy4sHttp4sSwagger,
@@ -93,7 +77,6 @@ lazy val app = (project in file("modules/app"))
 
 val e2e = (project in file("modules/e2e"))
   .settings(
-    commonSettings,
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(weaver)
