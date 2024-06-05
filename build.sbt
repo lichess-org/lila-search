@@ -66,7 +66,9 @@ lazy val app = (project in file("modules/app"))
       cirisCore,
       cirisHtt4s,
       log4Cats,
-      logback
+      logback,
+      weaver,
+      testContainers,
     ),
     Compile / run / fork := true
   )

@@ -95,9 +95,7 @@ object ESClient:
       dropIndex(index) >> client
         .execute {
           createIndex(index.name)
-            .mapping(
-              properties(fields).source(false) // all false
-            )
+            .mapping(properties(fields).source(false)) // all false
             .shards(5)
             .replicas(0)
             .refreshInterval(Which.refreshInterval(index))
@@ -110,6 +108,4 @@ object ESClient:
         .flatMap(unitOrFail)
 
     private def dropIndex(index: Index) =
-      client
-        .execute(deleteIndex(index.name))
-        .flatMap(unitOrFail)
+      client.execute(deleteIndex(index.name))

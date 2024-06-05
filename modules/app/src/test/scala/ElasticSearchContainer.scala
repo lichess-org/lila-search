@@ -1,0 +1,34 @@
+package lila.search
+package app
+package test
+
+import cats.effect.{ IO, Resource }
+import com.dimafeng.testcontainers.GenericContainer
+import org.testcontainers.containers.wait.strategy.Wait
+
+object ElasticSearchContainer:
+
+  private val PORT = 9200
+  private val container =
+    val env = Map(
+      "discovery.type"         -> "single-node",
+      "http.cors.allow-origin" -> "/.*/",
+      "http.cors.enabled"      -> "true",
+      "xpack.security.enabled" -> "false"
+    )
+    val start = IO(
+      GenericContainer(
+        "elasticsearch:7.10.1",
+        exposedPorts = Seq(PORT),
+        waitStrategy = Wait.forListeningPort(),
+        env = env
+      )
+    )
+      .flatTap(cont => IO(cont.start()))
+    Resource.make(start)(cont => IO(cont.stop()))
+
+  def parseConfig(container: GenericContainer): ElasticConfig =
+    ElasticConfig(s"http://${container.host}:${container.mappedPort(PORT)}")
+
+  def start: Resource[IO, ElasticConfig] =
+    container.map(parseConfig)
