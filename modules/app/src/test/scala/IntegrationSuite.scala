@@ -46,7 +46,7 @@ object IntegrationSuite extends IOSuite:
       .search(uri)
       .use: service =>
         for
-          _ <- service.mapping(lila.search.spec.Index.Forum)
+          _ <- service.mapping(Index.Forum)
           _ <- service
             .store(
               "forum_id",
@@ -63,4 +63,93 @@ object IntegrationSuite extends IOSuite:
             )
           _ <- service.refresh(Index.Forum)
           x <- service.search(Query.forum("chess", false), 0, 12)
-        yield expect(x.hitIds.size == 1)
+          y <- service.search(Query.forum("nt9", false), 0, 12)
+        yield expect(x.hitIds.size == 1 && x == y)
+
+  test("team"): _ =>
+    Clients
+      .search(uri)
+      .use: service =>
+        for
+          _ <- service.mapping(Index.Team)
+          _ <- service
+            .store(
+              "team_id",
+              Source.team(
+                TeamSource(
+                  name = "team name",
+                  description = "team description",
+                  100
+                )
+              )
+            )
+          _ <- service.refresh(Index.Team)
+          x <- service.search(Query.team("team name"), 0, 12)
+          y <- service.search(Query.team("team description"), 0, 12)
+        yield expect(x.hitIds.size == 1 && x == y)
+
+  test("study"): _ =>
+    Clients
+      .search(uri)
+      .use: service =>
+        for
+          _ <- service.mapping(Index.Study)
+          _ <- service
+            .store(
+              "study_id",
+              Source.study(
+                StudySource(
+                  name = "study name",
+                  owner = "study owner",
+                  members = List("member1", "member2"),
+                  chapterNames = "chapter names",
+                  chapterTexts = "chapter texts",
+                  likes = 100,
+                  public = true,
+                  topics = List("topic1", "topic2")
+                )
+              )
+            )
+          _ <- service.refresh(Index.Study)
+          x <- service.search(Query.study("study name"), 0, 12)
+          y <- service.search(Query.study("study description"), 0, 12)
+          z <- service.search(Query.study("topic1"), 0, 12)
+        yield expect(x.hitIds.size == 1 && x == y && z == x)
+
+  // test game
+  test("game"): _ =>
+    Clients
+      .search(uri)
+      .use: service =>
+        for
+          _ <- service.mapping(Index.Game)
+          _ <- service
+            .store(
+              "game_id",
+              Source.game(
+                GameSource(
+                  status = 1,
+                  turns = 100,
+                  rated = true,
+                  perf = 1,
+                  winnerColor = 1,
+                  date = SearchDateTime.fromString("1999-10-20 12:20:20").toOption.get,
+                  analysed = false,
+                  uids = List("uid1", "uid2").some,
+                  winner = "uid1".some,
+                  loser = "uid2".some,
+                  averageRating = 150.some,
+                  ai = none,
+                  duration = 100.some,
+                  clockInit = 100.some,
+                  clockInc = 100.some,
+                  whiteUser = "white".some,
+                  blackUser = "black".some
+                )
+              )
+            )
+          _ <- service.refresh(Index.Game)
+          x <- service.search(Query.game(List(1)), 0, 12)
+          y <- service.search(Query.game(loser = "uid2".some), 0, 12)
+          z <- service.search(Query.game(), 0, 12)
+        yield expect(x.hitIds.size == 1 && x == y && z == x)
