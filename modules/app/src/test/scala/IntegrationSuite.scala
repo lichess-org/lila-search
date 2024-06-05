@@ -3,11 +3,13 @@ package app
 package test
 
 import cats.effect.{ IO, Resource }
+import cats.syntax.all.*
 import com.comcast.ip4s.*
-import lila.search.spec.{ ElasticStatus, HealthCheckOutput }
+import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
+import smithy4s.Timestamp
 import weaver.*
 
 object IntegrationSuite extends IOSuite:
@@ -38,3 +40,27 @@ object IntegrationSuite extends IOSuite:
       .use:
         _.healthCheck()
           .map(expect.same(_, HealthCheckOutput(ElasticStatus.green)))
+
+  test("forum"): _ =>
+    Clients
+      .search(uri)
+      .use: service =>
+        for
+          _ <- service.mapping(lila.search.spec.Index.Forum)
+          _ <- service
+            .store(
+              "forum_id",
+              Source.forum(
+                ForumSource(
+                  body = "a forum post",
+                  topic = "chess",
+                  topicId = "chess",
+                  troll = false,
+                  date = Timestamp(2021, 1, 1, 0, 0, 0),
+                  author = "nt9".some
+                )
+              )
+            )
+          _ <- service.refresh(Index.Forum)
+          x <- service.search(Query.forum("chess", false), 0, 12)
+        yield expect(x.hitIds.size == 1)
