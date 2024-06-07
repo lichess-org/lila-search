@@ -116,7 +116,6 @@ object IntegrationSuite extends IOSuite:
           z <- service.search(Query.study("topic1"), 0, 12)
         yield expect(x.hitIds.size == 1 && x == y && z == x)
 
-  // test game
   test("game"): _ =>
     Clients
       .search(uri)
@@ -142,7 +141,7 @@ object IntegrationSuite extends IOSuite:
                   ai = none,
                   duration = 100.some,
                   clockInit = 100.some,
-                  clockInc = 100.some,
+                  clockInc = 200.some,
                   whiteUser = "white".some,
                   blackUser = "black".some
                 )
@@ -152,4 +151,5 @@ object IntegrationSuite extends IOSuite:
           x <- service.search(Query.game(List(1)), 0, 12)
           y <- service.search(Query.game(loser = "uid2".some), 0, 12)
           z <- service.search(Query.game(), 0, 12)
-        yield expect(x.hitIds.size == 1 && x == y && z == x)
+          w <- service.search(Query.game(duration = IntRange(a = 99.some, b = 101.some).some), 0, 12)
+        yield expect(x.hitIds.size == 1 && x == y && z == x && w == x)
