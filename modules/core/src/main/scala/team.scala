@@ -33,14 +33,9 @@ object TeamQuery:
         .start(from.value)
         .size(size.value)
 
-    def countDef(query: Team) = search(index).query(makeQuery(query)) size 0
+    def countDef(query: Team) = search(index).query(makeQuery(query)).size(0)
 
-    private def parsed(query: Team) = QueryParser(query.text, Nil)
-
-    private def makeQuery(team: Team) = must {
-      parsed(team).terms.map { term =>
-        multiMatchQuery(term).fields(searchableFields*)
-      }
-    }
+    private def makeQuery(team: Team) =
+      QueryParser(team.text, Nil).terms.map(term => multiMatchQuery(term).fields(searchableFields*)).compile
 
   private val searchableFields = List(Fields.name, Fields.description)
