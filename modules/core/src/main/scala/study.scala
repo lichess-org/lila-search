@@ -51,23 +51,20 @@ object StudyQuery:
 
     def countDef(query: Study) = search(index).query(makeQuery(query)).size(0)
 
-    private def parsed(text: String) = QueryParser(text, List("owner", "member"))
-
     private def makeQuery(query: Study) = {
+      val parsed = QueryParser(query.text, List("owner", "member"))
       val matcher: Query =
-        if parsed(query.text).terms.isEmpty then matchAllQuery()
+        if parsed.terms.isEmpty then matchAllQuery()
         else
           multiMatchQuery(
-            parsed(query.text).terms.mkString(" ")
+            parsed.terms.mkString(" ")
           ).fields(searchableFields*).analyzer("english").matchType("most_fields")
       must {
         matcher :: List(
-          parsed(query.text)("owner").map { termQuery(Fields.owner, _) },
-          parsed(query.text)("member").map { member =>
-            boolQuery()
-              .must(termQuery(Fields.members, member))
-              .not(termQuery(Fields.owner, member))
-          }
+          parsed("owner").map(termQuery(Fields.owner, _)),
+          parsed("member").map(member =>
+            boolQuery().must(termQuery(Fields.members, member)).not(termQuery(Fields.owner, member))
+          )
         ).flatten
       } should List(
         Some(selectPublic),

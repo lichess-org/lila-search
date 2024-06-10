@@ -38,9 +38,7 @@ object TeamQuery:
     private def parsed(query: Team) = QueryParser(query.text, Nil)
 
     private def makeQuery(team: Team) = must {
-      parsed(team).terms.map { term =>
-        multiMatchQuery(term).fields(searchableFields*)
-      }
+      parsed(team).terms.map(term => multiMatchQuery(term).fields(searchableFields*))
     }
 
   private val searchableFields = List(Fields.name, Fields.description)
