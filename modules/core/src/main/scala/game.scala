@@ -1,7 +1,9 @@
 package lila.search
 package game
 
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
+import com.sksamuel.elastic4s.ElasticDsl.*
+import com.sksamuel.elastic4s.requests.searches.queries.Query
+import com.sksamuel.elastic4s.requests.searches.term.TermQuery
 import org.joda.time.DateTime
 
 import scala.concurrent.duration.*
@@ -74,7 +76,7 @@ object Mapping:
     )
 
 object GameQuery:
-  given query: lila.search.Queryable[Game] = new lila.search.Queryable[Game]:
+  given query: Queryable[Game] = new:
 
     val timeout = 5.seconds
     val index   = "game"
@@ -88,26 +90,24 @@ object GameQuery:
         .size(size.value)
         .timeout(timeout)
 
-    def countDef(query: Game) = (search(index).query(makeQuery(query)).size(0)).timeout(timeout)
+    def countDef(query: Game) = search(index).query(makeQuery(query)).size(0).timeout(timeout)
 
-    private def makeQuery(query: Game) =
+    private def makeQuery(query: Game): Query =
 
       import query.*
       def usernames = List(user1, user2).flatten
 
       def hasAiQueries =
-        hasAi.toList.map { a =>
+        hasAi.toList.map: a =>
           a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
-        }
 
-      def toQueries(query: Option[?], name: String) =
-        query.toList.map {
+      def toQueries(query: Option[?], name: String): List[TermQuery] =
+        query.toList.map:
           case s: String => termQuery(name, s.toLowerCase)
           case x         => termQuery(name, x)
-        }
 
       List(
-        usernames.map { termQuery(Fields.uids, _) },
+        usernames.map(termQuery(Fields.uids, _)),
         toQueries(winner, Fields.winner),
         toQueries(loser, Fields.loser),
         toQueries(winnerColor, Fields.winnerColor),
@@ -118,8 +118,8 @@ object GameQuery:
         clock.inc.queries(Fields.clockInc),
         date.map(Date.formatter.print).queries(Fields.date),
         hasAiQueries,
-        (hasAi.getOrElse(true)).fold(aiLevel.queries(Fields.ai), Nil),
-        if perf.nonEmpty then List(termsQuery(Fields.perf, perf)) else Nil,
+        hasAi.getOrElse(true).fold(aiLevel.queries(Fields.ai), Nil),
+        perf.nonEmpty.fold(List(termsQuery(Fields.perf, perf)), Nil),
         toQueries(source, Fields.source),
         toQueries(rated, Fields.rated),
         toQueries(status, Fields.status),
@@ -133,9 +133,8 @@ object GameQuery:
 case class Sorting(f: String, order: String):
   import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
   def definition =
-    fieldSort {
-      (Sorting.fieldKeys contains f).fold(f, Sorting.default.f)
-    }.order((order.toLowerCase == "asc").fold(SortOrder.ASC, SortOrder.DESC))
+    fieldSort(Sorting.fieldKeys.contains(f).fold(f, Sorting.default.f))
+      .order((order.toLowerCase == "asc").fold(SortOrder.ASC, SortOrder.DESC))
 
 object Sorting:
 
