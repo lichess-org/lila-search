@@ -42,11 +42,13 @@ object ForumQuery:
 
     private def makeQuery(query: Forum) =
       val parsed = QueryParser(query.text, List("user"))
-      boolQuery().must(
-        parsed.terms.map(term => multiMatchQuery(term).fields(searchableFields*)) ::: List(
-          parsed("user").map(termQuery(Fields.author, _)),
-          Option.unless(query.troll)(termQuery(Fields.troll, false))
-        ).flatten
-      )
+      List(
+        parsed.terms.map(term => multiMatchQuery(term).fields(searchableFields*)),
+        parsed("user").map(termQuery(Fields.author, _)).toList,
+        Option.unless(query.troll)(termQuery(Fields.troll, false)).toList
+      ).flatten.match
+        case Nil      => matchAllQuery()
+        case x :: Nil => x
+        case xs       => boolQuery().must(xs)
 
   private val searchableFields = List(Fields.body, Fields.topic, Fields.author)
