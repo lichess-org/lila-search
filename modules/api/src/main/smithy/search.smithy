@@ -244,6 +244,8 @@ structure Game {
   analysed: Boolean
   whiteUser: String
   blackUser: String
+  clockInit: Integer
+  clockInc: Integer
 }
 
 structure IntRange {

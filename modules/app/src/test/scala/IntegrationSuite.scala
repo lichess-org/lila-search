@@ -148,8 +148,19 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Game)
-          x <- service.search(Query.game(List(1)), 0, 12)
-          y <- service.search(Query.game(loser = "uid2".some), 0, 12)
-          z <- service.search(Query.game(), 0, 12)
-          w <- service.search(Query.game(duration = IntRange(a = 99.some, b = 101.some).some), 0, 12)
-        yield expect(x.hitIds.size == 1 && x == y && z == x && w == x)
+          a <- service.search(Query.game(List(1)), 0, 12)
+          b <- service.search(Query.game(loser = "uid2".some), 0, 12)
+          c <- service.search(Query.game(), 0, 12)
+          d <- service.search(Query.game(duration = IntRange(a = 99.some, b = 101.some).some), 0, 12)
+          e <- service.search(Query.game(clockInit = 100.some), 0, 12)
+          f <- service.search(Query.game(clockInc = 200.some), 0, 12)
+          g <- service.search(Query.game(clock = Clocking(initMin = 99.some, initMax = 101.some).some), 0, 12)
+          h <- service.search(Query.game(clock = Clocking(incMin = 199.some, incMax = 201.some).some), 0, 12)
+          i <- service.search(
+            Query.game(clock = Clocking(incMin = 99.some, incMax = 101.some).some, clockInc = 200.some),
+            0,
+            12
+          )
+        yield expect(
+          a.hitIds.size == 1 && b == a && c == a && d == a && e == a && f == a && g == a && h == a && i == a
+        )
