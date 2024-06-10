@@ -1,6 +1,7 @@
 package lila.search
 package game
 
+import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.term.TermQuery
@@ -28,7 +29,8 @@ case class Game(
     sorting: Sorting = Sorting.default,
     analysed: Option[Boolean] = None,
     whiteUser: Option[String] = None,
-    blackUser: Option[String] = None
+    blackUser: Option[String] = None,
+    clockInit: Option[Int] = None
 )
 
 object Fields:
@@ -106,6 +108,8 @@ object GameQuery:
           case s: String => termQuery(name, s.toLowerCase)
           case x         => termQuery(name, x)
 
+      def clockInit =
+        query.clockInit.fold(clock.init.queries(Fields.clockInit))(termsQuery(Fields.clockInit, _).pure[List])
       List(
         usernames.map(termQuery(Fields.uids, _)),
         toQueries(winner, Fields.winner),
@@ -114,7 +118,6 @@ object GameQuery:
         turns.queries(Fields.turns),
         averageRating.queries(Fields.averageRating),
         duration.queries(Fields.duration),
-        clock.init.queries(Fields.clockInit),
         clock.inc.queries(Fields.clockInc),
         date.map(Date.formatter.print).queries(Fields.date),
         hasAiQueries,
@@ -125,7 +128,8 @@ object GameQuery:
         toQueries(status, Fields.status),
         toQueries(analysed, Fields.analysed),
         toQueries(whiteUser, Fields.whiteUser),
-        toQueries(blackUser, Fields.blackUser)
+        toQueries(blackUser, Fields.blackUser),
+        clockInit
       ).flatten.compile
 
 case class Sorting(f: String, order: String):
