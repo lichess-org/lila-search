@@ -245,6 +245,7 @@ structure Game {
   whiteUser: String
   blackUser: String
   clockInit: Integer
+  clockInc: Integer
 }
 
 structure IntRange {

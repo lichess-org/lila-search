@@ -30,7 +30,8 @@ case class Game(
     analysed: Option[Boolean] = None,
     whiteUser: Option[String] = None,
     blackUser: Option[String] = None,
-    clockInit: Option[Int] = None
+    clockInit: Option[Int] = None,
+    clockInc: Option[Int] = None
 )
 
 object Fields:
@@ -110,6 +111,10 @@ object GameQuery:
 
       def clockInit =
         query.clockInit.fold(clock.init.queries(Fields.clockInit))(termsQuery(Fields.clockInit, _).pure[List])
+
+      def clockInc =
+        query.clockInc.fold(clock.inc.queries(Fields.clockInc))(termsQuery(Fields.clockInc, _).pure[List])
+
       List(
         usernames.map(termQuery(Fields.uids, _)),
         toQueries(winner, Fields.winner),
@@ -118,7 +123,8 @@ object GameQuery:
         turns.queries(Fields.turns),
         averageRating.queries(Fields.averageRating),
         duration.queries(Fields.duration),
-        clock.inc.queries(Fields.clockInc),
+        clockInit,
+        clockInc,
         date.map(Date.formatter.print).queries(Fields.date),
         hasAiQueries,
         hasAi.getOrElse(true).fold(aiLevel.queries(Fields.ai), Nil),
@@ -128,8 +134,7 @@ object GameQuery:
         toQueries(status, Fields.status),
         toQueries(analysed, Fields.analysed),
         toQueries(whiteUser, Fields.whiteUser),
-        toQueries(blackUser, Fields.blackUser),
-        clockInit
+        toQueries(blackUser, Fields.blackUser)
       ).flatten.compile
 
 case class Sorting(f: String, order: String):
