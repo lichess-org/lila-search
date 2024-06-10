@@ -13,3 +13,5 @@ target
 /?
 .sbtopts
 .env
+
+.smithy.lsp.log

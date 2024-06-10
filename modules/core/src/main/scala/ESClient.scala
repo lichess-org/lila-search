@@ -2,7 +2,7 @@ package lila.search
 
 import cats.MonadThrow
 import cats.syntax.all.*
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
+import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.fields.ElasticField
 import com.sksamuel.elastic4s.{
   ElasticClient,

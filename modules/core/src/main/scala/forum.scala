@@ -47,7 +47,7 @@ object ForumQuery:
         multiMatchQuery(term).fields(searchableFields*)
       } ::: List(
         parsed(query.text)("user").map { termQuery(Fields.author, _) },
-        (!query.troll).option(termQuery(Fields.troll, false))
+        Option.when(!query.troll)(termQuery(Fields.troll, false))
       ).flatten
     )
 

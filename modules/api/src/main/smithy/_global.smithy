@@ -22,11 +22,10 @@ list Strings {
 }
 
 @trait(selector: "string")
-structure DateTimeFormat {}
-
-apply lila.search.spec#DateTimeFormat @refinement(
+@refinement(
    targetType: "lila.search.spec.SearchDateTime"
 )
+structure DateTimeFormat {}
 
 @DateTimeFormat
 @unwrap

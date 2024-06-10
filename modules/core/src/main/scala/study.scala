@@ -1,8 +1,8 @@
 package lila.search
 package study
 
-import com.sksamuel.elastic4s.ElasticDsl.{ RichFuture as _, * }
-import com.sksamuel.elastic4s.requests.searches.queries.Query as QueryDefinition
+import com.sksamuel.elastic4s.ElasticDsl.*
+import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
 case class Study(text: String, userId: Option[String])
@@ -54,7 +54,7 @@ object StudyQuery:
     private def parsed(text: String) = QueryParser(text, List("owner", "member"))
 
     private def makeQuery(query: Study) = {
-      val matcher: QueryDefinition =
+      val matcher: Query =
         if parsed(query.text).terms.isEmpty then matchAllQuery()
         else
           multiMatchQuery(
