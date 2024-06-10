@@ -59,7 +59,7 @@ object StudyQuery:
           multiMatchQuery(
             parsed.terms.mkString(" ")
           ).fields(searchableFields*).analyzer("english").matchType("most_fields")
-      must {
+      boolQuery().filter {
         matcher :: List(
           parsed("owner").map(termQuery(Fields.owner, _)),
           parsed("member").map(member =>

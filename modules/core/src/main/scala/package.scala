@@ -14,4 +14,4 @@ extension (queries: List[Query])
   def compile: Query = queries match
     case Nil      => matchAllQuery()
     case q :: Nil => q
-    case _        => boolQuery().must(queries)
+    case _        => boolQuery().filter(queries)
