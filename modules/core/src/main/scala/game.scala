@@ -127,8 +127,9 @@ object GameQuery:
         toQueries(whiteUser, Fields.whiteUser),
         toQueries(blackUser, Fields.blackUser)
       ).flatten match
-        case Nil     => matchAllQuery()
-        case queries => boolQuery().must(queries)
+        case Nil         => matchAllQuery()
+        case List(query) => query
+        case queries     => boolQuery().must(queries)
 
 case class Sorting(f: String, order: String):
   import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
