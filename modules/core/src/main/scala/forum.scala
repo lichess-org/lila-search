@@ -40,15 +40,13 @@ object ForumQuery:
 
     def countDef(query: Forum) = search(index).query(makeQuery(query)).size(0)
 
-    private def parsed(text: String) = QueryParser(text, List("user"))
-
-    private def makeQuery(query: Forum) = boolQuery().must(
-      parsed(query.text).terms.map { term =>
-        multiMatchQuery(term).fields(searchableFields*)
-      } ::: List(
-        parsed(query.text)("user").map { termQuery(Fields.author, _) },
-        Option.when(!query.troll)(termQuery(Fields.troll, false))
-      ).flatten
-    )
+    private def makeQuery(query: Forum) =
+      val parsed = QueryParser(query.text, List("user"))
+      boolQuery().must(
+        parsed.terms.map(term => multiMatchQuery(term).fields(searchableFields*)) ::: List(
+          parsed("user").map(termQuery(Fields.author, _)),
+          Option.unless(query.troll)(termQuery(Fields.troll, false))
+        ).flatten
+      )
 
   private val searchableFields = List(Fields.body, Fields.topic, Fields.author)
