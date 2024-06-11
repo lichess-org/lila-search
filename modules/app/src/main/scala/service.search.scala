@@ -122,9 +122,6 @@ object SearchServiceImpl:
       _.fold(Range.none)(r => Range(r.a.map(_.to[DateTime]), r.b.map(_.to[DateTime])))
     )
 
-  given Transformer.Derived[Option[Clocking], game.Clocking] =
-    Transformer.Derived.FromFunction(_.fold(game.Clocking())(_.to[game.Clocking]))
-
   given Transformer.Derived[Option[Sorting], game.Sorting] =
     Transformer.Derived.FromFunction(_.fold(game.Sorting.default)(_.to[game.Sorting]))
 
