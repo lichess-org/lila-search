@@ -11,9 +11,17 @@ import smithy4s.schema.Schema
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
+/**
+ * This error is thrown when a search request fails.
+ */
 enum SearchError extends NoStackTrace:
   case BadRequest(message: String)
   case InternalServerError(message: String)
+
+  /**
+   * This error is thrown when object serialization fails.
+   */
+  case JsonWriterError(message: String)
 
 class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionContext)
     extends SearchClient:
@@ -63,7 +71,7 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
           case res if res.status == 400 =>
             Future.failed(SearchError.BadRequest(s"$url ${res.status} ${res.body}"))
           case res => Future.failed(SearchError.InternalServerError(s"$url ${res.status} ${res.body}"))
-    catch case e: JsonWriterException => Future.failed(SearchError.BadRequest(e.getMessage))
+    catch case e: JsonWriterException => Future.failed(SearchError.JsonWriterError(e.toString))
 
   private def request_[D: Schema](url: String, data: D): Future[Unit] =
     try
@@ -75,9 +83,7 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
           case res if res.status == 400 =>
             Future.failed(SearchError.BadRequest(s"$url ${res.status} ${res.body}"))
           case res => Future.failed(SearchError.InternalServerError(s"$url ${res.status} ${res.body}"))
-    catch
-      case e: JsonWriterException =>
-        Future.failed(SearchError.BadRequest(e.getMessage))
+    catch case e: JsonWriterException => Future.failed(SearchError.JsonWriterError(e.toString))
 
   private def request_(url: String): Future[Unit] =
     client
