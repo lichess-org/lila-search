@@ -239,7 +239,6 @@ structure Game {
   rated: Boolean
   date: DateRange
   duration: IntRange
-  clock: Clocking
   sorting: Sorting
   analysed: Boolean
   whiteUser: String
@@ -256,13 +255,6 @@ structure IntRange {
 structure DateRange {
   a: Timestamp
   b: Timestamp
-}
-
-structure Clocking {
-  initMin: Integer
-  initMax: Integer
-  incMin: Integer
-  incMax: Integer
 }
 
 structure Sorting {

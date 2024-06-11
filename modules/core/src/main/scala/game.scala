@@ -25,7 +25,6 @@ case class Game(
     rated: Option[Boolean] = None,
     date: Range[DateTime] = Range.none,
     duration: Range[Int] = Range.none,
-    clock: Clocking = Clocking(),
     sorting: Sorting = Sorting.default,
     analysed: Option[Boolean] = None,
     whiteUser: Option[String] = None,
@@ -109,12 +108,6 @@ object GameQuery:
           case s: String => termQuery(name, s.toLowerCase)
           case x         => termQuery(name, x)
 
-      def clockInit =
-        query.clockInit.fold(clock.init.queries(Fields.clockInit))(termsQuery(Fields.clockInit, _).pure[List])
-
-      def clockInc =
-        query.clockInc.fold(clock.inc.queries(Fields.clockInc))(termsQuery(Fields.clockInc, _).pure[List])
-
       List(
         usernames.map(termQuery(Fields.uids, _)),
         toQueries(winner, Fields.winner),
@@ -123,8 +116,8 @@ object GameQuery:
         turns.queries(Fields.turns),
         averageRating.queries(Fields.averageRating),
         duration.queries(Fields.duration),
-        clockInit,
-        clockInc,
+        clockInit.map(termsQuery(Fields.clockInit, _)).toList,
+        clockInc.map(termsQuery(Fields.clockInc, _)).toList,
         date.map(Date.formatter.print).queries(Fields.date),
         hasAiQueries,
         hasAi.getOrElse(true).fold(aiLevel.queries(Fields.ai), Nil),
@@ -148,13 +141,3 @@ object Sorting:
   val default = Sorting(Fields.date, "desc")
 
   val fieldKeys = List(Fields.date, Fields.turns, Fields.averageRating)
-
-case class Clocking(
-    initMin: Option[Int] = None,
-    initMax: Option[Int] = None,
-    incMin: Option[Int] = None,
-    incMax: Option[Int] = None
-):
-
-  def init = Range(initMin, initMax)
-  def inc  = Range(incMin, incMax)
