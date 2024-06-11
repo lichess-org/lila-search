@@ -39,6 +39,29 @@ lazy val api = (project in file("modules/api"))
     )
   )
 
+lazy val ingestor = (project in file("modules/ingestor"))
+  .settings(
+    name           := "ingestor",
+    publish        := {},
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      elastic4sCatsEffect,
+      catsCore,
+      catsEffect,
+      ducktape,
+      cirisCore,
+      mongo4catsCore,
+      log4Cats,
+      logback,
+      weaver,
+      testContainers,
+    ),
+    Compile / run / fork := true
+  )
+  .enablePlugins(JavaAppPackaging)
+  .dependsOn(core)
+
+
 lazy val client = (project in file("modules/client"))
   .settings(
     name := "client",
@@ -86,7 +109,7 @@ val e2e = (project in file("modules/e2e"))
 lazy val root = project
   .in(file("."))
   .settings(publish := {}, publish / skip := true)
-  .aggregate(core, api, app, client, e2e)
+  .aggregate(core, api, app, client, e2e, ingestor)
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
 addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")
