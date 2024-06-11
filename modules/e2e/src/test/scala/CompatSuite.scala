@@ -33,9 +33,9 @@ object CompatSuite extends weaver.IOSuite:
 
   test("search endpoint"): client =>
     val query = Query.Forum("foo")
-    IO.fromFuture(IO(client.search(query, 0, 10))).map(expect.same(_, lila.search.spec.SearchOutput(Nil)))
+    IO.fromFuture(IO(client.search(query, 0, 10))).map(expect.same(_, SearchOutput(Nil)))
 
-  test("search study endpoint"): client =>
+  test("bad search study endpoint"): client =>
     val query = Query.Study(
       text =
         "哈尔滨双城区《哪个酒店有小姐服务汽车站》【威信：█184-0823-1261█ 提供上门服务】面到付款  有工作室，精挑细选，各种类型，应有尽有，诚信经营，坚决不做一次性买卖！国内一二线城市均可安排💯6sFW"
@@ -44,9 +44,9 @@ object CompatSuite extends weaver.IOSuite:
     )
     IO.fromFuture(IO(client.search(query, 0, 10)))
       .handleErrorWith:
-        case e: SearchError.BadRequest =>
-          IO.pure(lila.search.spec.SearchOutput(Nil))
-      .map(expect.same(_, lila.search.spec.SearchOutput(Nil)))
+        case e: SearchError.JsonWriterError =>
+          IO.pure(SearchOutput(Nil))
+      .map(expect.same(_, SearchOutput(Nil)))
 
   test("count endpoint"): client =>
     val query = Query.Team("foo")
