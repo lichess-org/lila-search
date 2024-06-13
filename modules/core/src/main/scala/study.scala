@@ -49,7 +49,7 @@ object StudyQuery:
         .start(from.value)
         .size(size.value)
 
-    def countDef(query: Study) = search(index).query(makeQuery(query)).size(0)
+    def countDef(query: Study) = count(index).query(makeQuery(query))
 
     private def makeQuery(query: Study) = {
       val parsed = QueryParser(query.text, List("owner", "member"))
@@ -59,7 +59,7 @@ object StudyQuery:
           multiMatchQuery(
             parsed.terms.mkString(" ")
           ).fields(searchableFields*).analyzer("english").matchType("most_fields")
-      boolQuery().filter {
+      boolQuery().must {
         matcher :: List(
           parsed("owner").map(termQuery(Fields.owner, _)),
           parsed("member").map(member =>

@@ -38,7 +38,7 @@ object ForumQuery:
         .start(from.value)
         .size(size.value)
 
-    def countDef(query: Forum) = search(index).query(makeQuery(query)).size(0)
+    def countDef(query: Forum) = count(index).query(makeQuery(query))
 
     private def makeQuery(query: Forum) =
       val parsed = QueryParser(query.text, List("user"))

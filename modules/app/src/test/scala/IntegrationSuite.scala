@@ -102,8 +102,8 @@ object IntegrationSuite extends IOSuite:
                   name = "study name",
                   owner = "study owner",
                   members = List("member1", "member2"),
-                  chapterNames = "chapter names",
-                  chapterTexts = "chapter texts",
+                  chapterNames = "names",
+                  chapterTexts = "texts",
                   likes = 100,
                   public = true,
                   topics = List("topic1", "topic2")
@@ -111,10 +111,10 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Study)
-          x <- service.search(Query.study("study name"), 0, 12)
-          y <- service.search(Query.study("study description"), 0, 12)
-          z <- service.search(Query.study("topic1"), 0, 12)
-        yield expect(x.hitIds.size == 1 && x == y && z == x)
+          a <- service.search(Query.study("name"), 0, 12)
+          b <- service.search(Query.study("study description"), 0, 12)
+          c <- service.search(Query.study("topic1"), 0, 12)
+        yield expect(a.hitIds.size == 1 && b == a && c == a)
 
   test("game"): _ =>
     Clients
