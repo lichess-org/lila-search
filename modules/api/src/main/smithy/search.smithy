@@ -49,7 +49,7 @@ operation Count {
 
   output := {
     @required
-    count: Long
+    count: Integer
   }
 
   errors: [InternalServerError]

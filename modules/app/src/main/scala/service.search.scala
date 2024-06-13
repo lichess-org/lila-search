@@ -96,7 +96,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def count(query: Query): IO[CountOutput] =
     esClient
       .count(query)
-      .map(_.to[CountOutput])
+      .map(x => CountOutput(x.count.toInt))
       .handleErrorWith: e =>
         logger.error(e)(s"Error in count: query=$query") *>
           IO.raiseError(InternalServerError("Internal server error"))
