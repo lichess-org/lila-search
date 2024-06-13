@@ -92,7 +92,7 @@ object GameQuery:
         .size(size.value)
         .timeout(timeout)
 
-    def countDef(query: Game) = search(index).query(makeQuery(query)).size(0).timeout(timeout)
+    def countDef(query: Game) = count(index).query(makeQuery(query))
 
     private def makeQuery(query: Game): Query =
 

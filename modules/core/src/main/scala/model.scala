@@ -15,9 +15,9 @@ object SearchResponse:
   def apply(res: ESR): SearchResponse =
     SearchResponse(res.hits.hits.toList.map(_.id))
 
-case class CountResponse(count: Int)
+case class CountResponse(count: Long)
 
 object CountResponse:
 
-  def apply(res: ESR): CountResponse =
-    CountResponse(res.totalHits.toInt)
+  def apply(res: com.sksamuel.elastic4s.requests.count.CountResponse): CountResponse =
+    CountResponse(res.count)

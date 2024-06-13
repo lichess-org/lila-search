@@ -49,7 +49,7 @@ object StudyQuery:
         .start(from.value)
         .size(size.value)
 
-    def countDef(query: Study) = search(index).query(makeQuery(query)).size(0)
+    def countDef(query: Study) = count(index).query(makeQuery(query))
 
     private def makeQuery(query: Study) = {
       val parsed = QueryParser(query.text, List("owner", "member"))

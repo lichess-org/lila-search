@@ -33,7 +33,7 @@ object TeamQuery:
         .start(from.value)
         .size(size.value)
 
-    def countDef(query: Team) = search(index).query(makeQuery(query)).size(0)
+    def countDef(query: Team) = count(index).query(makeQuery(query))
 
     private def makeQuery(team: Team) =
       QueryParser(team.text, Nil).terms.map(term => multiMatchQuery(term).fields(searchableFields*)).compile
