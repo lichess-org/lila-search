@@ -9,9 +9,9 @@ inThisBuild(
     organization  := "org.lichess.search",
     run / fork    := true,
     run / javaOptions += "-Dconfig.override_with_env_vars=true",
-    semanticdbEnabled                      := true, // for scalafix
-    Compile / doc / sources                := Seq.empty,
-    publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", ""))))
+    semanticdbEnabled       := true, // for scalafix
+    Compile / doc / sources := Seq.empty,
+    publishTo               := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", ""))))
   )
 )
 
@@ -31,7 +31,7 @@ lazy val core = project
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
-    name := "api",
+    name                     := "api",
     smithy4sWildcardArgument := "?",
     libraryDependencies ++= Seq(
       catsCore,
@@ -68,7 +68,7 @@ lazy val app = (project in file("modules/app"))
       log4Cats,
       logback,
       weaver,
-      testContainers,
+      testContainers
     ),
     Compile / run / fork := true
   )
