@@ -21,7 +21,7 @@ object App extends IOApp.Simple:
 
 class IngestorApp(res: AppResources)(using Logger[IO]):
   def run(): Resource[IO, Unit] =
-    Ingestor(res.mongo, res.elastic)
+    Ingestor(res.mongo, res.elastic, res.store)
       .flatMap(_.run())
       .toResource
       .evalTap(_ => Logger[IO].info("Ingestor started"))

@@ -10,12 +10,13 @@ import mongo4cats.client.MongoClient
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.Logger
 
-class AppResources(val mongo: MongoDatabase[IO], val elastic: ESClient[IO])
+class AppResources(val mongo: MongoDatabase[IO], val elastic: ESClient[IO], val store: KVStore)
 
 object AppResources:
 
   def instance(conf: AppConfig)(using Logger[IO]): Resource[IO, AppResources] =
-    (makeMongoClient(conf.mongo), makeElasticClient(conf.elastic)).parMapN(AppResources.apply)
+    (makeMongoClient(conf.mongo), makeElasticClient(conf.elastic), KVStore.apply().toResource)
+      .parMapN(AppResources.apply)
 
   def makeElasticClient(conf: ElasticConfig) =
     Resource
