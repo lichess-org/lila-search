@@ -50,6 +50,7 @@ lazy val ingestor = (project in file("modules/ingestor"))
       catsEffect,
       ducktape,
       cirisCore,
+      smithy4sJson,
       mongo4catsCore,
       log4Cats,
       logback,
@@ -59,7 +60,7 @@ lazy val ingestor = (project in file("modules/ingestor"))
     Compile / run / fork := true
   )
   .enablePlugins(JavaAppPackaging)
-  .dependsOn(core)
+  .dependsOn(core, api)
 
 
 lazy val client = (project in file("modules/client"))
