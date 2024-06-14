@@ -13,13 +13,14 @@ import org.bson.{ BsonDocument, BsonTimestamp }
 import smithy4s.Timestamp
 
 import java.time.Instant
+import scala.concurrent.duration.*
 
-trait ForumWatch:
-  def watch(since: Instant): fs2.Stream[IO, Seq[ForumSourceWithId]]
+trait ForumIngestor:
+  def watch(since: Option[Instant]): fs2.Stream[IO, Seq[ForumSourceWithId]]
 
-object ForumWatch:
+object ForumIngestor:
 
-  private val topicProjection = Projection.include(List("id", "name"))
+  private val topicProjection = Projection.include(List("_id", "name"))
 
   val eventFilter = Filter.in("operationType", List("replace", "insert"))
   val aggregate   = Aggregate.matchBy(eventFilter)
@@ -35,24 +36,24 @@ object ForumWatch:
   val batchSize            = 100
   val startOperationalTime = BsonTimestamp(1718270441, 1)
 
-  def apply(mongo: MongoDatabase[IO]): IO[ForumWatch] =
-    (mongo.getCollection("f_post"), mongo.getCollection("f_topic")).mapN(apply)
+  def apply(mongo: MongoDatabase[IO]): IO[ForumIngestor] =
+    (mongo.getCollection("f_topic"), mongo.getCollection("f_post")).mapN(apply)
 
-  def apply(topics: MongoCollection, posts: MongoCollection): ForumWatch = new:
-    def watch(since: Instant) =
+  def apply(topics: MongoCollection, posts: MongoCollection): ForumIngestor = new:
+    def watch(since: Option[Instant]) =
       postStream.evalMap: events =>
-        val topicIds = events.toList.flatMap(_.documentKey.flatMap(_.getString("_id"))).distinct
+        val topicIds = events.toList.flatMap(_.fullDocument.flatMap(_.getString("topicId"))).distinct
         topicByIds(topicIds).map: topicMap =>
           events.toList.flatten: event =>
-            (event.id, event.fullDocument).flatMapN: (id, full) =>
-              transform(topicMap.get(id), full).map(ForumSourceWithId.apply(id, _))
+            (event.fullDocument.flatMap(_.topicId), event.fullDocument).flatMapN: (topicId, full) =>
+              transform(topicMap.get(topicId), full).map(ForumSourceWithId.apply(topicId, _))
 
     def topicByIds(ids: Seq[String]): IO[Map[String, String]] =
       topics
-        .find(Filter.in("id", ids))
+        .find(Filter.in("_id", ids))
         .projection(topicProjection)
         .all
-        .map(_.map(doc => (doc.getString("id") -> doc.getString("name")).mapN(_ -> _)).flatten.toMap)
+        .map(_.map(doc => (doc.getString("_id") -> doc.getString("name")).mapN(_ -> _)).flatten.toMap)
 
     def postStream: fs2.Stream[IO, Chunk[ChangeStreamDocument[Document]]] =
       posts
@@ -61,7 +62,9 @@ object ForumWatch:
         .startAtOperationTime(startOperationalTime)
         .batchSize(batchSize)
         .boundedStream(batchSize)
-        .chunkN(batchSize)
+        // .evalTap(IO.println)
+        .groupWithin(batchSize, 1.second)
+      // .evalTap(IO.println)
 
     def transform(topicName: Option[String], doc: Document): Option[ForumSource] =
       (
@@ -72,3 +75,15 @@ object ForumWatch:
         doc.getNested("createdAt").flatMap(_.asInstant).map(Timestamp.fromInstant),
         doc.getString("userId").some
       ).mapN(ForumSource.apply)
+
+    def transformpp(topicName: Option[String], doc: Document): Option[ForumSource] =
+      (
+        doc.getString("text"),
+        topicName,
+        doc.getString("topicId"),
+        doc.getBoolean("troll"),
+        doc.getNested("createdAt").flatMap(_.asInstant).map(Timestamp.fromInstant),
+        doc.getString("userId").some
+      ).mapN(ForumSource.apply)
+
+    extension (doc: Document) def topicId = doc.getString("topicId")

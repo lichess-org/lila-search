@@ -2,12 +2,11 @@ package lila.search
 package ingestor
 
 import cats.effect.*
+import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
 import lila.search.spec.{ ForumSource, Source }
 import mongo4cats.database.MongoDatabase
 import smithy4s.schema.Schema
-
-import java.time.Instant
 
 trait Ingestor:
   def run(): IO[Unit]
@@ -15,14 +14,14 @@ trait Ingestor:
 object Ingestor:
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO]): IO[Ingestor] =
-    ForumWatch(mongo).map(apply(_, elastic))
+    ForumIngestor(mongo).map(apply(_, elastic))
 
-  def apply(forum: ForumWatch, elastic: ESClient[IO]): Ingestor = new:
+  def apply(forum: ForumIngestor, elastic: ESClient[IO]): Ingestor = new:
     def run() =
       forum
-        .watch(Instant.now())
+        .watch(none)
         .map(_.map(x => x.id -> x.source))
-        .evalMap(sources => elastic.storeBulk(???, sources))
+        .evalMap(sources => elastic.storeBulk(Index("forum"), sources))
         .compile
         .drain
 
