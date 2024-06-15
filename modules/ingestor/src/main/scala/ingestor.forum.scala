@@ -54,16 +54,22 @@ object ForumIngestor:
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now()))
 
     private def storeBulk(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
-      events.toSources.flatMap(elastic.storeBulk(index, _))
-        *> info"Indexed ${events.size} forum posts"
+      events.toSources
+        .flatMap(elastic.storeBulk(index, _))
+        .handleErrorWith: e =>
+          Logger[IO].error(e)(s"Failed to index forum posts: ${events.map(_.id).mkString(", ")}")
+      *> info"Indexed ${events.size} forum posts"
 
     private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
-      elastic.deleteMany(index, events.flatMap(_.id.map(Id.apply)))
-        *> info"Deleted ${events.size} forum posts"
+      elastic
+        .deleteMany(index, events.flatMap(_.id.map(Id.apply)))
+        .handleErrorWith: e =>
+          Logger[IO].error(e)(s"Failed to delete forum posts: ${events.map(_.id).mkString(", ")}")
+      *> info"Deleted ${events.size} forum posts"
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
-      store.put(index.name, time.plusSeconds(1)) // +1 to avoid reindexing the same data
-        *> info"Stored last indexed time $time for index ${index.name}"
+      store.put(index.name, time.plusSeconds(1)) // +1 to avoid reindexing the same event
+        *> info"Stored last indexed time ${time.getEpochSecond()} for index ${index.name}"
 
     private def startAt: IO[Option[Instant]] =
       config.startAt.fold(store.get(index.name))(Instant.ofEpochSecond(_).some.pure[IO])
