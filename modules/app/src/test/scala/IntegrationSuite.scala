@@ -9,8 +9,9 @@ import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
-import smithy4s.Timestamp
 import weaver.*
+
+import java.time.Instant
 
 object IntegrationSuite extends IOSuite:
 
@@ -56,7 +57,7 @@ object IntegrationSuite extends IOSuite:
                   topic = "chess",
                   topicId = "chess",
                   troll = false,
-                  date = Timestamp(2021, 1, 1, 0, 0, 0),
+                  date = Instant.now().toEpochMilli(),
                   author = "nt9".some
                 )
               )

@@ -13,7 +13,6 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 import play.api.libs.ws.*
 import play.api.libs.ws.ahc.*
-import smithy4s.Timestamp
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.*
@@ -69,7 +68,7 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.store("id", source))).map(expect.same(_, ()))
 
   test("store bulk forum endpoint"): client =>
-    val now = Timestamp(Instant.now().getEpochSecond, 0)
+    val now = Instant.now().toEpochMilli()
     val sources = List(
       lila.search.spec.ForumSourceWithId(
         "id1",
