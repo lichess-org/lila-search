@@ -11,7 +11,6 @@ import mongo4cats.operations.{ Aggregate, Filter, Projection }
 import org.bson.BsonTimestamp
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
-import smithy4s.Timestamp
 
 import java.time.Instant
 import scala.concurrent.duration.*
@@ -89,7 +88,7 @@ object ForumIngestor:
           topicName,
           doc.getString("topicId"),
           doc.getBoolean("troll"),
-          doc.getNested("createdAt").flatMap(_.asInstant).map(Timestamp.fromInstant),
+          doc.getNested("createdAt").flatMap(_.asInstant).map(_.toEpochMilli()),
           doc.getString("userId").some
         ).mapN(ForumSource.apply)
 
