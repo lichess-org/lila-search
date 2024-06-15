@@ -9,11 +9,11 @@ import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument
 import mongo4cats.operations.{ Aggregate, Filter, Projection }
 import org.bson.BsonTimestamp
+import org.typelevel.log4cats.Logger
 import smithy4s.Timestamp
 
 import java.time.Instant
 import scala.concurrent.duration.*
-import org.typelevel.log4cats.Logger
 
 trait ForumIngestor:
   def ingest(since: Option[Instant]): fs2.Stream[IO, Unit]
@@ -45,12 +45,10 @@ object ForumIngestor:
         .flatMap: last =>
           postStream(last)
             .evalMap: events =>
-              val topicIds = events.flatMap(_.topicId).distinct
-              topicByIds(topicIds).map: topicMap =>
-                events.flatten: event =>
-                  (event.id, event.topicId, event.fullDocument).flatMapN: (id, topicId, doc) =>
-                    doc.toForumSource(topicName = topicMap.get(topicId)).map(id -> _)
-            .evalMap(elastic.storeBulk(index, _))
+              val last = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
+              events.toSources.map(_ -> last)
+            .evalMap: (sources, last) =>
+              elastic.storeBulk(index, sources) *> store.put(index.name, last.getOrElse(Instant.now()))
 
     // Fetches topic names by their ids
     def topicByIds(ids: Seq[String]): IO[Map[String, String]] =
@@ -68,6 +66,14 @@ object ForumIngestor:
         .boundedStream(batchSize)
         .groupWithin(batchSize, 1.second)
         .map(_.toList)
+
+    extension (events: List[ChangeStreamDocument[Document]])
+      def toSources: IO[List[(String, ForumSource)]] =
+        val topicIds = events.flatMap(_.topicId).distinct
+        topicByIds(topicIds).map: topicMap =>
+          events.flatten: event =>
+            (event.id, event.topicId, event.fullDocument).flatMapN: (id, topicId, doc) =>
+              doc.toForumSource(topicName = topicMap.get(topicId)).map(id -> _)
 
     extension (doc: Document)
       def toForumSource(topicName: Option[String]): Option[ForumSource] =

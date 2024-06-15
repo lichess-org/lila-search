@@ -2,11 +2,12 @@ package lila.search
 package ingestor
 
 import cats.effect.*
-import java.time.Instant
-import fs2.io.file.Files
+import cats.effect.std.Mutex
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.github.plokhotnyuk.jsoniter_scala.macros.*
-import cats.effect.std.Mutex
+import fs2.io.file.Files
+
+import java.time.Instant
 
 trait KVStore:
   def get(key: String): IO[Option[Instant]]
@@ -14,7 +15,7 @@ trait KVStore:
 
 object KVStore:
 
-  val file: String = "store.json"
+  val file: String                        = "store.json"
   given JsonValueCodec[Map[String, Long]] = JsonCodecMaker.make
 
   type State = Map[String, Long]
@@ -33,7 +34,6 @@ object KVStore:
               read(file).flatMap: content =>
                 write(file, content.updated(key, value.toEpochMilli))
 
-
   def read(path: String): IO[State] =
     Files[IO]
       .readAll(fs2.io.file.Path(path))
@@ -43,8 +43,8 @@ object KVStore:
       .map(x => readFromString[State](x))
 
   def write(path: String, content: State): IO[Unit] =
-    fs2
-      .Stream.eval(IO.blocking(writeToString(content)))
+    fs2.Stream
+      .eval(IO.blocking(writeToString(content)))
       .through(fs2.text.utf8.encode[IO])
       .through(Files[IO].writeAll(fs2.io.file.Path(path)))
       .compile
