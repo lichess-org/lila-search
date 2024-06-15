@@ -10,6 +10,7 @@ import mongo4cats.models.collection.ChangeStreamDocument
 import mongo4cats.operations.{ Aggregate, Filter, Projection }
 import org.bson.BsonTimestamp
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 import smithy4s.Timestamp
 
 import java.time.Instant
@@ -25,8 +26,7 @@ object ForumIngestor:
   val eventFilter = Filter.in("operationType", List("replace", "insert"))
   val aggregate   = Aggregate.matchBy(eventFilter)
 
-  val batchSize            = 100
-  val startOperationalTime = BsonTimestamp(1718270441, 1)
+  val batchSize = 100
 
   val index = Index("forum")
 
@@ -48,7 +48,10 @@ object ForumIngestor:
               val last = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
               events.toSources.map(_ -> last)
             .evalMap: (sources, last) =>
-              elastic.storeBulk(index, sources) *> store.put(index.name, last.getOrElse(Instant.now()))
+              elastic.storeBulk(index, sources)
+                *> info"Indexed ${sources.size} forum posts"
+                *> store.put(index.name, last.getOrElse(Instant.now()))
+                *> info"Stored last indexed time $last for index ${index.name}"
 
     // Fetches topic names by their ids
     def topicByIds(ids: Seq[String]): IO[Map[String, String]] =
