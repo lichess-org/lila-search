@@ -9,6 +9,8 @@ import mongo4cats.collection.GenericMongoCollection
 import mongo4cats.models.collection.ChangeStreamDocument
 import smithy4s.json.Json.given
 import smithy4s.schema.Schema
+import java.time.Instant
+import org.bson.BsonTimestamp
 
 type MongoCollection = GenericMongoCollection[IO, Document, [A] =>> fs2.Stream[IO, A]]
 
@@ -22,3 +24,6 @@ given Indexable[Source] =
     case g: Source.GameCase  => writeToString(g.game)
     case s: Source.StudyCase => writeToString(s.study)
     case t: Source.TeamCase  => writeToString(t.team)
+
+extension (instant: Instant)
+  def asBsonTimestamp: BsonTimestamp = BsonTimestamp(instant.getEpochSecond.toInt, 1)

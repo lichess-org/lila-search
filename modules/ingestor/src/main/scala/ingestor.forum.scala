@@ -64,9 +64,7 @@ object ForumIngestor:
     def postStream(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
       posts
         .watch(aggregate)
-        .startAtOperationTime(
-          since.fold(startOperationalTime)(x => BsonTimestamp(x.getEpochSecond().toInt, 1))
-        )
+        .startAtOperationTime(since.fold(startOperationalTime)(_.asBsonTimestamp))
         .batchSize(config.batchSize)
         .boundedStream(config.batchSize)
         .groupWithin(config.batchSize, config.timeWindows.second)
