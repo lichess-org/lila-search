@@ -16,12 +16,12 @@ object App extends IOApp.Simple:
       config <- AppConfig.load.toResource
       _      <- Logger[IO].info(s"Starting lila-search ingestor with config: $config").toResource
       res    <- AppResources.instance(config)
-      _      <- IngestorApp(res).run()
+      _      <- IngestorApp(res, config).run()
     yield ()
 
-class IngestorApp(res: AppResources)(using Logger[IO]):
+class IngestorApp(res: AppResources, config: AppConfig)(using Logger[IO]):
   def run(): Resource[IO, Unit] =
-    Ingestor(res.mongo, res.elastic, res.store)
+    Ingestor(res.mongo, res.elastic, res.store, config.ingestor)
       .flatMap(_.run())
       .toResource
       .evalTap(_ => Logger[IO].info("Ingestor started"))

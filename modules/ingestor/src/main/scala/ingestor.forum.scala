@@ -25,20 +25,19 @@ object ForumIngestor:
   val eventFilter = Filter.in("operationType", List("replace", "insert"))
   val aggregate   = Aggregate.matchBy(eventFilter)
 
-  val batchSize            = 100
-  val maxBodyLenght        = 10000
   val startOperationalTime = BsonTimestamp(1717222680, 1) // the time that We lost forums indexer
 
   val index = Index("forum")
 
-  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore)(using
-      Logger[IO]
+  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Config)(
+      using Logger[IO]
   ): IO[ForumIngestor] =
-    (mongo.getCollection("f_topic"), mongo.getCollection("f_post")).mapN(apply(elastic, store))
+    (mongo.getCollection("f_topic"), mongo.getCollection("f_post")).mapN(apply(elastic, store, config))
 
-  def apply(elastic: ESClient[IO], store: KVStore)(topics: MongoCollection, posts: MongoCollection)(using
-      Logger[IO]
-  ): ForumIngestor = new:
+  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Config)(
+      topics: MongoCollection,
+      posts: MongoCollection
+  )(using Logger[IO]): ForumIngestor = new:
 
     def ingest(since: Option[Instant]): fs2.Stream[IO, Unit] =
       fs2.Stream
@@ -68,9 +67,9 @@ object ForumIngestor:
         .startAtOperationTime(
           since.fold(startOperationalTime)(x => BsonTimestamp(x.getEpochSecond().toInt, 1))
         )
-        .batchSize(batchSize)
-        .boundedStream(batchSize)
-        .groupWithin(batchSize, 1.second)
+        .batchSize(config.batchSize)
+        .boundedStream(config.batchSize)
+        .groupWithin(config.batchSize, config.timeWindows.second)
         .map(_.toList)
 
     extension (events: List[ChangeStreamDocument[Document]])
@@ -84,7 +83,7 @@ object ForumIngestor:
     extension (doc: Document)
       def toSource(topicName: Option[String]): Option[ForumSource] =
         (
-          doc.getString("text").map(_.take(maxBodyLenght)),
+          doc.getString("text").map(_.take(config.maxBodyLength)),
           topicName,
           doc.getString("topicId"),
           doc.getBoolean("troll"),

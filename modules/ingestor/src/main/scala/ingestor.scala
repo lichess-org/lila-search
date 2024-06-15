@@ -11,7 +11,9 @@ trait Ingestor:
 
 object Ingestor:
 
-  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore)(using Logger[IO]): IO[Ingestor] =
-    ForumIngestor(mongo, elastic, store).map: f =>
+  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig)(using
+      Logger[IO]
+  ): IO[Ingestor] =
+    ForumIngestor(mongo, elastic, store, config.forum).map: f =>
       new Ingestor:
         def run(): IO[Unit] = f.ingest(none).compile.drain
