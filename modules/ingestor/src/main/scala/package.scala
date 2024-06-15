@@ -7,10 +7,11 @@ import lila.search.spec.{ ForumSource, Source }
 import mongo4cats.bson.Document
 import mongo4cats.collection.GenericMongoCollection
 import mongo4cats.models.collection.ChangeStreamDocument
+import org.bson.BsonTimestamp
 import smithy4s.json.Json.given
 import smithy4s.schema.Schema
+
 import java.time.Instant
-import org.bson.BsonTimestamp
 
 type MongoCollection = GenericMongoCollection[IO, Document, [A] =>> fs2.Stream[IO, A]]
 

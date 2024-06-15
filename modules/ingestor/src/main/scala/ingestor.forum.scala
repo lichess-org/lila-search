@@ -3,6 +3,7 @@ package ingestor
 
 import cats.effect.IO
 import cats.syntax.all.*
+import com.mongodb.client.model.changestream.OperationType
 import lila.search.spec.ForumSource
 import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
@@ -16,7 +17,7 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 trait ForumIngestor:
-  def ingest(since: Option[Instant]): fs2.Stream[IO, Unit]
+  def run(): fs2.Stream[IO, Unit]
 
 object ForumIngestor:
 
@@ -39,29 +40,30 @@ object ForumIngestor:
       posts: MongoCollection
   )(using Logger[IO]): ForumIngestor = new:
 
-    def ingest(since: Option[Instant]): fs2.Stream[IO, Unit] =
+    def run(): fs2.Stream[IO, Unit] =
       fs2.Stream
-        .eval(store.get(index.name))
+        .eval(store.get(index.name).flatMap(since => info"Starting forum ingestor from $since".as(since)))
         .flatMap: last =>
           postStream(last)
             .evalMap: events =>
-              val last = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
-              events.toSources.map(_ -> last)
-            .evalMap: (sources, last) =>
-              elastic.storeBulk(index, sources)
-                *> info"Indexed ${sources.size} forum posts"
+              val last                = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
+              val (toDelete, toIndex) = events.partition(_.isDelete)
+              toIndex.toSources.flatMap(elastic.storeBulk(index, _))
+                *> info"Indexed ${toIndex.size} forum posts"
+                *> elastic.deleteMany(index, toDelete.flatMap(x => x.id.map(Id.apply)))
+                *> info"Deleted ${toDelete.size} forum posts"
                 *> store.put(index.name, last.getOrElse(Instant.now()))
                 *> info"Stored last indexed time $last for index ${index.name}"
 
     // Fetches topic names by their ids
-    def topicByIds(ids: Seq[String]): IO[Map[String, String]] =
+    private def topicByIds(ids: Seq[String]): IO[Map[String, String]] =
       topics
         .find(Filter.in("_id", ids))
         .projection(topicProjection)
         .all
         .map(_.map(doc => (doc.getString("_id") -> doc.getString("name")).mapN(_ -> _)).flatten.toMap)
 
-    def postStream(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
+    private def postStream(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
       posts
         .watch(aggregate)
         .startAtOperationTime(since.fold(startOperationalTime)(_.asBsonTimestamp))
@@ -71,7 +73,7 @@ object ForumIngestor:
         .map(_.toList)
 
     extension (events: List[ChangeStreamDocument[Document]])
-      def toSources: IO[List[(String, ForumSource)]] =
+      private def toSources: IO[List[(String, ForumSource)]] =
         val topicIds = events.flatMap(_.topicId).distinct
         topicByIds(topicIds).map: topicMap =>
           events.flatten: event =>
@@ -79,7 +81,7 @@ object ForumIngestor:
               doc.toSource(topicName = topicMap.get(topicId)).map(id -> _)
 
     extension (doc: Document)
-      def toSource(topicName: Option[String]): Option[ForumSource] =
+      private def toSource(topicName: Option[String]): Option[ForumSource] =
         (
           doc.getString("text").map(_.take(config.maxBodyLength)),
           topicName,
@@ -90,4 +92,8 @@ object ForumIngestor:
         ).mapN(ForumSource.apply)
 
     extension (event: ChangeStreamDocument[Document])
-      def topicId = event.fullDocument.flatMap(_.getString("topicId"))
+      private def topicId = event.fullDocument.flatMap(_.getString("topicId"))
+
+      private def isDelete: Boolean =
+        event.operationType == OperationType.DELETE ||
+          event.fullDocument.flatMap(_.get("erasedAt")).isDefined
