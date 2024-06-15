@@ -291,9 +291,10 @@ structure ForumSource {
   @required
   @jsonName("tr")
   troll: Boolean
+  /// time in milliseconds
   @required
   @jsonName("da")
-  date: Timestamp
+  date: Long
 }
 
 structure GameSource {
