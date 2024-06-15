@@ -45,7 +45,7 @@ object Dependencies {
 
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.2"
 
-  val testContainers    = "com.dimafeng"        %% "testcontainers-scala-core"       % "0.41.3"     % Test
+  val testContainers    = "com.dimafeng"        %% "testcontainers-scala-core"       % "0.41.4"     % Test
   val weaver            = "com.disneystreaming" %% "weaver-cats"                     % "0.8.4"      % Test
   val weaverScalaCheck  = "com.disneystreaming" %% "weaver-scalacheck"               % "0.8.4"      % Test
   val catsEffectTestKit = "org.typelevel"       %% "cats-effect-testkit"             % V.catsEffect % Test
