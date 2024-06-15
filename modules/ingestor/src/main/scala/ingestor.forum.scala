@@ -45,15 +45,25 @@ object ForumIngestor:
         .eval(startAt.flatTap(since => info"Starting forum ingestor from $since"))
         .flatMap: last =>
           postStream(last)
+            .filterNot(_.isEmpty)
             .evalMap: events =>
               val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
               val (toDelete, toIndex) = events.partition(_.isDelete)
-              toIndex.toSources.flatMap(elastic.storeBulk(index, _))
-                *> info"Indexed ${toIndex.size} forum posts"
-                *> elastic.deleteMany(index, toDelete.flatMap(x => x.id.map(Id.apply)))
-                *> info"Deleted ${toDelete.size} forum posts"
-                *> store.put(index.name, lastEventTimestamp.getOrElse(Instant.now()))
-                *> info"Stored last indexed time $lastEventTimestamp for index ${index.name}"
+              storeBulk(toIndex)
+                *> deleteMany(toDelete)
+                *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now()))
+
+    private def storeBulk(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
+      events.toSources.flatMap(elastic.storeBulk(index, _))
+        *> info"Indexed ${events.size} forum posts"
+
+    private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
+      elastic.deleteMany(index, events.flatMap(_.id.map(Id.apply)))
+        *> info"Deleted ${events.size} forum posts"
+
+    private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
+      store.put(index.name, time.plusSeconds(1)) // +1 to avoid reindexing the same data
+        *> info"Stored last indexed time $time for index ${index.name}"
 
     private def startAt: IO[Option[Instant]] =
       config.startAt.fold(store.get(index.name))(Instant.ofEpochSecond(_).some.pure[IO])
