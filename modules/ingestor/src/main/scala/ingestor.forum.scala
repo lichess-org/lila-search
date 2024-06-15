@@ -26,7 +26,9 @@ object ForumIngestor:
   val eventFilter = Filter.in("operationType", List("replace", "insert"))
   val aggregate   = Aggregate.matchBy(eventFilter)
 
-  val batchSize = 100
+  val batchSize            = 100
+  val maxBodyLenght        = 10000
+  val startOperationalTime = BsonTimestamp(1717222680, 1) // the time that We lost forums indexer
 
   val index = Index("forum")
 
@@ -62,9 +64,11 @@ object ForumIngestor:
         .map(_.map(doc => (doc.getString("_id") -> doc.getString("name")).mapN(_ -> _)).flatten.toMap)
 
     def postStream(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
-      val builder = posts.watch(aggregate)
-      since
-        .fold(builder)(x => builder.startAtOperationTime(BsonTimestamp.apply(x.getEpochSecond().toInt, 1)))
+      posts
+        .watch(aggregate)
+        .startAtOperationTime(
+          since.fold(startOperationalTime)(x => BsonTimestamp(x.getEpochSecond().toInt, 1))
+        )
         .batchSize(batchSize)
         .boundedStream(batchSize)
         .groupWithin(batchSize, 1.second)
@@ -76,12 +80,12 @@ object ForumIngestor:
         topicByIds(topicIds).map: topicMap =>
           events.flatten: event =>
             (event.id, event.topicId, event.fullDocument).flatMapN: (id, topicId, doc) =>
-              doc.toForumSource(topicName = topicMap.get(topicId)).map(id -> _)
+              doc.toSource(topicName = topicMap.get(topicId)).map(id -> _)
 
     extension (doc: Document)
-      def toForumSource(topicName: Option[String]): Option[ForumSource] =
+      def toSource(topicName: Option[String]): Option[ForumSource] =
         (
-          doc.getString("text"),
+          doc.getString("text").map(_.take(maxBodyLenght)),
           topicName,
           doc.getString("topicId"),
           doc.getBoolean("troll"),
