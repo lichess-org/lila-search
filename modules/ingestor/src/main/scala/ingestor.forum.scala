@@ -42,18 +42,21 @@ object ForumIngestor:
 
     def run(): fs2.Stream[IO, Unit] =
       fs2.Stream
-        .eval(store.get(index.name).flatMap(since => info"Starting forum ingestor from $since".as(since)))
+        .eval(startAt.flatTap(since => info"Starting forum ingestor from $since"))
         .flatMap: last =>
           postStream(last)
             .evalMap: events =>
-              val last                = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
+              val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
               val (toDelete, toIndex) = events.partition(_.isDelete)
               toIndex.toSources.flatMap(elastic.storeBulk(index, _))
                 *> info"Indexed ${toIndex.size} forum posts"
                 *> elastic.deleteMany(index, toDelete.flatMap(x => x.id.map(Id.apply)))
                 *> info"Deleted ${toDelete.size} forum posts"
-                *> store.put(index.name, last.getOrElse(Instant.now()))
-                *> info"Stored last indexed time $last for index ${index.name}"
+                *> store.put(index.name, lastEventTimestamp.getOrElse(Instant.now()))
+                *> info"Stored last indexed time $lastEventTimestamp for index ${index.name}"
+
+    private def startAt: IO[Option[Instant]] =
+      config.startAt.fold(store.get(index.name))(Instant.ofEpochSecond(_).some.pure[IO])
 
     // Fetches topic names by their ids
     private def topicByIds(ids: Seq[String]): IO[Map[String, String]] =
