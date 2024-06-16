@@ -35,10 +35,16 @@ object Dependencies {
   lazy val smithy4sHttp4sSwagger = smithy4s("http4s-swagger")
   lazy val smithy4sJson          = smithy4s("json")
 
+  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.30.1"
+  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.30.1"
+
   val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.7"
 
   val elastic4sJavaClient = "nl.gn0s1s" %% "elastic4s-client-esjava" % V.elastic4s
   val elastic4sCatsEffect = "nl.gn0s1s" %% "elastic4s-effect-cats"   % V.elastic4s
+
+  val mongo4catsCore = "io.github.kirill5k" %% "mongo4cats-core" % "0.7.6"
+  val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % "0.7.6"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.6"

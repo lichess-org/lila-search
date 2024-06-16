@@ -26,10 +26,15 @@ app/run
 
 Run tests:
 ```sh
-sbt test
+test
 ```
 
 Run code format and auto code refactor with scalafmt & scalafix:
 ```sh
-sbt prepare
+prepare
+```
+
+Start ingestor service:
+```sh
+ingestor/run
 ```

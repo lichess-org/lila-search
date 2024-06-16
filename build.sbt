@@ -39,11 +39,40 @@ lazy val api = (project in file("modules/api"))
     )
   )
 
+lazy val ingestor = (project in file("modules/ingestor"))
+  .settings(
+    name           := "ingestor",
+    publish        := {},
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      elastic4sCatsEffect,
+      catsCore,
+      fs2,
+      fs2IO,
+      catsEffect,
+      ducktape,
+      cirisCore,
+      smithy4sJson,
+      jsoniterCore,
+      jsoniterMacro,
+      mongo4catsCore,
+      log4Cats,
+      logback,
+      weaver,
+      testContainers
+    ),
+    Compile / run / fork := true
+  )
+  .enablePlugins(JavaAppPackaging)
+  .dependsOn(core, api)
+
 lazy val client = (project in file("modules/client"))
   .settings(
     name := "client",
     libraryDependencies ++= Seq(
       smithy4sJson,
+      jsoniterCore,
+      jsoniterMacro,
       playWS
     )
   )
@@ -56,6 +85,8 @@ lazy val app = (project in file("modules/app"))
     publish / skip := true,
     libraryDependencies ++= Seq(
       smithy4sHttp4s,
+      jsoniterCore,
+      jsoniterMacro,
       smithy4sHttp4sSwagger,
       elastic4sCatsEffect,
       catsCore,
@@ -86,7 +117,7 @@ val e2e = (project in file("modules/e2e"))
 lazy val root = project
   .in(file("."))
   .settings(publish := {}, publish / skip := true)
-  .aggregate(core, api, app, client, e2e)
+  .aggregate(core, api, app, client, e2e, ingestor)
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
 addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")
