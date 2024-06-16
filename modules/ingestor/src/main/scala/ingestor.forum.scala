@@ -9,7 +9,6 @@ import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument
 import mongo4cats.operations.{ Aggregate, Filter, Projection }
-import org.bson.BsonTimestamp
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
@@ -23,12 +22,21 @@ object ForumIngestor:
 
   private val topicProjection = Projection.include(List("_id", "name"))
 
-  val eventFilter = Filter.in("operationType", List("replace", "insert"))
-  val aggregate   = Aggregate.matchBy(eventFilter)
+  private val eventFilter = Filter.in("operationType", List("replace", "insert"))
+  private val eventProjection = Projection.include(
+    List(
+      "documentKey._id",
+      "fullDocument.text",
+      "fullDocument.topicId",
+      "fullDocument.troll",
+      "fullDocument.createdAt",
+      "fullDocument.userId",
+      "fullDocument.erasedAt"
+    )
+  )
+  private val aggregate = Aggregate.matchBy(eventFilter).combinedWith(Aggregate.project(eventProjection))
 
-  val startOperationalTime = BsonTimestamp(1717222680, 1) // the time that We lost forums indexer
-
-  val index = Index("forum")
+  private val index = Index("forum")
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Config)(
       using Logger[IO]
@@ -54,11 +62,12 @@ object ForumIngestor:
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now()))
 
     private def storeBulk(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
-      events.toSources
-        .flatMap(elastic.storeBulk(index, _))
-        .handleErrorWith: e =>
-          Logger[IO].error(e)(s"Failed to index forum posts: ${events.map(_.id).mkString(", ")}")
-      *> info"Indexed ${events.size} forum posts"
+      info"Received ${events.size} forum posts to index" *>
+        events.toSources
+          .flatMap: sources =>
+            elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} forum posts"
+          .handleErrorWith: e =>
+            Logger[IO].error(e)(s"Failed to index forum posts: ${events.map(_.id).mkString(", ")}")
 
     private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
       elastic
@@ -83,12 +92,13 @@ object ForumIngestor:
         .map(_.map(doc => (doc.getString("_id") -> doc.getString("name")).mapN(_ -> _)).flatten.toMap)
 
     private def postStream(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
-      posts
-        .watch(aggregate)
-        .startAtOperationTime(since.fold(startOperationalTime)(_.asBsonTimestamp))
+      val builder = posts.watch(aggregate)
+      since
+        .fold(builder)(x => builder.startAtOperationTime(x.asBsonTimestamp))
         .batchSize(config.batchSize)
         .boundedStream(config.batchSize)
         .groupWithin(config.batchSize, config.timeWindows.second)
+        .evalTap(_.traverse_(x => debug"received $x"))
         .map(_.toList)
 
     extension (events: List[ChangeStreamDocument[Document]])
