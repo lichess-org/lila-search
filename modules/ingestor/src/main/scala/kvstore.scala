@@ -38,7 +38,7 @@ object KVStore:
                   content.updated(key, value.getEpochSecond + 1)
                 ) // +1 to avoid reindexing the same data
 
-  def read(path: String): IO[State] =
+  private def read(path: String): IO[State] =
     Files[IO]
       .readAll(fs2.io.file.Path(path))
       .through(fs2.text.utf8.decode[IO])
@@ -47,7 +47,7 @@ object KVStore:
       .map(x => readFromString[State](x))
       .handleError(_ => Map.empty)
 
-  def write(path: String, content: State): IO[Unit] =
+  private def write(path: String, content: State): IO[Unit] =
     fs2.Stream
       .eval(IO.blocking(writeToString(content)))
       .through(fs2.text.utf8.encode[IO])
