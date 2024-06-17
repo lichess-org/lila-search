@@ -73,9 +73,9 @@ object ForumIngestor:
     private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
       elastic
         .deleteMany(index, events.flatMap(_.id.map(Id.apply)))
+        .flatTap(_ => info"Deleted ${events.size} forum posts")
         .handleErrorWith: e =>
           Logger[IO].error(e)(s"Failed to delete forum posts: ${events.map(_.id).mkString(", ")}")
-      *> info"Deleted ${events.size} forum posts"
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.name, time.plusSeconds(1)) // +1 to avoid reindexing the same event
