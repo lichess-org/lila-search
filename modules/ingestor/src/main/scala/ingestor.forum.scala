@@ -3,7 +3,7 @@ package ingestor
 
 import cats.effect.IO
 import cats.syntax.all.*
-import com.mongodb.client.model.changestream.OperationType
+import com.mongodb.client.model.changestream.OperationType.*
 import lila.search.spec.ForumSource
 import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
@@ -22,7 +22,8 @@ object ForumIngestor:
 
   private val topicProjection = Projection.include(List("_id", "name"))
 
-  private val eventFilter = Filter.in("operationType", List("replace", "insert"))
+  val interestedOperations = List(DELETE, INSERT, UPDATE, REPLACE).map(_.getValue)
+  private val eventFilter  = Filter.in("operationType", interestedOperations)
   private val eventProjection = Projection.include(
     List(
       "documentKey._id",
@@ -124,5 +125,5 @@ object ForumIngestor:
       private def topicId = event.fullDocument.flatMap(_.getString("topicId"))
 
       private def isDelete: Boolean =
-        event.operationType == OperationType.DELETE ||
+        event.operationType == DELETE ||
           event.fullDocument.flatMap(_.get("erasedAt")).isDefined
