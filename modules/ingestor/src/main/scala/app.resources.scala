@@ -9,6 +9,7 @@ import com.sksamuel.elastic4s.{ ElasticClient, ElasticProperties }
 import mongo4cats.client.MongoClient
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.Logger
+import com.mongodb.ReadPreference
 
 class AppResources(val mongo: MongoDatabase[IO], val elastic: ESClient[IO], val store: KVStore)
 
@@ -26,4 +27,4 @@ object AppResources:
   def makeMongoClient(conf: MongoConfig) =
     MongoClient
       .fromConnectionString[IO](conf.uri)
-      .evalMap(_.getDatabase(conf.name))
+      .evalMap(_.getDatabase(conf.name).map(_.withReadPreference(ReadPreference.secondary())))
