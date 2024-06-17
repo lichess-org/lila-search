@@ -3,13 +3,13 @@ package ingestor
 
 import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
+import com.mongodb.ReadPreference
 import com.sksamuel.elastic4s.cats.effect.instances.*
 import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.{ ElasticClient, ElasticProperties }
 import mongo4cats.client.MongoClient
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.Logger
-import com.mongodb.ReadPreference
 
 class AppResources(val mongo: MongoDatabase[IO], val elastic: ESClient[IO], val store: KVStore)
 
