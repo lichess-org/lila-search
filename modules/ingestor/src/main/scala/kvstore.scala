@@ -49,7 +49,7 @@ object KVStore:
 
   private def write(path: String, content: State): IO[Unit] =
     fs2.Stream
-      .eval(IO.blocking(writeToString(content)))
+      .eval(IO(writeToString(content)))
       .through(fs2.text.utf8.encode[IO])
       .through(Files[IO].writeAll(fs2.io.file.Path(path)))
       .compile
