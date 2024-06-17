@@ -7,8 +7,8 @@ echo "Deploy to server $REMOTE:$REMOTE_DIR"
 
 sbt ";ingestor/stage;exit"
 if [ $? != 0 ]; then
-  echo "Deploy canceled"
-  exit 1
+	echo "Deploy canceled"
+	exit 1
 fi
 
 RSYNC_OPTIONS=" \
@@ -33,6 +33,6 @@ echo "rsync complete"
 read -n 1 -p "Press [Enter] to continue."
 
 echo "Restart lila-search-ingestor"
-ssh $REMOTE "chown -R lila-search-ingestor:lila-search-ingestor /home/lila-search-ingestor && systemctl restart lichess-search-ingestor"
+ssh $REMOTE "chown -R lila-search-ingestor:lila-search-ingestor /home/lila-search-ingestor && systemctl restart lila-search-ingestor"
 
 echo "Deploy complete"
