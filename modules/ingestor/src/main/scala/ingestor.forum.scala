@@ -110,17 +110,19 @@ object ForumIngestor:
     extension (events: List[ChangeStreamDocument[Document]])
       private def toSources: IO[List[(String, ForumSource)]] =
         val topicIds = events.flatMap(_.topicId).distinct
-        topicByIds(topicIds)
-          .flatMap: topicMap =>
-            events
-              .traverse: event =>
-                (event.id, event.topicId, event.fullDocument)
-                  .flatMapN: (id, topicId, doc) =>
-                    doc.toSource(topicName = topicMap.get(topicId)).map(id -> _)
-                  .match
-                    case Some(value) => value.some.pure[IO]
-                    case _           => info"failed to convert document to source: $event".as(none)
-              .map(_.flatten)
+        if topicIds.isEmpty then info"no topics found for posts: $events".as(Nil)
+        else
+          topicByIds(topicIds)
+            .flatMap: topicMap =>
+              events
+                .traverse: event =>
+                  (event.id, event.topicId, event.fullDocument)
+                    .flatMapN: (id, topicId, doc) =>
+                      doc.toSource(topicName = topicMap.get(topicId)).map(id -> _)
+                    .match
+                      case Some(value) => value.some.pure[IO]
+                      case _           => info"failed to convert document to source: $event".as(none)
+                .map(_.flatten)
 
     extension (doc: Document)
       private def toSource(topicName: Option[String]): Option[ForumSource] =
