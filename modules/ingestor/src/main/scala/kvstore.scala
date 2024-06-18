@@ -28,15 +28,17 @@ object KVStore:
           def get(key: String): IO[Option[Instant]] =
             read(file)
               .map: content =>
-                content.get(key).map(Instant.ofEpochSecond)
+                content
+                  .get(key)
+                  .map(x => Instant.ofEpochSecond(x))
 
           def put(key: String, value: Instant): IO[Unit] =
             mutex.lock.surround:
               read(file).flatMap: content =>
                 write(
                   file,
-                  content.updated(key, value.getEpochSecond + 1)
-                ) // +1 to avoid reindexing the same data
+                  content.updated(key, value.getEpochSecond)
+                )
 
   private def read(path: String): IO[State] =
     Files[IO]

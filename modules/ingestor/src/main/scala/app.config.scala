@@ -35,12 +35,13 @@ object ElasticConfig:
   private def uri = env("ELASTIC_URI").or(prop("elastic.uri")).as[String].default("http://127.0.0.1:9200")
   def config      = uri.map(ElasticConfig.apply)
 
-case class IngestorConfig(forum: IngestorConfig.Config)
+case class IngestorConfig(forum: IngestorConfig.Forum, team: IngestorConfig.Team)
 
 object IngestorConfig:
-  case class Config(batchSize: Int, maxBodyLength: Int, timeWindows: Int, startAt: Option[Long])
+  case class Forum(batchSize: Int, maxBodyLength: Int, timeWindows: Int, startAt: Option[Long])
+  case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Long])
 
-  object forum:
+  private object Forum:
     private def batchSize =
       env("INGESTOR_FORUM_BATCH_SIZE").or(prop("ingestor.forum.batch.size")).as[Int].default(100)
     private def maxBodyLength =
@@ -48,7 +49,19 @@ object IngestorConfig:
     private def timeWindows =
       env("INGESTOR_FORUM_TIME_WINDOWS").or(prop("ingestor.forum.time.windows")).as[Int].default(10)
     private def startAt =
-      env("INGESTOR_FORUM_START_AT").or(prop("ingestor.forum.start.at")).as[Long].option
-    def config = (batchSize, maxBodyLength, timeWindows, startAt).parMapN(Config.apply)
+      env("INGESTOR_FORUM_START_AT")
+        .or(prop("ingestor.forum.start.at"))
+        .as[Long]
+        .option
+    def config = (batchSize, maxBodyLength, timeWindows, startAt).parMapN(Forum.apply)
 
-  def config = forum.config.map(IngestorConfig.apply)
+  private object Team:
+    private def batchSize =
+      env("INGESTOR_TEAM_BATCH_SIZE").or(prop("ingestor.team.batch.size")).as[Int].default(100)
+    private def timeWindows =
+      env("INGESTOR_TEAM_TIME_WINDOWS").or(prop("ingestor.team.time.windows")).as[Int].default(10)
+    private def startAt =
+      env("INGESTOR_TEAM_START_AT").or(prop("ingestor.team.start.at")).as[Long].option
+    def config = (batchSize, timeWindows, startAt).parMapN(Team.apply)
+
+  def config = (Forum.config, Team.config).parMapN(IngestorConfig.apply)
