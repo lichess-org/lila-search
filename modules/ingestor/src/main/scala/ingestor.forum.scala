@@ -22,10 +22,11 @@ object ForumIngestor:
 
   private val topicProjection = Projection.include(List("_id", "name"))
 
-  val interestedOperations = List(DELETE, INSERT, UPDATE, REPLACE).map(_.getValue)
-  private val eventFilter  = Filter.in("operationType", interestedOperations)
+  private val interestedOperations = List(DELETE, INSERT, UPDATE, REPLACE).map(_.getValue)
+  private val eventFilter          = Filter.in("operationType", interestedOperations)
   private val eventProjection = Projection.include(
     List(
+      "clusterTime",
       "documentKey._id",
       "fullDocument.text",
       "fullDocument.topicId",
@@ -39,12 +40,12 @@ object ForumIngestor:
 
   private val index = Index("forum")
 
-  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Config)(
+  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum)(
       using Logger[IO]
   ): IO[ForumIngestor] =
     (mongo.getCollection("f_topic"), mongo.getCollection("f_post")).mapN(apply(elastic, store, config))
 
-  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Config)(
+  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum)(
       topics: MongoCollection,
       posts: MongoCollection
   )(using Logger[IO]): ForumIngestor = new:
@@ -53,10 +54,10 @@ object ForumIngestor:
       fs2.Stream
         .eval(startAt.flatTap(since => info"Starting forum ingestor from $since"))
         .flatMap: last =>
-          postStream(last)
+          changes(last)
             .filterNot(_.isEmpty)
             .evalMap: events =>
-              val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
+              val lastEventTimestamp  = events.flatten(_.clusterTime.flatMap(_.asInstant)).maxOption
               val (toDelete, toIndex) = events.partition(_.isDelete)
               storeBulk(toIndex)
                 *> deleteMany(toDelete)
@@ -78,8 +79,8 @@ object ForumIngestor:
           Logger[IO].error(e)(s"Failed to delete forum posts: ${events.map(_.id).mkString(", ")}")
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
-      store.put(index.name, time.plusSeconds(1)) // +1 to avoid reindexing the same event
-        *> info"Stored last indexed time ${time.getEpochSecond()} for index ${index.name}"
+      store.put(index.name, time)
+        *> info"Stored last indexed time ${time.getEpochSecond} for $index"
 
     private def startAt: IO[Option[Instant]] =
       config.startAt.fold(store.get(index.name))(Instant.ofEpochSecond(_).some.pure[IO])
@@ -92,12 +93,16 @@ object ForumIngestor:
         .all
         .map(_.map(doc => (doc.getString("_id") -> doc.getString("name")).mapN(_ -> _)).flatten.toMap)
 
-    private def postStream(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
+    private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
       val builder = posts.watch(aggregate)
+      // skip the first event if we're starting from a specific timestamp
+      // since the event at that timestamp is already indexed
+      val skip = since.fold(0)(_ => 1)
       since
         .fold(builder)(x => builder.startAtOperationTime(x.asBsonTimestamp))
         .batchSize(config.batchSize)
         .boundedStream(config.batchSize)
+        .drop(skip)
         .groupWithin(config.batchSize, config.timeWindows.second)
         .evalTap(_.traverse_(x => debug"received $x"))
         .map(_.toList)

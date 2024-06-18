@@ -1,7 +1,7 @@
 <configuration>
 
     <variable name="APP_LOG_LEVEL" value="${APP_LOG_LEVEL:-INFO}" />
-    <variable name="ELASTIC4S_LOG_LEVEL" value="${ELASTIC4S_LOG_LEVEL:-INFO}" />
+    <variable name="ELASTIC4S_LOG_LEVEL" value="${ELASTIC4S_LOG_LEVEL:-WARN}" />
     <variable name="MONGO_DRIVER_LOG_LEVEL" value="${MONGO_DRIVER_LOG_LEVEL:-INFO}" />
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
