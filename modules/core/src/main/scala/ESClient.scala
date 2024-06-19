@@ -1,12 +1,16 @@
 package lila.search
 
 import cats.MonadThrow
+import cats.effect.*
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
+import com.sksamuel.elastic4s.cats.effect.instances.*
 import com.sksamuel.elastic4s.fields.ElasticField
+import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.{
   ElasticClient,
   ElasticDsl,
+  ElasticProperties,
   Executor,
   Functor,
   Index as ESIndex,
@@ -30,6 +34,11 @@ trait ESClient[F[_]]:
   def status: F[String]
 
 object ESClient:
+
+  def apply(uri: String): Resource[IO, ESClient[IO]] =
+    Resource
+      .make(IO(ElasticClient(JavaClient(ElasticProperties(uri)))))(client => IO(client.close()))
+      .map(ESClient.apply[IO])
 
   def apply[F[_]: MonadThrow: Functor: Executor](client: ElasticClient) = new ESClient[F]:
 

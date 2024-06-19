@@ -22,8 +22,10 @@ lazy val core = project
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
-      elastic4sJavaClient,
       catsCore,
+      catsEffect,
+      elastic4sJavaClient,
+      elastic4sCatsEffect,
       "joda-time" % "joda-time" % "2.12.7"
     )
   )
@@ -45,7 +47,6 @@ lazy val ingestor = (project in file("modules/ingestor"))
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
-      elastic4sCatsEffect,
       catsCore,
       fs2,
       fs2IO,
@@ -88,7 +89,6 @@ lazy val app = (project in file("modules/app"))
       jsoniterCore,
       jsoniterMacro,
       smithy4sHttp4sSwagger,
-      elastic4sCatsEffect,
       catsCore,
       catsEffect,
       ducktape,

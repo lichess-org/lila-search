@@ -4,9 +4,6 @@ package ingestor
 import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
 import com.mongodb.ReadPreference
-import com.sksamuel.elastic4s.cats.effect.instances.*
-import com.sksamuel.elastic4s.http.JavaClient
-import com.sksamuel.elastic4s.{ ElasticClient, ElasticProperties }
 import mongo4cats.client.MongoClient
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.Logger
@@ -20,9 +17,7 @@ object AppResources:
       .parMapN(AppResources.apply)
 
   def makeElasticClient(conf: ElasticConfig) =
-    Resource
-      .make(IO(ElasticClient(JavaClient(ElasticProperties(conf.uri)))))(client => IO(client.close()))
-      .map(ESClient.apply[IO])
+    ESClient.apply(conf.uri)
 
   def makeMongoClient(conf: MongoConfig) =
     MongoClient
