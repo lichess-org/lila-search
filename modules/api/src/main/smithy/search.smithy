@@ -24,11 +24,11 @@ operation Search {
 
     @required
     @httpLabel
-    from: Integer
+    from: From
 
     @required
     @httpLabel
-    size: Integer
+    size: Size
   }
 
   output := {

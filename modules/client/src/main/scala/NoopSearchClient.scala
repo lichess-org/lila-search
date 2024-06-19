@@ -17,7 +17,7 @@ object NoopSearchClient extends SearchClient:
 
   override def deleteById(index: Index, id: String): Future[Unit] = Future.successful(())
 
-  override def search(query: Query, from: Int, size: Int): Future[SearchOutput] =
+  override def search(query: Query, from: SearchFrom, size: SearchSize): Future[SearchOutput] =
     Future.successful(SearchOutput(Nil))
 
   override def store(id: String, source: Source): Future[Unit] = Future.successful(())

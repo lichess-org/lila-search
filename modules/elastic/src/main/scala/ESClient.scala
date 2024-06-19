@@ -18,13 +18,13 @@ import com.sksamuel.elastic4s.{
   Response
 }
 
-case class Index(name: String) extends AnyVal:
-  def toES: ESIndex = ESIndex(name)
+extension(index: Index)
+  def toES: ESIndex = ESIndex(index.value)
 
 trait ESClient[F[_]]:
 
-  def search[A](query: A, from: From, size: Size)(using Queryable[A]): F[SearchResponse]
-  def count[A](query: A)(using Queryable[A]): F[CountResponse]
+  def search[A](query: A, from: SearchFrom, size: SearchSize)(using Queryable[A]): F[List[Id]]
+  def count[A](query: A)(using Queryable[A]): F[Long]
   def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): F[Unit]
   def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): F[Unit]
   def deleteOne(index: Index, id: Id): F[Unit]
@@ -54,25 +54,25 @@ object ESClient:
     private def unitOrFail[A](response: Response[A]): F[Unit] =
       response.fold(MonadThrow[F].raiseError[Unit](response.error.asException))(_ => MonadThrow[F].unit)
 
-    def search[A](query: A, from: From, size: Size)(using q: Queryable[A]): F[SearchResponse] =
+    def search[A](query: A, from: SearchFrom, size: SearchSize)(using q: Queryable[A]): F[List[Id]] =
       client
         .execute(q.searchDef(query)(from, size))
         .flatMap(toResult)
-        .map(SearchResponse.apply)
+        .map(_.hits.hits.toList.map(h => Id(h.id)))
 
-    def count[A](query: A)(using q: Queryable[A]): F[CountResponse] =
+    def count[A](query: A)(using q: Queryable[A]): F[Long] =
       client
         .execute(q.countDef(query))
         .flatMap(toResult)
-        .map(CountResponse.apply)
+        .map(_.count)
 
     def store[A](index: Index, id: Id, obj: A)(using indexable: Indexable[A]): F[Unit] =
       client
-        .execute(indexInto(index.name).source(obj).id(id.value))
+        .execute(indexInto(index.value).source(obj).id(id.value))
         .flatMap(unitOrFail)
 
     def storeBulk[A](index: Index, objs: Seq[(String, A)])(using indexable: Indexable[A]): F[Unit] =
-      val request  = indexInto(index.name)
+      val request  = indexInto(index.value)
       val requests = bulk(objs.map((id, obj) => request.source(obj).id(id)))
       client
         .execute(requests)
@@ -93,7 +93,7 @@ object ESClient:
     def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit] =
       dropIndex(index) >> client
         .execute:
-          createIndex(index.name)
+          createIndex(index.value)
             .mapping(properties(fields).source(false)) // all false
             .shards(5)
             .replicas(0)
@@ -102,8 +102,8 @@ object ESClient:
 
     def refreshIndex(index: Index): F[Unit] =
       client
-        .execute(ElasticDsl.refreshIndex(index.name))
+        .execute(ElasticDsl.refreshIndex(index.value))
         .flatMap(unitOrFail)
 
     private def dropIndex(index: Index) =
-      client.execute(deleteIndex(index.name))
+      client.execute(deleteIndex(index.value))

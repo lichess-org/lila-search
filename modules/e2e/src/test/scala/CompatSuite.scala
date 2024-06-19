@@ -30,9 +30,12 @@ object CompatSuite extends weaver.IOSuite:
       .flatMap(_ => wsClient)
       .map(SearchClient.play(_, "http://localhost:9999/api"))
 
+  val from = SearchFrom(0).toOption.get
+  val size = SearchSize(12).toOption.get
+
   test("search endpoint"): client =>
     val query = Query.Forum("foo")
-    IO.fromFuture(IO(client.search(query, 0, 10))).map(expect.same(_, SearchOutput(Nil)))
+    IO.fromFuture(IO(client.search(query, from, size))).map(expect.same(_, SearchOutput(Nil)))
 
   test("bad search study endpoint"): client =>
     val query = Query.Study(
@@ -41,7 +44,7 @@ object CompatSuite extends weaver.IOSuite:
           .take(100),
       userId = Some(value = "bla")
     )
-    IO.fromFuture(IO(client.search(query, 0, 10)))
+    IO.fromFuture(IO(client.search(query, from, size)))
       .handleErrorWith:
         case e: SearchError.JsonWriterError =>
           IO.pure(SearchOutput(Nil))
@@ -148,11 +151,11 @@ object CompatSuite extends weaver.IOSuite:
 
     override def deleteMany(index: Index, ids: List[Id]): IO[Unit] = IO.unit
 
-    override def count[A](query: A)(implicit q: Queryable[A]): IO[CountResponse] =
-      IO.pure(CountResponse(0))
+    override def count[A](query: A)(implicit q: Queryable[A]) =
+      IO.pure(0)
 
-    override def search[A](query: A, from: From, size: Size)(implicit q: Queryable[A]): IO[SearchResponse] =
-      IO.pure(SearchResponse(Nil))
+    override def search[A](query: A, from: SearchFrom, size: SearchSize)(implicit q: Queryable[A]) =
+      IO.pure(Nil)
 
     override def status: IO[String] = IO.pure("yellow")
 

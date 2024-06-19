@@ -3,14 +3,14 @@ package lila.search
 object Which:
 
   def mapping(index: Index) =
-    index match
-      case Index("game")  => Some(game.Mapping.fields)
-      case Index("forum") => Some(forum.Mapping.fields)
-      case Index("team")  => Some(team.Mapping.fields)
-      case Index("study") => Some(study.Mapping.fields)
-      case _              => None
+    index.value match
+      case "game"  => Some(game.Mapping.fields)
+      case "forum" => Some(forum.Mapping.fields)
+      case "team"  => Some(team.Mapping.fields)
+      case "study" => Some(study.Mapping.fields)
+      case _       => None
 
   def refreshInterval(index: Index) =
-    index match
-      case Index("study") => "10s"
-      case _              => "300s"
+    index.value match
+      case "study" => "10s"
+      case _       => "300s"

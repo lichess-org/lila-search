@@ -30,7 +30,7 @@ object ForumQuery:
   given query: Queryable[Forum] = new:
     val index = "forum"
 
-    def searchDef(query: Forum)(from: From, size: Size) =
+    def searchDef(query: Forum)(from: SearchFrom, size: SearchSize) =
       search(index)
         .query(makeQuery(query))
         .fetchSource(false)

@@ -31,3 +31,25 @@ structure DateTimeFormat {}
 @DateTimeFormat
 @unwrap
 string DateTime
+
+@trait(selector: "integer")
+@refinement(
+   targetType: "lila.search.SearchSize"
+   providerImport: "lila.search.spec.providers.given"
+)
+structure SizeFormat {}
+
+@SizeFormat
+@unwrap
+integer Size
+
+@trait(selector: "integer")
+@refinement(
+   targetType: "lila.search.SearchFrom"
+   providerImport: "lila.search.spec.providers.given"
+)
+structure FromFormat {}
+
+@FromFormat
+@unwrap
+integer From

@@ -83,7 +83,7 @@ object GameQuery:
     val timeout = 5.seconds
     val index   = "game"
 
-    def searchDef(query: Game)(from: From, size: Size) =
+    def searchDef(query: Game)(from: SearchFrom, size: SearchSize) =
       search(index)
         .query(makeQuery(query))
         .fetchSource(false)

@@ -97,15 +97,15 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def count(query: Query): IO[CountOutput] =
     esClient
       .count(query)
-      .map(_.to[CountOutput])
+      .map(CountOutput.apply)
       .handleErrorWith: e =>
         logger.error(e)(s"Error in count: query=$query") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
-  override def search(query: Query, from: Int, size: Int): IO[SearchOutput] =
+  override def search(query: Query, from: SearchFrom, size: SearchSize): IO[SearchOutput] =
     esClient
-      .search(query, From(from), Size(size))
-      .map(_.to[SearchOutput])
+      .search(query, from, size)
+      .map(xs => SearchOutput(xs.map(_.value)))
       .handleErrorWith: e =>
         logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
           IO.raiseError(InternalServerError("Internal server error"))
@@ -137,7 +137,7 @@ object SearchServiceImpl:
       case Index.Team  => team.Mapping.fields
 
   given Queryable[Query] with
-    def searchDef(query: Query)(from: From, size: Size) =
+    def searchDef(query: Query)(from: SearchFrom, size: SearchSize) =
       query match
         case q: Query.Forum => forum.ForumQuery.query.searchDef(q.to[Forum])(from, size)
         case q: Query.Game  => game.GameQuery.query.searchDef(q.transform)(from, size)

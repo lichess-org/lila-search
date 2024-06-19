@@ -85,7 +85,7 @@ lazy val client = (project in file("modules/client"))
       playWS
     )
   )
-  .dependsOn(api)
+  .dependsOn(api, core)
 
 lazy val app = (project in file("modules/app"))
   .settings(

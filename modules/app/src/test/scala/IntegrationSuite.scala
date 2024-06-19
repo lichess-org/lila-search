@@ -19,6 +19,8 @@ object IntegrationSuite extends IOSuite:
 
   private val uri = Uri.unsafeFromString("http://localhost:9999")
 
+  val from = SearchFrom(0).toOption.get
+  val size = SearchSize(12).toOption.get
   override type Res = AppResources
   // start our server
   override def sharedResource: Resource[IO, Res] =
@@ -63,8 +65,8 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Forum)
-          x <- service.search(Query.forum("chess", false), 0, 12)
-          y <- service.search(Query.forum("nt9", false), 0, 12)
+          x <- service.search(Query.forum("chess", false), from, size)
+          y <- service.search(Query.forum("nt9", false), from, size)
         yield expect(x.hitIds.size == 1 && x == y)
 
   test("team"): _ =>
@@ -85,8 +87,8 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Team)
-          x <- service.search(Query.team("team name"), 0, 12)
-          y <- service.search(Query.team("team description"), 0, 12)
+          x <- service.search(Query.team("team name"), from, size)
+          y <- service.search(Query.team("team description"), from, size)
         yield expect(x.hitIds.size == 1 && x == y)
 
   test("study"): _ =>
@@ -112,9 +114,9 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Study)
-          a <- service.search(Query.study("name"), 0, 12)
-          b <- service.search(Query.study("study description"), 0, 12)
-          c <- service.search(Query.study("topic1"), 0, 12)
+          a <- service.search(Query.study("name"), from, size)
+          b <- service.search(Query.study("study description"), from, size)
+          c <- service.search(Query.study("topic1"), from, size)
         yield expect(a.hitIds.size == 1 && b == a && c == a)
 
   test("game"): _ =>
@@ -149,10 +151,10 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Game)
-          a <- service.search(Query.game(List(1)), 0, 12)
-          b <- service.search(Query.game(loser = "uid2".some), 0, 12)
-          c <- service.search(Query.game(), 0, 12)
-          d <- service.search(Query.game(duration = IntRange(a = 99.some, b = 101.some).some), 0, 12)
-          e <- service.search(Query.game(clockInit = 100.some), 0, 12)
-          f <- service.search(Query.game(clockInc = 200.some), 0, 12)
+          a <- service.search(Query.game(List(1)), from, size)
+          b <- service.search(Query.game(loser = "uid2".some), from, size)
+          c <- service.search(Query.game(), from, size)
+          d <- service.search(Query.game(duration = IntRange(a = 99.some, b = 101.some).some), from, size)
+          e <- service.search(Query.game(clockInit = 100.some), from, size)
+          f <- service.search(Query.game(clockInc = 200.some), from, size)
         yield expect(a.hitIds.size == 1 && b == a && c == a && d == a && e == a && f == a)

@@ -38,7 +38,7 @@ object StudyQuery:
   given query: Queryable[Study] = new:
     val index = "study"
 
-    def searchDef(query: Study)(from: From, size: Size) =
+    def searchDef(query: Study)(from: SearchFrom, size: SearchSize) =
       search(index)
         .query(makeQuery(query))
         .fetchSource(false)
