@@ -25,20 +25,21 @@ object ForumIngestor:
   private val interestedOperations = List(DELETE, INSERT, REPLACE).map(_.getValue)
   private val eventFilter          = Filter.in("operationType", interestedOperations)
 
-  private val eventProjection = Projection.include(
-    List(
-      "operationType",
-      "clusterTime",
-      "documentKey._id",
-      "fullDocument.text",
-      "fullDocument.topicId",
-      "fullDocument.troll",
-      "fullDocument.createdAt",
-      "fullDocument.userId",
-      "fullDocument.erasedAt"
-    )
-  )
-  private val aggregate = Aggregate.matchBy(eventFilter).combinedWith(Aggregate.project(eventProjection))
+  // private val eventProjection = Projection.include(
+  //   List(
+  //     "operationType",
+  //     "clusterTime",
+  //     "documentKey._id",
+  //     "fullDocument.text",
+  //     "fullDocument.topicId",
+  //     "fullDocument.troll",
+  //     "fullDocument.createdAt",
+  //     "fullDocument.userId",
+  //     "fullDocument.erasedAt"
+  //   )
+  // )
+
+  private val aggregate = Aggregate.matchBy(eventFilter) // .combinedWith(Aggregate.project(eventProjection))
 
   private val index = Index("forum")
 
