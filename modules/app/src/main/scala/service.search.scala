@@ -22,7 +22,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def storeBulkTeam(sources: List[TeamSourceWithId]): IO[Unit] =
     esClient
       .storeBulk(
-        Index.Team.transform,
+        Index.Team,
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
@@ -32,7 +32,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def storeBulkStudy(sources: List[StudySourceWithId]): IO[Unit] =
     esClient
       .storeBulk(
-        Index.Study.transform,
+        Index.Study,
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
@@ -42,7 +42,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def storeBulkGame(sources: List[GameSourceWithId]): IO[Unit] =
     esClient
       .storeBulk(
-        Index.Game.transform,
+        Index.Game,
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
@@ -52,7 +52,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def storeBulkForum(sources: List[ForumSourceWithId]): IO[Unit] =
     esClient
       .storeBulk(
-        Index.Forum.transform,
+        Index.Forum,
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
@@ -68,28 +68,28 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
 
   override def refresh(index: Index): IO[Unit] =
     esClient
-      .refreshIndex(index.transform)
+      .refreshIndex(index)
       .handleErrorWith: e =>
         logger.error(e)(s"Error in refresh: index=$index") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def mapping(index: Index): IO[Unit] =
     esClient
-      .putMapping(index.transform, index.mapping)
+      .putMapping(index)
       .handleErrorWith: e =>
         logger.error(e)(s"Error in mapping: index=$index") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def deleteById(index: Index, id: String): IO[Unit] =
     esClient
-      .deleteOne(index.transform, Id(id))
+      .deleteOne(index, Id(id))
       .handleErrorWith: e =>
         logger.error(e)(s"Error in deleteById: index=$index, id=$id") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def deleteByIds(index: Index, ids: List[String]): IO[Unit] =
     esClient
-      .deleteMany(index.transform, ids.map(Id.apply))
+      .deleteMany(index, ids.map(Id.apply))
       .handleErrorWith: e =>
         logger.error(e)(s"Error in deleteByIds: index=$index, ids=$ids") *>
           IO.raiseError(InternalServerError("Internal server error"))
@@ -128,14 +128,6 @@ object SearchServiceImpl:
 
   extension (game: Query.Game) def transform: Game = game.to[Game]
 
-  extension (index: Index)
-    def transform: lila.search.Index = lila.search.Index(index.value)
-    def mapping = index match
-      case Index.Forum => forum.Mapping.fields
-      case Index.Game  => game.Mapping.fields
-      case Index.Study => study.Mapping.fields
-      case Index.Team  => team.Mapping.fields
-
   given Queryable[Query] with
     def searchDef(query: Query)(from: SearchFrom, size: SearchSize) =
       query match
@@ -164,7 +156,7 @@ object SearchServiceImpl:
 
   extension (source: Source)
     def index = source match
-      case s: Source.ForumCase => lila.search.Index("forum")
-      case s: Source.GameCase  => lila.search.Index("game")
-      case s: Source.StudyCase => lila.search.Index("study")
-      case s: Source.TeamCase  => lila.search.Index("team")
+      case s: Source.ForumCase => Index.Forum
+      case s: Source.GameCase  => Index.Game
+      case s: Source.StudyCase => Index.Study
+      case s: Source.TeamCase  => Index.Team

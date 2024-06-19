@@ -14,3 +14,6 @@ object providers:
 
   given RefinementProvider[FromFormat, Int, SearchFrom] =
     Refinement.drivenBy(x => SearchFrom(x).asRight, _.value)
+
+  given RefinementProvider[IndexFormat, String, Index] =
+    Refinement.drivenBy(Index.fromString, _.value)

@@ -27,10 +27,20 @@ object Id:
   def apply(value: String): Id        = value
   extension (x: Id) def value: String = x
 
-opaque type Index = String
+enum Index(val value: String):
+  case Forum extends Index("forum")
+  case Game  extends Index("game")
+  case Study extends Index("study")
+  case Team  extends Index("team")
+
 object Index:
-  extension (x: Index) def value: String = x
-  def apply(value: String): Index        = value
+  def fromString(value: String): Either[String, Index] =
+    value match
+      case "forum" => Index.Forum.asRight
+      case "game"  => Index.Game.asRight
+      case "study" => Index.Study.asRight
+      case "team"  => Index.Team.asRight
+      case _       => s"Invalid index: $value".asLeft
 
 opaque type SearchFrom = Int
 object SearchFrom:

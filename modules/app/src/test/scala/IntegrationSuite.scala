@@ -9,6 +9,7 @@ import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
+import smithy4s.Timestamp
 import weaver.*
 
 import java.time.Instant
@@ -157,4 +158,9 @@ object IntegrationSuite extends IOSuite:
           d <- service.search(Query.game(duration = IntRange(a = 99.some, b = 101.some).some), from, size)
           e <- service.search(Query.game(clockInit = 100.some), from, size)
           f <- service.search(Query.game(clockInc = 200.some), from, size)
-        yield expect(a.hitIds.size == 1 && b == a && c == a && d == a && e == a && f == a)
+          g <- service.search(
+            Query.game(date = DateRange(a = none, b = Timestamp(1999, 10, 20, 12, 20, 19).some).some),
+            from,
+            size
+          )
+        yield expect(a.hitIds.size == 1 && b == a && c == a && d == a && e == a && f == a && g == a)

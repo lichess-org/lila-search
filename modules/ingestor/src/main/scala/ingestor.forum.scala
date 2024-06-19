@@ -40,7 +40,7 @@ object ForumIngestor:
   )
   private val aggregate = Aggregate.matchBy(eventFilter).combinedWith(Aggregate.project(eventProjection))
 
-  private val index = Index("forum")
+  private val index = Index.Forum
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum)(
       using Logger[IO]

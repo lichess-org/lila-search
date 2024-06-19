@@ -60,7 +60,7 @@ operation DeleteById {
   input := {
     @required
     @httpLabel
-    index: Index
+    index: IndexString
 
     @required
     @httpLabel
@@ -75,7 +75,7 @@ operation DeleteByIds {
   input := {
     @required
     @httpLabel
-    index: Index
+    index: IndexString
 
     @required
     ids: Ids
@@ -88,7 +88,7 @@ operation Mapping {
   input := {
     @required
     @httpLabel
-    index: Index
+    index: IndexString
   }
 
   errors: [InternalServerError]
@@ -99,7 +99,7 @@ operation Refresh {
   input := {
     @required
     @httpLabel
-    index: Index
+    index: IndexString
   }
 
   errors: [InternalServerError]
@@ -380,11 +380,4 @@ union Source {
   game: GameSource
   study: StudySource
   team: TeamSource
-}
-
-enum Index {
-  Forum = "forum"
-  Game = "game"
-  Study = "study"
-  Team = "team"
 }

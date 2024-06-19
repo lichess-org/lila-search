@@ -5,7 +5,6 @@ import cats.effect.*
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.cats.effect.instances.*
-import com.sksamuel.elastic4s.fields.ElasticField
 import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.{
   ElasticClient,
@@ -18,7 +17,14 @@ import com.sksamuel.elastic4s.{
   Response
 }
 
-extension (index: Index) def toES: ESIndex = ESIndex(index.value)
+extension (index: Index)
+  def toES: ESIndex = ESIndex(index.value)
+
+  def mapping = index match
+    case Index.Forum => forum.Mapping.fields
+    case Index.Game  => game.Mapping.fields
+    case Index.Study => study.Mapping.fields
+    case Index.Team  => team.Mapping.fields
 
 trait ESClient[F[_]]:
 
@@ -28,7 +34,7 @@ trait ESClient[F[_]]:
   def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): F[Unit]
   def deleteOne(index: Index, id: Id): F[Unit]
   def deleteMany(index: Index, ids: List[Id]): F[Unit]
-  def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit]
+  def putMapping(index: Index): F[Unit]
   def refreshIndex(index: Index): F[Unit]
   def status: F[String]
 
@@ -89,11 +95,11 @@ object ESClient:
         .flatMap(unitOrFail)
         .whenA(ids.nonEmpty)
 
-    def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit] =
+    def putMapping(index: Index): F[Unit] =
       dropIndex(index) >> client
         .execute:
           createIndex(index.value)
-            .mapping(properties(fields).source(false)) // all false
+            .mapping(properties(index.mapping).source(false)) // all false
             .shards(5)
             .replicas(0)
             .refreshInterval(Which.refreshInterval(index))

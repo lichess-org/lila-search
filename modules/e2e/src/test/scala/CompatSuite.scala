@@ -5,10 +5,9 @@ import akka.actor.ActorSystem
 import cats.effect.{ IO, Resource }
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.Indexable
-import com.sksamuel.elastic4s.fields.ElasticField
 import lila.search.app.{ AppConfig, AppResources, ElasticConfig, HttpServerConfig, SearchApp }
 import lila.search.client.{ SearchClient, SearchError }
-import lila.search.spec.{ CountOutput, Index as SpecIndex, Query, SearchOutput, Source }
+import lila.search.spec.{ CountOutput, Query, SearchOutput, Source }
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 import play.api.libs.ws.*
@@ -55,16 +54,16 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.count(query))).map(expect.same(_, lila.search.spec.CountOutput(0)))
 
   test("deleteById endpoint"): client =>
-    IO.fromFuture(IO(client.deleteById(SpecIndex.Game, "iddddd"))).map(expect.same(_, ()))
+    IO.fromFuture(IO(client.deleteById(Index.Game, "iddddd"))).map(expect.same(_, ()))
 
   test("deleteByIds endpoint"): client =>
-    IO.fromFuture(IO(client.deleteByIds(SpecIndex.Game, List("a", "b", "c")))).map(expect.same(_, ()))
+    IO.fromFuture(IO(client.deleteByIds(Index.Game, List("a", "b", "c")))).map(expect.same(_, ()))
 
   test("mapping endpoint"): client =>
-    IO.fromFuture(IO(client.mapping(SpecIndex.Study))).map(expect.same(_, ()))
+    IO.fromFuture(IO(client.mapping(Index.Study))).map(expect.same(_, ()))
 
   test("refresh endpoint"): client =>
-    IO.fromFuture(IO(client.refresh(SpecIndex.Forum))).map(expect.same(_, ()))
+    IO.fromFuture(IO(client.refresh(Index.Forum))).map(expect.same(_, ()))
 
   test("store endpoint"): client =>
     val source = Source.team(lila.search.spec.TeamSource("names", "desc", 100))
@@ -143,7 +142,7 @@ object CompatSuite extends weaver.IOSuite:
         indexable: Indexable[A]
     ): IO[Unit] = IO.unit
 
-    override def putMapping(index: Index, fields: Seq[ElasticField]): IO[Unit] = IO.unit
+    override def putMapping(index: Index): IO[Unit] = IO.unit
 
     override def refreshIndex(index: Index): IO[Unit] = IO.unit
 

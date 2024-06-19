@@ -53,3 +53,14 @@ structure FromFormat {}
 @FromFormat
 @unwrap
 integer From
+
+@trait(selector: "string")
+@refinement(
+   targetType: "lila.search.Index"
+   providerImport: "lila.search.spec.providers.given"
+)
+structure IndexFormat {}
+
+@IndexFormat
+@unwrap
+string IndexString
