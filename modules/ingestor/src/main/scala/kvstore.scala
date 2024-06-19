@@ -39,7 +39,7 @@ object KVStore:
       .through(fs2.text.utf8.decode[IO])
       .compile
       .string
-      .map(x => readFromString[State](x))
+      .map(readFromString[State](_))
       .handleError(_ => Map.empty)
 
   private def write(path: String, content: State): IO[Unit] =
