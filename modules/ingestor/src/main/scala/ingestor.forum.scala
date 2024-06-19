@@ -75,7 +75,8 @@ object ForumIngestor:
 
     private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
       info"Received ${events.size} forum posts to delete" *>
-        IO.whenA(events.nonEmpty)(deleteMany(events.flatMap(_.id).map(Id.apply)))
+        IO.whenA(events.nonEmpty):
+          deleteMany(events.flatMap(_.id).map(Id.apply))
 
     @scala.annotation.targetName("deleteManyWithIds")
     private def deleteMany(ids: List[Id]): IO[Unit] =
@@ -115,25 +116,16 @@ object ForumIngestor:
         .evalTap(_.traverse_(x => debug"received $x"))
         .map(_.toList)
 
+    private type SourceWithId = (String, ForumSource)
     extension (events: List[ChangeStreamDocument[Document]])
-      private def toSources: IO[List[(String, ForumSource)]] =
+      private def toSources: IO[List[SourceWithId]] =
         val topicIds = events.flatMap(_.topicId).distinct
         topicIds.isEmpty.fold(
           info"no topics found for posts: $events".as(Nil),
           topicByIds(topicIds)
             .flatMap: topicMap =>
               events
-                .traverse: event =>
-                  (event.id, event.topicId, event.fullDocument)
-                    .flatMapN: (id, topicId, doc) =>
-                      doc.toSource(topicName = topicMap.get(topicId)).map(id -> _)
-                    .match
-                      case Some(value) => value.some.pure[IO]
-                      case _ =>
-                        val reason = event.id.fold("missing event.id; ")(_ => "")
-                          + event.topicId.fold("missing event.topicId; ")(_ => "")
-                          + event.fullDocument.fold("missing event.fullDocument; ")(_ => "")
-                        info"failed to convert document to source: $event because $reason".as(none)
+                .traverse(_.toSource(topicMap))
                 .map(_.flatten)
         )
 
@@ -154,3 +146,15 @@ object ForumIngestor:
       private def isDelete: Boolean =
         event.operationType == DELETE ||
           event.fullDocument.flatMap(_.get("erasedAt")).isDefined
+
+      private def toSource(topicMap: Map[String, String]): IO[Option[SourceWithId]] =
+        (event.id, event.topicId, event.fullDocument)
+          .flatMapN: (id, topicId, doc) =>
+            doc.toSource(topicName = topicMap.get(topicId)).map(id -> _)
+          .match
+            case Some(value) => value.some.pure[IO]
+            case _ =>
+              val reason = event.id.fold("missing event.id; ")(_ => "")
+                + event.topicId.fold("missing event.topicId; ")(_ => "")
+                + event.fullDocument.fold("missing event.fullDocument; ")(_ => "")
+              info"failed to convert document to source: $event because $reason".as(none)
