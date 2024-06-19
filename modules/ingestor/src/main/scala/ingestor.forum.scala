@@ -57,7 +57,6 @@ object ForumIngestor:
         .eval(startAt.flatTap(since => info"Starting forum ingestor from $since"))
         .flatMap: last =>
           changes(last)
-            .filterNot(_.isEmpty)
             .evalMap: events =>
               val lastEventTimestamp  = events.flatten(_.clusterTime.flatMap(_.asInstant)).maxOption
               val (toDelete, toIndex) = events.partition(_.isDelete)
@@ -76,14 +75,16 @@ object ForumIngestor:
 
     private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
       info"Received ${events.size} forum posts to delete" *>
-        IO.whenA(events.nonEmpty):
-          IO(events.flatMap(_.id).map(Id.apply))
-            .flatMap: ids =>
-              elastic
-                .deleteMany(index, events.flatMap(_.id.map(Id.apply)))
-                .flatTap(_ => info"Deleted ${ids.size} forum posts")
-                .handleErrorWith: e =>
-                  Logger[IO].error(e)(s"Failed to delete forum posts: ${events.map(_.id).mkString(", ")}")
+        IO.whenA(events.nonEmpty)(deleteMany(events.flatMap(_.id).map(Id.apply)))
+
+    @scala.annotation.targetName("deleteManyWithIds")
+    private def deleteMany(ids: List[Id]): IO[Unit] =
+      IO.whenA(ids.nonEmpty):
+        elastic
+          .deleteMany(index, ids)
+          .flatTap(_ => info"Deleted ${ids.size} forum posts")
+          .handleErrorWith: e =>
+            Logger[IO].error(e)(s"Failed to delete forum posts: ${ids.map(_.value).mkString(", ")}")
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.name, time)
