@@ -34,14 +34,16 @@ object Index:
 
 opaque type SearchFrom = Int
 object SearchFrom:
-  def apply(value: Int): Either[String, SearchFrom] =
-    Either.cond(value >= 0, value, "From must be greater than or equal to 0")
+  def apply(value: Int): SearchFrom =
+    if value >= 0 then value
+    else 0
 
   extension (x: SearchFrom) def value: Int = x
 
 opaque type SearchSize = Int
 object SearchSize:
-  def apply(value: Int): Either[String, SearchSize] =
-    Either.cond(value > 0, value, "Size must be greater than 0")
+  def apply(value: Int): SearchSize =
+    if value > 0 then value
+    else 12
 
   extension (x: SearchSize) def value: Int = x

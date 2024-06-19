@@ -30,8 +30,8 @@ object CompatSuite extends weaver.IOSuite:
       .flatMap(_ => wsClient)
       .map(SearchClient.play(_, "http://localhost:9999/api"))
 
-  val from = SearchFrom(0).toOption.get
-  val size = SearchSize(12).toOption.get
+  val from = SearchFrom(0)
+  val size = SearchSize(12)
 
   test("search endpoint"): client =>
     val query = Query.Forum("foo")
@@ -133,7 +133,7 @@ object CompatSuite extends weaver.IOSuite:
     elastic = ElasticConfig("http://0.0.0.0:9200")
   )
 
-  def fakeClient: ESClient[IO] = new ESClient[IO]:
+  def fakeClient: ESClient[IO] = new:
 
     override def store[A](index: Index, id: Id, obj: A)(implicit
         indexable: Indexable[A]

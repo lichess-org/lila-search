@@ -19,8 +19,8 @@ object IntegrationSuite extends IOSuite:
 
   private val uri = Uri.unsafeFromString("http://localhost:9999")
 
-  val from = SearchFrom(0).toOption.get
-  val size = SearchSize(12).toOption.get
+  val from = SearchFrom(0)
+  val size = SearchSize(12)
   override type Res = AppResources
   // start our server
   override def sharedResource: Resource[IO, Res] =

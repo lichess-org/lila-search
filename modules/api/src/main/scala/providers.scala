@@ -1,6 +1,7 @@
 package lila.search
 package spec
 
+import cats.syntax.all.*
 import smithy4s.*
 
 object providers:
@@ -9,7 +10,7 @@ object providers:
     Refinement.drivenBy(SearchDateTime.fromString, _.value)
 
   given RefinementProvider[SizeFormat, Int, SearchSize] =
-    Refinement.drivenBy(SearchSize.apply, _.value)
+    Refinement.drivenBy(x => SearchSize(x).asRight, _.value)
 
   given RefinementProvider[FromFormat, Int, SearchFrom] =
-    Refinement.drivenBy(SearchFrom.apply, _.value)
+    Refinement.drivenBy(x => SearchFrom(x).asRight, _.value)

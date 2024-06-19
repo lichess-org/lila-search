@@ -18,8 +18,7 @@ import com.sksamuel.elastic4s.{
   Response
 }
 
-extension(index: Index)
-  def toES: ESIndex = ESIndex(index.value)
+extension (index: Index) def toES: ESIndex = ESIndex(index.value)
 
 trait ESClient[F[_]]:
 
