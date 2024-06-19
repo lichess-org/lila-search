@@ -17,15 +17,6 @@ import com.sksamuel.elastic4s.{
   Response
 }
 
-extension (index: Index)
-  def toES: ESIndex = ESIndex(index.value)
-
-  def mapping = index match
-    case Index.Forum => forum.Mapping.fields
-    case Index.Game  => game.Mapping.fields
-    case Index.Study => study.Mapping.fields
-    case Index.Team  => team.Mapping.fields
-
 trait ESClient[F[_]]:
 
   def search[A](query: A, from: SearchFrom, size: SearchSize)(using Queryable[A]): F[List[Id]]
@@ -102,7 +93,7 @@ object ESClient:
             .mapping(properties(index.mapping).source(false)) // all false
             .shards(5)
             .replicas(0)
-            .refreshInterval(Which.refreshInterval(index))
+            .refreshInterval(index.refreshInterval)
         .flatMap(unitOrFail)
 
     def refreshIndex(index: Index): F[Unit] =
