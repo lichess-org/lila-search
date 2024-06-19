@@ -84,7 +84,7 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.storeBulkForum(sources))).map(expect.same(_, ()))
 
   test("store bulk game endpoint"): client =>
-    val now = lila.search.spec.SearchDateTime.fromInstant(Instant.now())
+    val now = SearchDateTime.fromInstant(Instant.now())
     val sources = List(
       lila.search.spec.GameSourceWithId(
         "id1",

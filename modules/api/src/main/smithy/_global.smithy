@@ -23,7 +23,8 @@ list Strings {
 
 @trait(selector: "string")
 @refinement(
-   targetType: "lila.search.spec.SearchDateTime"
+   targetType: "lila.search.SearchDateTime"
+   providerImport: "lila.search.spec.providers.given"
 )
 structure DateTimeFormat {}
 

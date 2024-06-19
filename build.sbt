@@ -15,6 +15,15 @@ inThisBuild(
   )
 )
 
+lazy val core = project
+  .in(file("modules/core"))
+  .settings(
+    name := "core",
+    libraryDependencies ++= Seq(
+      catsCore
+    )
+  )
+
 lazy val elastic = project
   .in(file("modules/elastic"))
   .settings(
@@ -39,7 +48,7 @@ lazy val api = (project in file("modules/api"))
       catsCore,
       smithy4sCore
     )
-  )
+  ).dependsOn(core)
 
 lazy val ingestor = (project in file("modules/ingestor"))
   .settings(
@@ -117,7 +126,7 @@ val e2e = (project in file("modules/e2e"))
 lazy val root = project
   .in(file("."))
   .settings(publish := {}, publish / skip := true)
-  .aggregate(elastic, api, app, client, e2e, ingestor)
+  .aggregate(core, api, app, client, e2e, elastic, ingestor)
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
 addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")
