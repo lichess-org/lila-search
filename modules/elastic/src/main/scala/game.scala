@@ -5,8 +5,8 @@ import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.term.TermQuery
-import org.joda.time.DateTime
 
+import java.time.Instant
 import scala.concurrent.duration.*
 
 case class Game(
@@ -23,7 +23,7 @@ case class Game(
     hasAi: Option[Boolean] = None,
     aiLevel: Range[Int] = Range.none,
     rated: Option[Boolean] = None,
-    date: Range[DateTime] = Range.none,
+    date: Range[Instant] = Range.none,
     duration: Range[Int] = Range.none,
     sorting: Sorting = Sorting.default,
     analysed: Option[Boolean] = None,
@@ -67,7 +67,7 @@ object Mapping:
       keywordField(winnerColor).copy(docValues = Some(false)),
       shortField(averageRating).copy(docValues = Some(true)),
       shortField(ai).copy(docValues = Some(false)),
-      dateField(date).copy(format = Some(Date.format), docValues = Some(true)),
+      dateField(date).copy(format = Some(SearchDateTime.format), docValues = Some(true)),
       intField(duration).copy(docValues = Some(false)),
       intField(clockInit).copy(docValues = Some(false)),
       shortField(clockInc).copy(docValues = Some(false)),
@@ -118,7 +118,7 @@ object GameQuery:
         duration.queries(Fields.duration),
         clockInit.map(termsQuery(Fields.clockInit, _)).toList,
         clockInc.map(termsQuery(Fields.clockInc, _)).toList,
-        date.map(Date.formatter.print).queries(Fields.date),
+        date.map(SearchDateTime.fromInstant).queries(Fields.date),
         hasAiQueries,
         hasAi.getOrElse(true).fold(aiLevel.queries(Fields.ai), Nil),
         perf.nonEmpty.fold(List(termsQuery(Fields.perf, perf)), Nil),

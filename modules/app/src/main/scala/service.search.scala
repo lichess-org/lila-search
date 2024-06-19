@@ -9,10 +9,11 @@ import lila.search.game.Game
 import lila.search.spec.*
 import lila.search.study.Study
 import lila.search.team.Team
-import org.joda.time.DateTime
 import org.typelevel.log4cats.Logger
 import smithy4s.Timestamp
 import smithy4s.schema.Schema
+
+import java.time.Instant
 
 class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extends SearchService[IO]:
 
@@ -111,15 +112,15 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
 
 object SearchServiceImpl:
 
-  given Transformer.Derived[Timestamp, DateTime] =
-    Transformer.Derived.FromFunction(x => DateTime(x.epochMilli))
+  given Transformer.Derived[Timestamp, Instant] =
+    Transformer.Derived.FromFunction(_.toInstant)
 
   given intRange: Transformer.Derived[Option[IntRange], Range[Int]] =
     Transformer.Derived.FromFunction(_.fold(Range.none)(r => Range(r.a, r.b)))
 
-  given dateRange: Transformer.Derived[Option[DateRange], Range[DateTime]] =
+  given dateRange: Transformer.Derived[Option[DateRange], Range[Instant]] =
     Transformer.Derived.FromFunction(
-      _.fold(Range.none)(r => Range(r.a.map(_.to[DateTime]), r.b.map(_.to[DateTime])))
+      _.fold(Range.none)(r => Range(r.a.map(_.to[Instant]), r.b.map(_.to[Instant])))
     )
 
   given Transformer.Derived[Option[Sorting], game.Sorting] =

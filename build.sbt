@@ -34,10 +34,9 @@ lazy val elastic = project
       catsCore,
       catsEffect,
       elastic4sJavaClient,
-      elastic4sCatsEffect,
-      "joda-time" % "joda-time" % "2.12.7"
+      elastic4sCatsEffect
     )
-  )
+  ).dependsOn(core)
 
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
