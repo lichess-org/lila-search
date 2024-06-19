@@ -15,10 +15,10 @@ inThisBuild(
   )
 )
 
-lazy val core = project
-  .in(file("modules/core"))
+lazy val elastic = project
+  .in(file("modules/elastic"))
   .settings(
-    name           := "lila-search-core",
+    name           := "elastic",
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -65,7 +65,7 @@ lazy val ingestor = (project in file("modules/ingestor"))
     Compile / run / fork := true
   )
   .enablePlugins(JavaAppPackaging)
-  .dependsOn(core, api)
+  .dependsOn(elastic, api)
 
 lazy val client = (project in file("modules/client"))
   .settings(
@@ -104,7 +104,7 @@ lazy val app = (project in file("modules/app"))
     Compile / run / fork := true
   )
   .enablePlugins(JavaAppPackaging)
-  .dependsOn(api, core)
+  .dependsOn(api, elastic)
 
 val e2e = (project in file("modules/e2e"))
   .settings(
@@ -117,7 +117,7 @@ val e2e = (project in file("modules/e2e"))
 lazy val root = project
   .in(file("."))
   .settings(publish := {}, publish / skip := true)
-  .aggregate(core, api, app, client, e2e, ingestor)
+  .aggregate(elastic, api, app, client, e2e, ingestor)
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
 addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")
