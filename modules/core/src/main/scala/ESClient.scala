@@ -44,7 +44,7 @@ object ESClient:
 
     def status: F[String] =
       client
-        .execute(ElasticDsl.clusterHealth())
+        .execute(clusterHealth())
         .flatMap(toResult)
         .map(_.status)
 
@@ -72,14 +72,10 @@ object ESClient:
         .flatMap(unitOrFail)
 
     def storeBulk[A](index: Index, objs: Seq[(String, A)])(using indexable: Indexable[A]): F[Unit] =
+      val request  = indexInto(index.name)
+      val requests = bulk(objs.map((id, obj) => request.source(obj).id(id)))
       client
-        .execute {
-          ElasticDsl.bulk {
-            objs.map { case (id, obj) =>
-              indexInto(index.name).source(obj).id(id)
-            }
-          }
-        }
+        .execute(requests)
         .flatMap(unitOrFail)
         .whenA(objs.nonEmpty)
 
@@ -90,25 +86,18 @@ object ESClient:
 
     def deleteMany(index: Index, ids: List[Id]): F[Unit] =
       client
-        .execute {
-          ElasticDsl.bulk {
-            ids.map { id =>
-              deleteById(index.toES, id.value)
-            }
-          }
-        }
+        .execute(bulk(ids.map(id => deleteById(index.toES, id.value))))
         .flatMap(unitOrFail)
         .whenA(ids.nonEmpty)
 
     def putMapping(index: Index, fields: Seq[ElasticField]): F[Unit] =
       dropIndex(index) >> client
-        .execute {
+        .execute:
           createIndex(index.name)
             .mapping(properties(fields).source(false)) // all false
             .shards(5)
             .replicas(0)
             .refreshInterval(Which.refreshInterval(index))
-        }
         .flatMap(unitOrFail)
 
     def refreshIndex(index: Index): F[Unit] =
