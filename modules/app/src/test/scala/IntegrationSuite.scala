@@ -120,6 +120,16 @@ object IntegrationSuite extends IOSuite:
           c <- service.search(Query.study("topic1"), from, size)
         yield expect(a.hitIds.size == 1 && b == a && c == a)
 
+  val defaultIntRange  = IntRange(none, none)
+  val defaultDateRange = DateRange(none, none)
+  val defaultGame = Query.game(
+    turns = defaultIntRange,
+    averageRating = defaultIntRange,
+    aiLevel = defaultIntRange,
+    date = defaultDateRange,
+    duration = defaultIntRange,
+    sorting = Sorting("field", "asc")
+  )
   test("game"): _ =>
     Clients
       .search(uri)
@@ -136,7 +146,7 @@ object IntegrationSuite extends IOSuite:
                   rated = true,
                   perf = 1,
                   winnerColor = 1,
-                  date = SearchDateTime.fromString("1999-10-20 12:20:20").toOption.get,
+                  date = SearchDateTime.fromInstant(Timestamp(1999, 10, 20, 12, 20, 20).toInstant),
                   analysed = false,
                   uids = List("uid1", "uid2").some,
                   winner = "uid1".some,
@@ -152,14 +162,14 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Game)
-          a <- service.search(Query.game(List(1)), from, size)
-          b <- service.search(Query.game(loser = "uid2".some), from, size)
-          c <- service.search(Query.game(), from, size)
-          d <- service.search(Query.game(duration = IntRange(a = 99.some, b = 101.some).some), from, size)
-          e <- service.search(Query.game(clockInit = 100.some), from, size)
-          f <- service.search(Query.game(clockInc = 200.some), from, size)
+          a <- service.search(defaultGame.copy(perf = List(1)), from, size)
+          b <- service.search(defaultGame.copy(loser = "uid2".some), from, size)
+          c <- service.search(defaultGame, from, size)
+          d <- service.search(defaultGame.copy(duration = IntRange(a = 99.some, b = 101.some)), from, size)
+          e <- service.search(defaultGame.copy(clockInit = 100.some), from, size)
+          f <- service.search(defaultGame.copy(clockInc = 200.some), from, size)
           g <- service.search(
-            Query.game(date = DateRange(a = none, b = Timestamp(1999, 10, 20, 12, 20, 19).some).some),
+            defaultGame.copy(date = DateRange(a = none, b = Timestamp(1999, 10, 20, 12, 20, 21).some)),
             from,
             size
           )
