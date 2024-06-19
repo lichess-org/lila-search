@@ -128,7 +128,11 @@ object ForumIngestor:
                       doc.toSource(topicName = topicMap.get(topicId)).map(id -> _)
                     .match
                       case Some(value) => value.some.pure[IO]
-                      case _           => info"failed to convert document to source: $event".as(none)
+                      case _ =>
+                        val reason = event.id.fold("missing event.id; ")(_ => "")
+                          + event.topicId.fold("missing event.topicId; ")(_ => "")
+                          + event.fullDocument.fold("missing event.fullDocument; ")(_ => "")
+                        info"failed to convert document to source: $event because $reason".as(none)
                 .map(_.flatten)
         )
 
