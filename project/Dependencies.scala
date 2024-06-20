@@ -7,6 +7,7 @@ object Dependencies {
     val catsEffect = "3.5.4"
     val ciris      = "3.6.0"
     val elastic4s  = "8.13.0"
+    val decline    = "2.4.1"
     val fs2        = "3.10.2"
     val http4s     = "0.23.27"
     val iron       = "2.5.0"
@@ -50,6 +51,9 @@ object Dependencies {
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.6"
 
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.2"
+
+  val declineCore = "com.monovore" %% "decline" % V.decline
+  val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
   val testContainers    = "com.dimafeng"        %% "testcontainers-scala-core"       % "0.41.4"     % Test
   val weaver            = "com.disneystreaming" %% "weaver-cats"                     % "0.8.4"      % Test

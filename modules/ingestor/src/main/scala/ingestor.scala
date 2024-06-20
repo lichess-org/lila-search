@@ -15,4 +15,4 @@ object Ingestor:
   ): IO[Ingestor] =
     ForumIngestor(mongo, elastic, store, config.forum).map: f =>
       new Ingestor:
-        def run(): IO[Unit] = f.run().compile.drain
+        def run(): IO[Unit] = f.watch().compile.drain

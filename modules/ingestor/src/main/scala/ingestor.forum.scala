@@ -16,31 +16,28 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 trait ForumIngestor:
-  def run(): fs2.Stream[IO, Unit]
+  // Utilize change events functionality of MongoDB to watch for changes in the forum posts collection.
+  def watch(): fs2.Stream[IO, Unit]
+  // Fetch posts from since to until and ingest to data
+  def run(since: Instant, until: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit]
 
 object ForumIngestor:
+
+  private val index = Index.Forum
 
   private val topicProjection = Projection.include(List("_id", "name"))
 
   private val interestedOperations = List(DELETE, INSERT, REPLACE).map(_.getValue)
   private val eventFilter          = Filter.in("operationType", interestedOperations)
 
-  private val eventProjection = Projection.include(
-    List(
-      "operationType",
-      "clusterTime",
-      "documentKey._id",
-      "fullDocument.text",
-      "fullDocument.topicId",
-      "fullDocument.troll",
-      "fullDocument.createdAt",
-      "fullDocument.userId",
-      "fullDocument.erasedAt"
-    )
-  )
-  private val aggregate = Aggregate.matchBy(eventFilter).combinedWith(Aggregate.project(eventProjection))
+  private val interestedFields = List("_id", "text", "topicId", "troll", "createdAt", "userId", "erasedAt")
+  private val postProjection   = Projection.include(interestedFields)
 
-  private val index = Index.Forum
+  private val interestedEventFields =
+    List("operationType", "clusterTime", "documentKey._id") ++ interestedFields.map("fullDocument." + _)
+  private val eventProjection = Projection.include(interestedEventFields)
+
+  private val aggregate = Aggregate.matchBy(eventFilter).combinedWith(Aggregate.project(eventProjection))
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum)(
       using Logger[IO]
@@ -52,7 +49,7 @@ object ForumIngestor:
       posts: MongoCollection
   )(using Logger[IO]): ForumIngestor = new:
 
-    def run(): fs2.Stream[IO, Unit] =
+    def watch(): fs2.Stream[IO, Unit] =
       fs2.Stream
         .eval(startAt.flatTap(since => info"Starting forum ingestor from $since"))
         .flatMap: last =>
@@ -60,23 +57,40 @@ object ForumIngestor:
             .evalMap: events =>
               val lastEventTimestamp  = events.flatten(_.clusterTime.flatMap(_.asInstant)).maxOption
               val (toDelete, toIndex) = events.partition(_.isDelete)
-              storeBulk(toIndex)
-                *> deleteMany(toDelete)
+              storeBulk(toIndex.flatten(_.fullDocument))
+                *> deleteMany(toDelete.flatten(_.fullDocument))
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now()))
 
-    private def storeBulk(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
+    def run(since: Instant, until: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit] =
+      val filter = range("createdAt")(since, until).or(range("erasedAt")(since, until))
+      posts
+        .find(filter)
+        .projection(postProjection)
+        .boundedStream(config.batchSize)
+        .chunkN(config.batchSize)
+        .map(_.toList)
+        .metered(1.second) // to avoid overloading the elasticsearch
+        .evalMap: docs =>
+          val (toDelete, toIndex) = docs.partition(_.isErased)
+          dryRun.fold(
+            toIndex.traverse_(doc => debug"Would index $doc")
+              *> toDelete.traverse_(doc => debug"Would delete $doc"),
+            storeBulk(toIndex) *> deleteMany(toDelete)
+          )
+
+    private def storeBulk(events: List[Document]): IO[Unit] =
       info"Received ${events.size} forum posts to index" *>
         IO.whenA(events.nonEmpty):
           events.toSources
             .flatMap: sources =>
               elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} forum posts"
             .handleErrorWith: e =>
-              Logger[IO].error(e)(s"Failed to index forum posts: ${events.map(_.id).mkString(", ")}")
+              Logger[IO].error(e)(s"Failed to index forum posts: ${events.map(_._id).mkString(", ")}")
 
-    private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
+    private def deleteMany(events: List[Document]): IO[Unit] =
       info"Received ${events.size} forum posts to delete" *>
         IO.whenA(events.nonEmpty):
-          deleteMany(events.flatMap(_.id).map(Id.apply))
+          deleteMany(events.flatMap(_._id).map(Id.apply))
 
     @scala.annotation.targetName("deleteManyWithIds")
     private def deleteMany(ids: List[Id]): IO[Unit] =
@@ -117,7 +131,8 @@ object ForumIngestor:
         .map(_.toList)
 
     private type SourceWithId = (String, ForumSource)
-    extension (events: List[ChangeStreamDocument[Document]])
+
+    extension (events: List[Document])
       private def toSources: IO[List[SourceWithId]] =
         val topicIds = events.flatMap(_.topicId).distinct
         topicIds.isEmpty.fold(
@@ -130,31 +145,37 @@ object ForumIngestor:
         )
 
     extension (doc: Document)
-      private def toSource(topicName: Option[String]): Option[ForumSource] =
+
+      private def toSource(topicMap: Map[String, String]): IO[Option[SourceWithId]] =
+        (doc._id, doc.getString("topicId"))
+          .flatMapN: (id, topicId) =>
+            doc.toSource(topicMap.get(topicId), topicId).map(id -> _)
+          .match
+            case Some(value) => value.some.pure[IO]
+            case _ =>
+              val reason = doc._id.fold("missing doc._id; ")(_ => "")
+                + doc.topicId.fold("missing doc.topicId; ")(_ => "")
+              info"failed to convert document to source: $doc because $reason".as(none)
+
+      private def toSource(topicName: Option[String], topicId: String): Option[ForumSource] =
         (
           doc.getString("text").map(_.take(config.maxBodyLength)),
           topicName,
-          doc.getString("topicId"),
+          topicId.some,
           doc.getBoolean("troll"),
           doc.getNested("createdAt").flatMap(_.asInstant).map(_.toEpochMilli()),
           doc.getString("userId").some
         ).mapN(ForumSource.apply)
 
+      private def isErased: Boolean =
+        doc.get("erasedAt").isDefined
+
+      private def _id: Option[String] =
+        doc.getString("_id")
+
+      private def topicId: Option[String] =
+        doc.getString("topicId")
+
     extension (event: ChangeStreamDocument[Document])
-      private def topicId = event.fullDocument.flatMap(_.getString("topicId"))
-
       private def isDelete: Boolean =
-        event.operationType == DELETE ||
-          event.fullDocument.flatMap(_.get("erasedAt")).isDefined
-
-      private def toSource(topicMap: Map[String, String]): IO[Option[SourceWithId]] =
-        (event.id, event.topicId, event.fullDocument)
-          .flatMapN: (id, topicId, doc) =>
-            doc.toSource(topicName = topicMap.get(topicId)).map(id -> _)
-          .match
-            case Some(value) => value.some.pure[IO]
-            case _ =>
-              val reason = event.id.fold("missing event.id; ")(_ => "")
-                + event.topicId.fold("missing event.topicId; ")(_ => "")
-                + event.fullDocument.fold("missing event.fullDocument; ")(_ => "")
-              info"failed to convert document to source: $event because $reason".as(none)
+        event.operationType == DELETE || event.fullDocument.exists(_.isErased)

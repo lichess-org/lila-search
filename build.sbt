@@ -59,6 +59,8 @@ lazy val ingestor = (project in file("modules/ingestor"))
       fs2,
       fs2IO,
       catsEffect,
+      declineCore,
+      declineCatsEffect,
       ducktape,
       cirisCore,
       smithy4sJson,
