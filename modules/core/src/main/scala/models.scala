@@ -40,7 +40,9 @@ object Index:
       case "game"  => Index.Game.asRight
       case "study" => Index.Study.asRight
       case "team"  => Index.Team.asRight
-      case _       => s"Invalid index: $value".asLeft
+      case _       => s"Invalid index: $value. It must be in ${Index.valuesStrings}".asLeft
+
+  private def valuesStrings = Index.values.map(_.value).toList.mkString_("{", ", ", "}")
 
 opaque type From = Int
 object From:
