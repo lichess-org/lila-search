@@ -25,7 +25,7 @@ object TeamQuery:
 
   given query: Queryable[Team] = new:
 
-    def searchDef(query: Team)(from: SearchFrom, size: SearchSize) =
+    def searchDef(query: Team)(from: From, size: Size) =
       search(index)
         .query(makeQuery(query))
         .fetchSource(false)

@@ -58,7 +58,7 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
   override def count(query: Query): Future[CountOutput] =
     request(s"$baseUrl/count", SearchInput(query))
 
-  override def search(query: Query, from: SearchFrom, size: SearchSize): Future[SearchOutput] =
+  override def search(query: Query, from: From, size: Size): Future[SearchOutput] =
     request(s"$baseUrl/search/${from.value}/${size.value}", SearchInput(query))
 
   private def request[D: Schema, R: Schema](url: String, data: D): Future[R] =

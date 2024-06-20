@@ -29,8 +29,8 @@ object CompatSuite extends weaver.IOSuite:
       .flatMap(_ => wsClient)
       .map(SearchClient.play(_, "http://localhost:9999/api"))
 
-  val from = SearchFrom(0)
-  val size = SearchSize(12)
+  val from = From(0)
+  val size = Size(12)
 
   test("search endpoint"): client =>
     val query = Query.Forum("foo")
@@ -153,7 +153,7 @@ object CompatSuite extends weaver.IOSuite:
     override def count[A](query: A)(implicit q: Queryable[A]) =
       IO.pure(0)
 
-    override def search[A](query: A, from: SearchFrom, size: SearchSize)(implicit q: Queryable[A]) =
+    override def search[A](query: A, from: From, size: Size)(implicit q: Queryable[A]) =
       IO.pure(Nil)
 
     override def status: IO[String] = IO.pure("yellow")

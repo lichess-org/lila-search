@@ -19,7 +19,7 @@ import com.sksamuel.elastic4s.{
 
 trait ESClient[F[_]]:
 
-  def search[A](query: A, from: SearchFrom, size: SearchSize)(using Queryable[A]): F[List[Id]]
+  def search[A](query: A, from: From, size: Size)(using Queryable[A]): F[List[Id]]
   def count[A](query: A)(using Queryable[A]): F[Long]
   def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): F[Unit]
   def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): F[Unit]
@@ -50,7 +50,7 @@ object ESClient:
     private def unitOrFail[A](response: Response[A]): F[Unit] =
       response.fold(MonadThrow[F].raiseError[Unit](response.error.asException))(_ => MonadThrow[F].unit)
 
-    def search[A](query: A, from: SearchFrom, size: SearchSize)(using q: Queryable[A]): F[List[Id]] =
+    def search[A](query: A, from: From, size: Size)(using q: Queryable[A]): F[List[Id]] =
       client
         .execute(q.searchDef(query)(from, size))
         .flatMap(toResult)

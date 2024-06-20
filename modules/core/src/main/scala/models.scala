@@ -42,18 +42,18 @@ object Index:
       case "team"  => Index.Team.asRight
       case _       => s"Invalid index: $value".asLeft
 
-opaque type SearchFrom = Int
-object SearchFrom:
-  def apply(value: Int): SearchFrom =
+opaque type From = Int
+object From:
+  def apply(value: Int): From =
     if value >= 0 then value
     else 0
 
-  extension (x: SearchFrom) def value: Int = x
+  extension (x: From) def value: Int = x
 
-opaque type SearchSize = Int
-object SearchSize:
-  def apply(value: Int): SearchSize =
+opaque type Size = Int
+object Size:
+  def apply(value: Int): Size =
     if value > 0 then value
     else 12
 
-  extension (x: SearchSize) def value: Int = x
+  extension (x: Size) def value: Int = x
