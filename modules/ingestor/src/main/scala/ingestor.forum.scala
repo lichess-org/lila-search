@@ -19,7 +19,7 @@ trait ForumIngestor:
   // Utilize change events functionality of MongoDB to watch for changes in the forum posts collection.
   def watch(): fs2.Stream[IO, Unit]
   // Fetch posts from since to until and ingest to data
-  def run(since: Instant, until: Option[Instant]): fs2.Stream[IO, Unit]
+  def run(since: Instant, until: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit]
 
 object ForumIngestor:
 
@@ -61,7 +61,7 @@ object ForumIngestor:
                 *> deleteMany(toDelete.flatten(_.fullDocument))
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now()))
 
-    def run(since: Instant, until: Option[Instant]): fs2.Stream[IO, Unit] =
+    def run(since: Instant, until: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit] =
       val filter = range("createdAt")(since, until).or(range("erasedAt")(since, until))
       posts
         .find(filter)
@@ -72,8 +72,11 @@ object ForumIngestor:
         .metered(1.second) // to avoid overloading the elasticsearch
         .evalMap: docs =>
           val (toDelete, toIndex) = docs.partition(_.isErased)
-          storeBulk(toIndex)
-            *> deleteMany(toDelete)
+          dryRun.fold(
+            toIndex.traverse_(doc => debug"Would index $doc")
+              *> toDelete.traverse_(doc => debug"Would delete $doc"),
+            storeBulk(toIndex) *> deleteMany(toDelete)
+          )
 
     private def storeBulk(events: List[Document]): IO[Unit] =
       info"Received ${events.size} forum posts to index" *>

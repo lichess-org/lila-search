@@ -33,11 +33,11 @@ object cli
     yield forum
 
   def execute(opts: IndexOpts): IO[Unit] =
-    if opts.index == Index.Forum then makeIngestor.use(_.run(opts.since, opts.until).compile.drain)
+    if opts.index == Index.Forum then makeIngestor.use(_.run(opts.since, opts.until, opts.dry).compile.drain)
     else IO.println("We only support forum backfill for now")
 
 object opts:
-  case class IndexOpts(index: Index, since: Instant, until: Option[Instant])
+  case class IndexOpts(index: Index, since: Instant, until: Option[Instant], dry: Boolean)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt)
 
@@ -61,7 +61,15 @@ object opts:
         short = "u",
         metavar = "time in epoch seconds"
       )
+      .orNone,
+    Opts
+      .flag(
+        long = "dry",
+        help = "Dry run",
+        short = "d"
+      )
       .orNone
+      .map(_.isDefined)
   ).mapN(IndexOpts.apply)
     .mapValidated(x =>
       if x.until.forall(_.isAfter(x.since)) then Validated.valid(x)
