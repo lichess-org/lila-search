@@ -69,6 +69,7 @@ object ForumIngestor:
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
         .map(_.toList)
+        .metered(1.second) // to avoid overloading the elasticsearch
         .evalMap: docs =>
           val (toDelete, toIndex) = docs.partition(_.isErased)
           storeBulk(toIndex)

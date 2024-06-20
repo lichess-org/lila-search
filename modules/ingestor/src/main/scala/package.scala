@@ -8,10 +8,10 @@ import lila.search.spec.{ ForumSource, Source }
 import mongo4cats.bson.Document
 import mongo4cats.collection.GenericMongoCollection
 import mongo4cats.models.collection.ChangeStreamDocument
+import mongo4cats.operations.Filter
 import org.bson.BsonTimestamp
 import smithy4s.json.Json.given
 import smithy4s.schema.Schema
-import mongo4cats.operations.Filter
 
 import java.time.Instant
 
