@@ -23,10 +23,44 @@ list Strings {
 
 @trait(selector: "string")
 @refinement(
-   targetType: "lila.search.spec.SearchDateTime"
+   targetType: "lila.search.SearchDateTime"
+   providerImport: "lila.search.spec.providers.given"
 )
 structure DateTimeFormat {}
 
 @DateTimeFormat
 @unwrap
 string DateTime
+
+@trait(selector: "integer")
+@refinement(
+   targetType: "lila.search.Size"
+   providerImport: "lila.search.spec.providers.given"
+)
+structure SizeFormat {}
+
+@SizeFormat
+@unwrap
+integer SizeInt
+
+@trait(selector: "integer")
+@refinement(
+   targetType: "lila.search.From"
+   providerImport: "lila.search.spec.providers.given"
+)
+structure FromFormat {}
+
+@FromFormat
+@unwrap
+integer FromInt
+
+@trait(selector: "string")
+@refinement(
+   targetType: "lila.search.Index"
+   providerImport: "lila.search.spec.providers.given"
+)
+structure IndexFormat {}
+
+@IndexFormat
+@unwrap
+string IndexString

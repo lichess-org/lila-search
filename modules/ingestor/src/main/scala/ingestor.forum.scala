@@ -40,7 +40,7 @@ object ForumIngestor:
   )
   private val aggregate = Aggregate.matchBy(eventFilter).combinedWith(Aggregate.project(eventProjection))
 
-  private val index = Index("forum")
+  private val index = Index.Forum
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum)(
       using Logger[IO]
@@ -88,11 +88,11 @@ object ForumIngestor:
             Logger[IO].error(e)(s"Failed to delete forum posts: ${ids.map(_.value).mkString(", ")}")
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
-      store.put(index.name, time)
+      store.put(index.value, time)
         *> info"Stored last indexed time ${time.getEpochSecond} for $index"
 
     private def startAt: IO[Option[Instant]] =
-      config.startAt.fold(store.get(index.name))(Instant.ofEpochSecond(_).some.pure[IO])
+      config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
 
     // Fetches topic names by their ids
     private def topicByIds(ids: Seq[String]): IO[Map[String, String]] =

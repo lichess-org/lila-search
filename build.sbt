@@ -18,17 +18,25 @@ inThisBuild(
 lazy val core = project
   .in(file("modules/core"))
   .settings(
-    name           := "lila-search-core",
+    name := "core",
+    libraryDependencies ++= Seq(
+      catsCore
+    )
+  )
+
+lazy val elastic = project
+  .in(file("modules/elastic"))
+  .settings(
+    name           := "elastic",
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
       catsCore,
       catsEffect,
       elastic4sJavaClient,
-      elastic4sCatsEffect,
-      "joda-time" % "joda-time" % "2.12.7"
+      elastic4sCatsEffect
     )
-  )
+  ).dependsOn(core)
 
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
@@ -39,7 +47,7 @@ lazy val api = (project in file("modules/api"))
       catsCore,
       smithy4sCore
     )
-  )
+  ).dependsOn(core)
 
 lazy val ingestor = (project in file("modules/ingestor"))
   .settings(
@@ -65,7 +73,7 @@ lazy val ingestor = (project in file("modules/ingestor"))
     Compile / run / fork := true
   )
   .enablePlugins(JavaAppPackaging)
-  .dependsOn(core, api)
+  .dependsOn(elastic, api)
 
 lazy val client = (project in file("modules/client"))
   .settings(
@@ -77,7 +85,7 @@ lazy val client = (project in file("modules/client"))
       playWS
     )
   )
-  .dependsOn(api)
+  .dependsOn(api, core)
 
 lazy val app = (project in file("modules/app"))
   .settings(
@@ -104,7 +112,7 @@ lazy val app = (project in file("modules/app"))
     Compile / run / fork := true
   )
   .enablePlugins(JavaAppPackaging)
-  .dependsOn(api, core)
+  .dependsOn(api, elastic)
 
 val e2e = (project in file("modules/e2e"))
   .settings(
@@ -117,7 +125,7 @@ val e2e = (project in file("modules/e2e"))
 lazy val root = project
   .in(file("."))
   .settings(publish := {}, publish / skip := true)
-  .aggregate(core, api, app, client, e2e, ingestor)
+  .aggregate(core, api, app, client, e2e, elastic, ingestor)
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
 addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")

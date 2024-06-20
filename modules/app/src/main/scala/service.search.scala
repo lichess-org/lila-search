@@ -9,10 +9,11 @@ import lila.search.game.Game
 import lila.search.spec.*
 import lila.search.study.Study
 import lila.search.team.Team
-import org.joda.time.DateTime
 import org.typelevel.log4cats.Logger
 import smithy4s.Timestamp
 import smithy4s.schema.Schema
+
+import java.time.Instant
 
 class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extends SearchService[IO]:
 
@@ -21,7 +22,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def storeBulkTeam(sources: List[TeamSourceWithId]): IO[Unit] =
     esClient
       .storeBulk(
-        Index.Team.transform,
+        Index.Team,
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
@@ -31,7 +32,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def storeBulkStudy(sources: List[StudySourceWithId]): IO[Unit] =
     esClient
       .storeBulk(
-        Index.Study.transform,
+        Index.Study,
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
@@ -41,7 +42,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def storeBulkGame(sources: List[GameSourceWithId]): IO[Unit] =
     esClient
       .storeBulk(
-        Index.Game.transform,
+        Index.Game,
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
@@ -51,7 +52,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def storeBulkForum(sources: List[ForumSourceWithId]): IO[Unit] =
     esClient
       .storeBulk(
-        Index.Forum.transform,
+        Index.Forum,
         sources.map(s => s.id -> s.source)
       )
       .handleErrorWith: e =>
@@ -67,28 +68,28 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
 
   override def refresh(index: Index): IO[Unit] =
     esClient
-      .refreshIndex(index.transform)
+      .refreshIndex(index)
       .handleErrorWith: e =>
         logger.error(e)(s"Error in refresh: index=$index") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def mapping(index: Index): IO[Unit] =
     esClient
-      .putMapping(index.transform, index.mapping)
+      .putMapping(index)
       .handleErrorWith: e =>
         logger.error(e)(s"Error in mapping: index=$index") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def deleteById(index: Index, id: String): IO[Unit] =
     esClient
-      .deleteOne(index.transform, Id(id))
+      .deleteOne(index, Id(id))
       .handleErrorWith: e =>
         logger.error(e)(s"Error in deleteById: index=$index, id=$id") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
   override def deleteByIds(index: Index, ids: List[String]): IO[Unit] =
     esClient
-      .deleteMany(index.transform, ids.map(Id.apply))
+      .deleteMany(index, ids.map(Id.apply))
       .handleErrorWith: e =>
         logger.error(e)(s"Error in deleteByIds: index=$index, ids=$ids") *>
           IO.raiseError(InternalServerError("Internal server error"))
@@ -96,44 +97,31 @@ class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extend
   override def count(query: Query): IO[CountOutput] =
     esClient
       .count(query)
-      .map(_.to[CountOutput])
+      .map(CountOutput.apply)
       .handleErrorWith: e =>
         logger.error(e)(s"Error in count: query=$query") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
-  override def search(query: Query, from: Int, size: Int): IO[SearchOutput] =
+  override def search(query: Query, from: From, size: Size): IO[SearchOutput] =
     esClient
-      .search(query, From(from), Size(size))
-      .map(_.to[SearchOutput])
+      .search(query, from, size)
+      .map(xs => SearchOutput(xs.map(_.value)))
       .handleErrorWith: e =>
         logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
 object SearchServiceImpl:
 
-  given Transformer.Derived[Timestamp, DateTime] =
-    Transformer.Derived.FromFunction(x => DateTime(x.epochMilli))
+  given Transformer.Derived[Timestamp, Instant] =
+    Transformer.Derived.FromFunction(_.toInstant)
 
-  given intRange: Transformer.Derived[Option[IntRange], Range[Int]] =
-    Transformer.Derived.FromFunction(_.fold(Range.none)(r => Range(r.a, r.b)))
+  given intRange: Transformer.Derived[IntRange, Range[Int]] =
+    Transformer.Derived.FromFunction(r => Range(r.a, r.b))
 
-  given dateRange: Transformer.Derived[Option[DateRange], Range[DateTime]] =
-    Transformer.Derived.FromFunction(
-      _.fold(Range.none)(r => Range(r.a.map(_.to[DateTime]), r.b.map(_.to[DateTime])))
-    )
-
-  given Transformer.Derived[Option[Sorting], game.Sorting] =
-    Transformer.Derived.FromFunction(_.fold(game.Sorting.default)(_.to[game.Sorting]))
+  given dateRange: Transformer.Derived[DateRange, Range[Instant]] =
+    Transformer.Derived.FromFunction(r => Range(r.a.map(_.to[Instant]), r.b.map(_.to[Instant])))
 
   extension (game: Query.Game) def transform: Game = game.to[Game]
-
-  extension (index: Index)
-    def transform: lila.search.Index = lila.search.Index(index.value)
-    def mapping = index match
-      case Index.Forum => forum.Mapping.fields
-      case Index.Game  => game.Mapping.fields
-      case Index.Study => study.Mapping.fields
-      case Index.Team  => team.Mapping.fields
 
   given Queryable[Query] with
     def searchDef(query: Query)(from: From, size: Size) =
@@ -163,7 +151,7 @@ object SearchServiceImpl:
 
   extension (source: Source)
     def index = source match
-      case s: Source.ForumCase => lila.search.Index("forum")
-      case s: Source.GameCase  => lila.search.Index("game")
-      case s: Source.StudyCase => lila.search.Index("study")
-      case s: Source.TeamCase  => lila.search.Index("team")
+      case s: Source.ForumCase => Index.Forum
+      case s: Source.GameCase  => Index.Game
+      case s: Source.StudyCase => Index.Study
+      case s: Source.TeamCase  => Index.Team

@@ -5,10 +5,9 @@ import akka.actor.ActorSystem
 import cats.effect.{ IO, Resource }
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.Indexable
-import com.sksamuel.elastic4s.fields.ElasticField
 import lila.search.app.{ AppConfig, AppResources, ElasticConfig, HttpServerConfig, SearchApp }
 import lila.search.client.{ SearchClient, SearchError }
-import lila.search.spec.{ CountOutput, Index as SpecIndex, Query, SearchOutput, Source }
+import lila.search.spec.{ CountOutput, Query, SearchOutput, Source }
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 import play.api.libs.ws.*
@@ -30,9 +29,12 @@ object CompatSuite extends weaver.IOSuite:
       .flatMap(_ => wsClient)
       .map(SearchClient.play(_, "http://localhost:9999/api"))
 
+  val from = From(0)
+  val size = Size(12)
+
   test("search endpoint"): client =>
     val query = Query.Forum("foo")
-    IO.fromFuture(IO(client.search(query, 0, 10))).map(expect.same(_, SearchOutput(Nil)))
+    IO.fromFuture(IO(client.search(query, from, size))).map(expect.same(_, SearchOutput(Nil)))
 
   test("bad search study endpoint"): client =>
     val query = Query.Study(
@@ -41,7 +43,7 @@ object CompatSuite extends weaver.IOSuite:
           .take(100),
       userId = Some(value = "bla")
     )
-    IO.fromFuture(IO(client.search(query, 0, 10)))
+    IO.fromFuture(IO(client.search(query, from, size)))
       .handleErrorWith:
         case e: SearchError.JsonWriterError =>
           IO.pure(SearchOutput(Nil))
@@ -52,16 +54,16 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.count(query))).map(expect.same(_, lila.search.spec.CountOutput(0)))
 
   test("deleteById endpoint"): client =>
-    IO.fromFuture(IO(client.deleteById(SpecIndex.Game, "iddddd"))).map(expect.same(_, ()))
+    IO.fromFuture(IO(client.deleteById(Index.Game, "iddddd"))).map(expect.same(_, ()))
 
   test("deleteByIds endpoint"): client =>
-    IO.fromFuture(IO(client.deleteByIds(SpecIndex.Game, List("a", "b", "c")))).map(expect.same(_, ()))
+    IO.fromFuture(IO(client.deleteByIds(Index.Game, List("a", "b", "c")))).map(expect.same(_, ()))
 
   test("mapping endpoint"): client =>
-    IO.fromFuture(IO(client.mapping(SpecIndex.Study))).map(expect.same(_, ()))
+    IO.fromFuture(IO(client.mapping(Index.Study))).map(expect.same(_, ()))
 
   test("refresh endpoint"): client =>
-    IO.fromFuture(IO(client.refresh(SpecIndex.Forum))).map(expect.same(_, ()))
+    IO.fromFuture(IO(client.refresh(Index.Forum))).map(expect.same(_, ()))
 
   test("store endpoint"): client =>
     val source = Source.team(lila.search.spec.TeamSource("names", "desc", 100))
@@ -84,7 +86,7 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.storeBulkForum(sources))).map(expect.same(_, ()))
 
   test("store bulk game endpoint"): client =>
-    val now = lila.search.spec.SearchDateTime.fromInstant(Instant.now())
+    val now = SearchDateTime.fromInstant(Instant.now())
     val sources = List(
       lila.search.spec.GameSourceWithId(
         "id1",
@@ -130,7 +132,7 @@ object CompatSuite extends weaver.IOSuite:
     elastic = ElasticConfig("http://0.0.0.0:9200")
   )
 
-  def fakeClient: ESClient[IO] = new ESClient[IO]:
+  def fakeClient: ESClient[IO] = new:
 
     override def store[A](index: Index, id: Id, obj: A)(implicit
         indexable: Indexable[A]
@@ -140,7 +142,7 @@ object CompatSuite extends weaver.IOSuite:
         indexable: Indexable[A]
     ): IO[Unit] = IO.unit
 
-    override def putMapping(index: Index, fields: Seq[ElasticField]): IO[Unit] = IO.unit
+    override def putMapping(index: Index): IO[Unit] = IO.unit
 
     override def refreshIndex(index: Index): IO[Unit] = IO.unit
 
@@ -148,11 +150,11 @@ object CompatSuite extends weaver.IOSuite:
 
     override def deleteMany(index: Index, ids: List[Id]): IO[Unit] = IO.unit
 
-    override def count[A](query: A)(implicit q: Queryable[A]): IO[CountResponse] =
-      IO.pure(CountResponse(0))
+    override def count[A](query: A)(implicit q: Queryable[A]) =
+      IO.pure(0)
 
-    override def search[A](query: A, from: From, size: Size)(implicit q: Queryable[A]): IO[SearchResponse] =
-      IO.pure(SearchResponse(Nil))
+    override def search[A](query: A, from: From, size: Size)(implicit q: Queryable[A]) =
+      IO.pure(Nil)
 
     override def status: IO[String] = IO.pure("yellow")
 

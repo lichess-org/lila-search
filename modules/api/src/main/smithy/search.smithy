@@ -24,11 +24,11 @@ operation Search {
 
     @required
     @httpLabel
-    from: Integer
+    from: FromInt
 
     @required
     @httpLabel
-    size: Integer
+    size: SizeInt
   }
 
   output := {
@@ -60,7 +60,7 @@ operation DeleteById {
   input := {
     @required
     @httpLabel
-    index: Index
+    index: IndexString
 
     @required
     @httpLabel
@@ -75,7 +75,7 @@ operation DeleteByIds {
   input := {
     @required
     @httpLabel
-    index: Index
+    index: IndexString
 
     @required
     ids: Ids
@@ -88,7 +88,7 @@ operation Mapping {
   input := {
     @required
     @httpLabel
-    index: Index
+    index: IndexString
   }
 
   errors: [InternalServerError]
@@ -99,7 +99,7 @@ operation Refresh {
   input := {
     @required
     @httpLabel
-    index: Index
+    index: IndexString
   }
 
   errors: [InternalServerError]
@@ -232,13 +232,19 @@ structure Game {
   perf: Perfs
   source: Integer
   status: Integer
+  @required
   turns: IntRange
+  @required
   averageRating: IntRange
   hasAi: Boolean
+  @required
   aiLevel: IntRange
   rated: Boolean
+  @required
   date: DateRange
+  @required
   duration: IntRange
+  @required
   sorting: Sorting
   analysed: Boolean
   whiteUser: String
@@ -380,11 +386,4 @@ union Source {
   game: GameSource
   study: StudySource
   team: TeamSource
-}
-
-enum Index {
-  Forum = "forum"
-  Game = "game"
-  Study = "study"
-  Team = "team"
 }

@@ -9,6 +9,7 @@ import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
+import smithy4s.Timestamp
 import weaver.*
 
 import java.time.Instant
@@ -19,6 +20,8 @@ object IntegrationSuite extends IOSuite:
 
   private val uri = Uri.unsafeFromString("http://localhost:9999")
 
+  val from = From(0)
+  val size = Size(12)
   override type Res = AppResources
   // start our server
   override def sharedResource: Resource[IO, Res] =
@@ -63,8 +66,8 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Forum)
-          x <- service.search(Query.forum("chess", false), 0, 12)
-          y <- service.search(Query.forum("nt9", false), 0, 12)
+          x <- service.search(Query.forum("chess", false), from, size)
+          y <- service.search(Query.forum("nt9", false), from, size)
         yield expect(x.hitIds.size == 1 && x == y)
 
   test("team"): _ =>
@@ -85,8 +88,8 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Team)
-          x <- service.search(Query.team("team name"), 0, 12)
-          y <- service.search(Query.team("team description"), 0, 12)
+          x <- service.search(Query.team("team name"), from, size)
+          y <- service.search(Query.team("team description"), from, size)
         yield expect(x.hitIds.size == 1 && x == y)
 
   test("study"): _ =>
@@ -112,11 +115,21 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Study)
-          a <- service.search(Query.study("name"), 0, 12)
-          b <- service.search(Query.study("study description"), 0, 12)
-          c <- service.search(Query.study("topic1"), 0, 12)
+          a <- service.search(Query.study("name"), from, size)
+          b <- service.search(Query.study("study description"), from, size)
+          c <- service.search(Query.study("topic1"), from, size)
         yield expect(a.hitIds.size == 1 && b == a && c == a)
 
+  val defaultIntRange  = IntRange(none, none)
+  val defaultDateRange = DateRange(none, none)
+  val defaultGame = Query.game(
+    turns = defaultIntRange,
+    averageRating = defaultIntRange,
+    aiLevel = defaultIntRange,
+    date = defaultDateRange,
+    duration = defaultIntRange,
+    sorting = Sorting("field", "asc")
+  )
   test("game"): _ =>
     Clients
       .search(uri)
@@ -133,7 +146,7 @@ object IntegrationSuite extends IOSuite:
                   rated = true,
                   perf = 1,
                   winnerColor = 1,
-                  date = SearchDateTime.fromString("1999-10-20 12:20:20").toOption.get,
+                  date = SearchDateTime.fromInstant(Timestamp(1999, 10, 20, 12, 20, 20).toInstant),
                   analysed = false,
                   uids = List("uid1", "uid2").some,
                   winner = "uid1".some,
@@ -149,10 +162,15 @@ object IntegrationSuite extends IOSuite:
               )
             )
           _ <- service.refresh(Index.Game)
-          a <- service.search(Query.game(List(1)), 0, 12)
-          b <- service.search(Query.game(loser = "uid2".some), 0, 12)
-          c <- service.search(Query.game(), 0, 12)
-          d <- service.search(Query.game(duration = IntRange(a = 99.some, b = 101.some).some), 0, 12)
-          e <- service.search(Query.game(clockInit = 100.some), 0, 12)
-          f <- service.search(Query.game(clockInc = 200.some), 0, 12)
-        yield expect(a.hitIds.size == 1 && b == a && c == a && d == a && e == a && f == a)
+          a <- service.search(defaultGame.copy(perf = List(1)), from, size)
+          b <- service.search(defaultGame.copy(loser = "uid2".some), from, size)
+          c <- service.search(defaultGame, from, size)
+          d <- service.search(defaultGame.copy(duration = IntRange(a = 99.some, b = 101.some)), from, size)
+          e <- service.search(defaultGame.copy(clockInit = 100.some), from, size)
+          f <- service.search(defaultGame.copy(clockInc = 200.some), from, size)
+          g <- service.search(
+            defaultGame.copy(date = DateRange(a = none, b = Timestamp(1999, 10, 20, 12, 20, 21).some)),
+            from,
+            size
+          )
+        yield expect(a.hitIds.size == 1 && b == a && c == a && d == a && e == a && f == a && g == a)
