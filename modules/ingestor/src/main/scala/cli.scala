@@ -6,7 +6,7 @@ import cats.effect.*
 import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
-import lila.search.ingestor.opts.IndexConfig
+import lila.search.ingestor.opts.IndexOpts
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -32,26 +32,28 @@ object cli
       forum  <- ForumIngestor(res.mongo, res.elastic, res.store, config.ingestor.forum).toResource
     yield forum
 
-  def execute(config: IndexConfig): IO[Unit] =
-    if config.index == Index.Forum then makeIngestor.use(_.run(config.since, config.until).compile.drain)
-    else IO.raiseError(new RuntimeException("Only support forum for now"))
+  def execute(opts: IndexOpts): IO[Unit] =
+    if opts.index == Index.Forum then makeIngestor.use(_.run(opts.since, opts.until).compile.drain)
+    else IO.println("We only support forum backfill for now")
 
 object opts:
-  case class IndexConfig(index: Index, since: Instant, until: Option[Instant])
+  case class IndexOpts(index: Index, since: Instant, until: Option[Instant])
 
-  // valid since <= until
   val indexOpt = (
     Opts.option[Index]("index", "Index to reindex", short = "i", metavar = "index"),
     Opts.option[Instant]("since", "Start date", short = "s", metavar = "time in epoch seconds"),
     Opts.option[Instant]("until", "End date", short = "u", metavar = "time in epoch seconds").orNone
-  ).mapN(IndexConfig.apply)
+  ).mapN(IndexOpts.apply)
+    .mapValidated(x =>
+      if x.until.forall(_.isAfter(x.since)) then Validated.valid(x)
+      else Validated.invalidNel(s"since: ${x.since} must be before until: ${x.until}")
+    )
 
   given Argument[Index] =
     Argument.from("index")(x => Validated.fromEither(Index.fromString(x)).toValidatedNel)
 
   given Argument[Instant] =
-    Argument.from("time in epoch seconds")(str =>
+    Argument.from("time in epoch seconds"): str =>
       str.toLongOption.fold(Validated.invalidNel(s"Invalid epoch seconds: $str"))(x =>
         Validated.valid(Instant.ofEpochSecond(x))
       )
-    )
