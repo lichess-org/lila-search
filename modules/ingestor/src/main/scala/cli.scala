@@ -23,7 +23,7 @@ object cli
   given Logger[IO] = Slf4jLogger.getLogger[IO]
 
   override def main: Opts[IO[ExitCode]] =
-    opts.indexOpt.map(x => execute(x).as(ExitCode.Success))
+    opts.parse.map(x => execute(x).as(ExitCode.Success))
 
   def makeIngestor: Resource[IO, ForumIngestor] =
     for
@@ -39,10 +39,29 @@ object cli
 object opts:
   case class IndexOpts(index: Index, since: Instant, until: Option[Instant])
 
+  def parse = Opts.subcommand("index", "index documents")(indexOpt)
+
   val indexOpt = (
-    Opts.option[Index]("index", "Index to reindex", short = "i", metavar = "index"),
-    Opts.option[Instant]("since", "Start date", short = "s", metavar = "time in epoch seconds"),
-    Opts.option[Instant]("until", "End date", short = "u", metavar = "time in epoch seconds").orNone
+    Opts.option[Index](
+      long = "index",
+      help = "Index to index (only `forum` for now)",
+      short = "i",
+      metavar = "forum|team|study|game"
+    ),
+    Opts.option[Instant](
+      long = "since",
+      help = "Index all documents since",
+      short = "s",
+      metavar = "time in epoch seconds"
+    ),
+    Opts
+      .option[Instant](
+        long = "until",
+        help = "optional upper bound time",
+        short = "u",
+        metavar = "time in epoch seconds"
+      )
+      .orNone
   ).mapN(IndexOpts.apply)
     .mapValidated(x =>
       if x.until.forall(_.isAfter(x.since)) then Validated.valid(x)
