@@ -62,7 +62,9 @@ object ForumIngestor:
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now()))
 
     def run(since: Instant, until: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit] =
-      val filter = range("createdAt")(since, until).or(range("erasedAt")(since, until))
+      val filter = range("createdAt")(since, until)
+        .or(range("updatedAt")(since, until))
+        .or(range("erasedAt")(since, until))
       posts
         .find(filter)
         .projection(postProjection)

@@ -12,7 +12,6 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.time.Instant
 
-// TODO: support flags: dry, verbose
 object cli
     extends CommandIOApp(
       name = "lila-search-cli",
