@@ -34,4 +34,4 @@ extension (instant: Instant)
 def range(field: String)(since: Instant, until: Option[Instant]): Filter =
   import Filter.*
   val gtes = gte(field, since)
-  until.fold(gtes)(until => gtes.and(lt("updatedAt", until)))
+  until.fold(gtes)(until => gtes.and(lt(field, until)))
