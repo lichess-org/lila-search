@@ -43,7 +43,7 @@ object opts:
   val indexOpt = (
     Opts.option[Index](
       long = "index",
-      help = "Index to index (only `forum` for now)",
+      help = "Target index (only `forum` for now)",
       short = "i",
       metavar = "forum|team|study|game"
     ),
