@@ -38,14 +38,12 @@ object ElasticConfig:
 case class IngestorConfig(forum: IngestorConfig.Forum, team: IngestorConfig.Team)
 
 object IngestorConfig:
-  case class Forum(batchSize: Int, maxBodyLength: Int, timeWindows: Int, startAt: Option[Long])
+  case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Long])
   case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Long])
 
   private object Forum:
     private def batchSize =
       env("INGESTOR_FORUM_BATCH_SIZE").or(prop("ingestor.forum.batch.size")).as[Int].default(100)
-    private def maxBodyLength =
-      env("INGESTOR_FORUM_MAX_BODY_LENGTH").or(prop("ingestor.forum.max.body.length")).as[Int].default(10000)
     private def timeWindows =
       env("INGESTOR_FORUM_TIME_WINDOWS").or(prop("ingestor.forum.time.windows")).as[Int].default(10)
     private def startAt =
@@ -53,7 +51,7 @@ object IngestorConfig:
         .or(prop("ingestor.forum.start.at"))
         .as[Long]
         .option
-    def config = (batchSize, maxBodyLength, timeWindows, startAt).parMapN(Forum.apply)
+    def config = (batchSize, timeWindows, startAt).parMapN(Forum.apply)
 
   private object Team:
     private def batchSize =

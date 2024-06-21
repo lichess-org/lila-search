@@ -170,7 +170,7 @@ object ForumIngestor:
 
       private def toSource(topicName: Option[String], topicId: String): Option[ForumSource] =
         (
-          doc.getString("text").map(_.take(config.maxBodyLength)),
+          doc.getString("text"),
           topicName,
           doc.getBoolean("troll"),
           doc.getNested("createdAt").flatMap(_.asInstant).map(_.toEpochMilli()),
