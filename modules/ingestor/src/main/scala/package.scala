@@ -18,7 +18,7 @@ import java.time.Instant
 type MongoCollection = GenericMongoCollection[IO, Document, [A] =>> fs2.Stream[IO, A]]
 
 extension [A](change: ChangeStreamDocument[A])
-  def id: Option[String] = change.documentKey.flatMap(_.getString("_id"))
+  def docId: Option[String] = change.documentKey.flatMap(_.getString("_id"))
 
 given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
 given Indexable[Source] =
