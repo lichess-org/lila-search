@@ -20,6 +20,10 @@ type MongoCollection = GenericMongoCollection[IO, Document, [A] =>> fs2.Stream[I
 extension [A](change: ChangeStreamDocument[A])
   def docId: Option[String] = change.documentKey.flatMap(_.getString("_id"))
 
+extension (doc: Document)
+  private def _id: Option[String] =
+    doc.getString("_id")
+
 given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
 given Indexable[Source] =
   _ match

@@ -3,6 +3,7 @@ package ingestor
 
 import cats.effect.IO
 import cats.syntax.all.*
+import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
 import lila.search.spec.TeamSource
 import mongo4cats.bson.Document
@@ -16,11 +17,13 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 trait TeamIngestor:
-  def run(): fs2.Stream[IO, Unit]
+  // watch change events from MongoDB and ingest team data into elastic search
+  def watch: fs2.Stream[IO, Unit]
 
 object TeamIngestor:
 
-  // def data = TeamData(id, name, description, nbMembers, createdBy)
+  private val index = Index.Team
+
   private val interestedOperations = List(DELETE, INSERT, UPDATE, REPLACE).map(_.getValue)
   private val eventFilter          = Filter.in("operationType", interestedOperations)
   // private val eventProjection = Projection.include(
@@ -34,8 +37,6 @@ object TeamIngestor:
   // )
   private val aggregate = Aggregate.matchBy(eventFilter) // .combinedWith(Aggregate.project(eventProjection))
 
-  private val index = Index.Team
-
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Team)(
       using Logger[IO]
   ): IO[TeamIngestor] =
@@ -44,7 +45,7 @@ object TeamIngestor:
   def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Team)(teams: MongoCollection)(using
       Logger[IO]
   ): TeamIngestor = new:
-    def run() =
+    def watch =
       fs2.Stream
         .eval(startAt.flatTap(since => info"Starting team ingestor from $since"))
         .flatMap: last =>
@@ -53,23 +54,29 @@ object TeamIngestor:
             .evalMap: events =>
               val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
               val (toDelete, toIndex) = events.partition(_.isDelete)
-              storeBulk(toIndex)
-                *> deleteMany(toDelete)
-                *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now()))
+              storeBulk(toIndex.flatten(_.fullDocument))
+                *> deleteMany(toDelete.flatten(_.fullDocument))
+                *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
 
-    private def storeBulk(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
-      info"Received ${events.size} teams to index"
-        *> elastic.storeBulk(index, events.toSources)
-        *> info"Indexed ${events.size} teams"
+    private def storeBulk(docs: List[Document]): IO[Unit] =
+      val sources = docs.toSources
+      info"Received ${docs.size} teams to index" *>
+        elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} teams"
           .handleErrorWith: e =>
-            Logger[IO].error(e)(s"Failed to index team: ${events.map(_.id).mkString(", ")}")
+            Logger[IO].error(e)(s"Failed to index teams: ${docs.map(_._id).mkString(", ")}")
 
-    private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
+    private def deleteMany(docs: List[Document]): IO[Unit] =
+      info"Received ${docs.size} teams to delete" *>
+        deleteMany(docs.flatMap(_._id).map(Id.apply)).whenA(docs.nonEmpty)
+
+    @scala.annotation.targetName("deleteManyWithIds")
+    private def deleteMany(ids: List[Id]): IO[Unit] =
       elastic
-        .deleteMany(index, events.flatMap(_.id.map(Id.apply)))
-        .flatTap(_ => info"Deleted ${events.size} teams")
+        .deleteMany(index, ids)
+        .flatTap(_ => info"Deleted ${ids.size} teams")
         .handleErrorWith: e =>
-          Logger[IO].error(e)(s"Failed to delete teams: ${events.map(_.id).mkString(", ")}")
+          Logger[IO].error(e)(s"Failed to delete teams: ${ids.map(_.value).mkString(", ")}")
+        .whenA(ids.nonEmpty)
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)
@@ -83,25 +90,34 @@ object TeamIngestor:
       since
         .fold(builder)(x => builder.startAtOperationTime(x.asBsonTimestamp))
         .batchSize(config.batchSize)
+        .fullDocument(FullDocument.UPDATE_LOOKUP) // this is required for update event
         .boundedStream(config.batchSize)
         .evalTap(IO.println)
         .evalTap(x => IO.println(x.fullDocument))
         .groupWithin(config.batchSize, config.timeWindows.second)
         .map(_.toList)
 
-    extension (events: List[ChangeStreamDocument[Document]])
+    extension (docs: List[Document])
       private def toSources: List[(String, TeamSource)] =
-        events.flatten(event => (event.id, event.fullDocument.flatMap(_.toSource)).mapN(_ -> _))
+        docs.flatten(doc => (doc._id, doc.toSource).mapN(_ -> _))
 
     extension (doc: Document)
       private def toSource: Option[TeamSource] =
         (
-          doc.getString("name"),
-          doc.getString("description"),
-          doc.getInt("nbMembers")
+          doc.getString(F.name),
+          doc.getString(F.description),
+          doc.getInt(F.nbMembers)
         ).mapN(TeamSource.apply)
+
+      private def isEnabled =
+        doc.getBoolean("enabled").getOrElse(true)
 
     extension (event: ChangeStreamDocument[Document])
       private def isDelete: Boolean =
         event.operationType == DELETE ||
-          event.fullDocument.flatMap(_.get("enabled")).contains(false)
+          event.fullDocument.fold(false)(x => !x.isEnabled)
+
+  object F:
+    val name        = "name"
+    val description = "description"
+    val nbMembers   = "nbMembers"

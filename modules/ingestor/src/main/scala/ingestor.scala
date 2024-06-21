@@ -18,4 +18,4 @@ object Ingestor:
       .mapN: (forum, team) =>
         new Ingestor:
           def run() =
-            forum.watch().merge(team.run()).compile.drain
+            forum.watch.merge(team.watch).compile.drain
