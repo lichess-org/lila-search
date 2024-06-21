@@ -55,7 +55,7 @@ object TeamIngestor:
               val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
               val (toDelete, toIndex) = events.partition(_.isDelete)
               storeBulk(toIndex.flatten(_.fullDocument))
-                *> deleteMany(toDelete.flatten(_.fullDocument))
+                *> deleteMany(toDelete)
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
 
     private def storeBulk(docs: List[Document]): IO[Unit] =
@@ -65,9 +65,9 @@ object TeamIngestor:
           .handleErrorWith: e =>
             Logger[IO].error(e)(s"Failed to index teams: ${docs.map(_._id).mkString(", ")}")
 
-    private def deleteMany(docs: List[Document]): IO[Unit] =
-      info"Received ${docs.size} teams to delete" *>
-        deleteMany(docs.flatMap(_._id).map(Id.apply)).whenA(docs.nonEmpty)
+    private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
+      info"Received ${events.size} teams to delete" *>
+        deleteMany(events.flatMap(_.docId).map(Id.apply)).whenA(events.nonEmpty)
 
     @scala.annotation.targetName("deleteManyWithIds")
     private def deleteMany(ids: List[Id]): IO[Unit] =
