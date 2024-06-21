@@ -157,17 +157,19 @@ object ForumIngestor:
             case _ =>
               val reason = doc._id.fold("missing doc._id; ")(_ => "")
                 + doc.topicId.fold("missing doc.topicId; ")(_ => "")
+                + doc.topicId
+                  .map(id => topicMap.get(id).fold("topic or topicName is missing")(_ => ""))
+                  .getOrElse("")
               info"failed to convert document to source: $doc because $reason".as(none)
 
       private def toSource(topicName: Option[String], topicId: String): Option[ForumSource] =
         (
           doc.getString("text").map(_.take(config.maxBodyLength)),
           topicName,
-          topicId.some,
           doc.getBoolean("troll"),
           doc.getNested("createdAt").flatMap(_.asInstant).map(_.toEpochMilli()),
           doc.getString("userId").some
-        ).mapN(ForumSource.apply)
+        ).mapN(ForumSource.apply(_, _, topicId, _, _, _))
 
       private def isErased: Boolean =
         doc.get("erasedAt").isDefined
