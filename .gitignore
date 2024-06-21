@@ -15,4 +15,4 @@ target
 .env
 
 .smithy.lsp.log
-/modules/ingestor/store.json
+store.json
