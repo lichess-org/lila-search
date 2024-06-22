@@ -58,7 +58,7 @@ object ForumIngestor:
               val lastEventTimestamp  = events.flatten(_.clusterTime.flatMap(_.asInstant)).maxOption
               val (toDelete, toIndex) = events.partition(_.isDelete)
               storeBulk(toIndex.flatten(_.fullDocument))
-                *> deleteMany(toDelete)
+                *> elastic.deleteMany(index, toDelete)
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now()))
 
     def run(since: Instant, until: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit] =
@@ -77,7 +77,7 @@ object ForumIngestor:
           dryRun.fold(
             toIndex.traverse_(doc => debug"Would index $doc")
               *> toDelete.traverse_(doc => debug"Would delete $doc"),
-            storeBulk(toIndex) *> deleteMany(toDelete)
+            storeBulk(toIndex) *> elastic.deleteMany(index, toDelete)
           )
 
     private def storeBulk(docs: List[Document]): IO[Unit] =
@@ -88,26 +88,6 @@ object ForumIngestor:
           .handleErrorWith: e =>
             Logger[IO].error(e)(s"Failed to index forum posts: ${docs.map(_._id).mkString(", ")}")
           .whenA(docs.nonEmpty)
-
-    @scala.annotation.targetName("deleteManyWithDocs")
-    private def deleteMany(events: List[Document]): IO[Unit] =
-      info"Received ${events.size} forum posts to delete" *>
-        deleteMany(events.flatMap(_._id).map(Id.apply))
-          .whenA(events.nonEmpty)
-
-    @scala.annotation.targetName("deleteManyWithChanges")
-    private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
-      info"Received ${events.size} forum posts to delete" *>
-        deleteMany(events.flatMap(_.docId).map(Id.apply)).whenA(events.nonEmpty)
-
-    @scala.annotation.targetName("deleteManyWithIds")
-    private def deleteMany(ids: List[Id]): IO[Unit] =
-      elastic
-        .deleteMany(index, ids)
-        .flatTap(_ => info"Deleted ${ids.size} forum posts")
-        .handleErrorWith: e =>
-          Logger[IO].error(e)(s"Failed to delete forum posts: ${ids.map(_.value).mkString(", ")}")
-        .whenA(ids.nonEmpty)
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)

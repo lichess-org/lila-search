@@ -53,7 +53,7 @@ object TeamIngestor:
               val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
               val (toDelete, toIndex) = events.partition(_.isDelete)
               storeBulk(toIndex.flatten(_.fullDocument))
-                *> deleteMany(toDelete)
+                *> elastic.deleteMany(index, toDelete)
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
 
     private def storeBulk(docs: List[Document]): IO[Unit] =
@@ -62,19 +62,6 @@ object TeamIngestor:
         elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} teams"
           .handleErrorWith: e =>
             Logger[IO].error(e)(s"Failed to index teams: ${docs.map(_._id).mkString(", ")}")
-
-    private def deleteMany(events: List[ChangeStreamDocument[Document]]): IO[Unit] =
-      info"Received ${events.size} teams to delete" *>
-        deleteMany(events.flatMap(_.docId).map(Id.apply)).whenA(events.nonEmpty)
-
-    @scala.annotation.targetName("deleteManyWithIds")
-    private def deleteMany(ids: List[Id]): IO[Unit] =
-      elastic
-        .deleteMany(index, ids)
-        .flatTap(_ => info"Deleted ${ids.size} teams")
-        .handleErrorWith: e =>
-          Logger[IO].error(e)(s"Failed to delete teams: ${ids.map(_.value).mkString(", ")}")
-        .whenA(ids.nonEmpty)
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)
