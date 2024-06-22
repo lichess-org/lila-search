@@ -61,7 +61,7 @@ object TeamIngestor:
       info"Received ${docs.size} teams to index" *>
         elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} teams"
           .handleErrorWith: e =>
-            Logger[IO].error(e)(s"Failed to index teams: ${docs.map(_._id).mkString(", ")}")
+            Logger[IO].error(e)(s"Failed to index teams: ${docs.map(_.id).mkString(", ")}")
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)
@@ -87,7 +87,7 @@ object TeamIngestor:
 
     extension (docs: List[Document])
       private def toSources: List[(String, TeamSource)] =
-        docs.flatten(doc => (doc._id, doc.toSource).mapN(_ -> _))
+        docs.flatten(doc => (doc.id, doc.toSource).mapN(_ -> _))
 
     extension (doc: Document)
       private def toSource: Option[TeamSource] =

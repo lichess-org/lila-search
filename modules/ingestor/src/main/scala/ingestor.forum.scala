@@ -25,12 +25,10 @@ object ForumIngestor:
 
   private val index = Index.Forum
 
-  private val topicProjection = Projection.include(List("_id", "name"))
-
   private val interestedOperations = List(DELETE, INSERT, REPLACE).map(_.getValue)
   private val eventFilter          = Filter.in("operationType", interestedOperations)
 
-  private val interestedFields = List("_id", F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt)
+  private val interestedFields = List(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt)
   private val postProjection   = Projection.include(interestedFields)
 
   private val interestedEventFields =
@@ -86,7 +84,7 @@ object ForumIngestor:
           .flatMap: sources =>
             elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} forum posts"
           .handleErrorWith: e =>
-            Logger[IO].error(e)(s"Failed to index forum posts: ${docs.map(_._id).mkString(", ")}")
+            Logger[IO].error(e)(s"Failed to index forum posts: ${docs.map(_.id).mkString(", ")}")
           .whenA(docs.nonEmpty)
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
@@ -99,10 +97,10 @@ object ForumIngestor:
     // Fetches topic names by their ids
     private def topicByIds(ids: Seq[String]): IO[Map[String, String]] =
       topics
-        .find(Filter.in("_id", ids))
-        .projection(topicProjection)
+        .find(Filter.in(_id, ids))
+        .projection(Projection.include(List(_id, Topic.name)))
         .all
-        .map(_.map(doc => (doc.getString("_id") -> doc.getString("name")).mapN(_ -> _)).flatten.toMap)
+        .map(_.map(doc => (doc.id -> doc.getString(Topic.name)).mapN(_ -> _)).flatten.toMap)
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
       val builder = posts.watch(aggregate)
@@ -135,16 +133,16 @@ object ForumIngestor:
     extension (doc: Document)
 
       private def toSource(topicMap: Map[String, String]): IO[Option[SourceWithId]] =
-        (doc._id, doc.topicId)
+        (doc.id, doc.topicId)
           .flatMapN: (id, topicId) =>
             doc.toSource(topicMap.get(topicId), topicId).map(id -> _)
           .match
             case Some(value) => value.some.pure[IO]
             case _ =>
-              val reason = doc._id.fold("missing doc._id; ")(_ => "")
+              val reason = doc.id.fold("missing doc._id; ")(_ => "")
                 + doc.topicId.fold("missing doc.topicId; ")(_ => "")
                 + doc.topicId
-                  .map(id => topicMap.get(id).fold("topic or topicName is missing")(_ => ""))
+                  .map(id => topicMap.get(id).fold("topic or topic.name is missing")(_ => ""))
                   .getOrElse("")
               info"failed to convert document to source: $doc because $reason".as(none)
 
@@ -175,3 +173,6 @@ object ForumIngestor:
     val userId    = "userId"
     val erasedAt  = "erasedAt"
     val updatedAt = "updatedAt"
+
+  object Topic:
+    val name = "name"
