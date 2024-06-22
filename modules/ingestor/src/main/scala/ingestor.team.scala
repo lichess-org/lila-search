@@ -71,12 +71,16 @@ object TeamIngestor:
       config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
 
     private def changeStream(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
+      // skip the first event if we're starting from a specific timestamp
+      // since the event at that timestamp is already indexed
+      val skip    = since.fold(0)(_ => 1)
       val builder = teams.watch(aggregate)
       since
         .fold(builder)(x => builder.startAtOperationTime(x.asBsonTimestamp))
         .batchSize(config.batchSize)
         .fullDocument(FullDocument.UPDATE_LOOKUP) // this is required for update event
         .boundedStream(config.batchSize)
+        .drop(skip)
         .evalTap(x => debug"Team change stream event: $x")
         .groupWithin(config.batchSize, config.timeWindows.second)
         .map(_.toList)
