@@ -6,11 +6,12 @@ object Dependencies {
   object V {
     val catsEffect = "3.5.4"
     val ciris      = "3.6.0"
-    val elastic4s  = "8.13.0"
     val decline    = "2.4.1"
+    val elastic4s  = "8.13.0"
     val fs2        = "3.10.2"
     val http4s     = "0.23.27"
     val iron       = "2.5.0"
+    val mongo4cats = "0.7.7"
   }
 
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
@@ -44,8 +45,8 @@ object Dependencies {
   val elastic4sJavaClient = "nl.gn0s1s" %% "elastic4s-client-esjava" % V.elastic4s
   val elastic4sCatsEffect = "nl.gn0s1s" %% "elastic4s-effect-cats"   % V.elastic4s
 
-  val mongo4catsCore = "io.github.kirill5k" %% "mongo4cats-core" % "0.7.7"
-  val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % "0.7.7"
+  val mongo4catsCore = "io.github.kirill5k" %% "mongo4cats-core" % V.mongo4cats
+  val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % V.mongo4cats
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.6"
