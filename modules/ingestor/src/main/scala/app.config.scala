@@ -63,7 +63,7 @@ object IngestorConfig:
       env("INGESTOR_TEAM_TIME_WINDOWS").or(prop("ingestor.team.time.windows")).as[Int].default(10)
     private def startAt =
       env("INGESTOR_TEAM_START_AT").or(prop("ingestor.team.start.at")).as[Long].option
-    def config = (batchSize, timeWindows, startAt).parMapN(Team.apply)
+    def config = (batchSize, timeWindows, startAt).mapN(Team.apply)
 
   private object Study:
     private def batchSize =
@@ -72,6 +72,6 @@ object IngestorConfig:
       env("INGESTOR_STUDY_TIME_WINDOWS").or(prop("ingestor.study.time.windows")).as[Int].default(10)
     private def startAt =
       env("INGESTOR_STUDY_START_AT").or(prop("ingestor.study.start.at")).as[Long].option
-    def config = (batchSize, timeWindows, startAt).parMapN(Study.apply)
+    def config = (batchSize, timeWindows, startAt).mapN(Study.apply)
 
-  def config = (Forum.config, Team.config, Study.config).parMapN(IngestorConfig.apply)
+  def config = (Forum.config, Team.config, Study.config).mapN(IngestorConfig.apply)
