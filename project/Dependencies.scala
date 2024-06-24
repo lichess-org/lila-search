@@ -44,8 +44,8 @@ object Dependencies {
   val elastic4sJavaClient = "nl.gn0s1s" %% "elastic4s-client-esjava" % V.elastic4s
   val elastic4sCatsEffect = "nl.gn0s1s" %% "elastic4s-effect-cats"   % V.elastic4s
 
-  val mongo4catsCore = "io.github.kirill5k" %% "mongo4cats-core" % "0.7.6"
-  val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % "0.7.6"
+  val mongo4catsCore = "io.github.kirill5k" %% "mongo4cats-core" % "0.7.7"
+  val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % "0.7.7"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.6"
