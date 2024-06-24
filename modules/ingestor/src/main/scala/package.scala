@@ -63,3 +63,5 @@ extension (elastic: ESClient[IO])
   def deleteMany(index: Index, events: List[ChangeStreamDocument[Document]])(using Logger[IO]): IO[Unit] =
     info"Received ${events.size} forum posts to delete" *>
       deleteMany(index, events.flatMap(_.docId).map(Id.apply)).whenA(events.nonEmpty)
+
+extension (s: String) def dollarPrefix = "$" + s
