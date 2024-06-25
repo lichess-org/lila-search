@@ -22,6 +22,7 @@ case class AppConfig(
 )
 case class MongoConfig(uri: String, name: String)
 
+// TODO study mongo config
 object MongoConfig:
 
   private def uri  = env("MONGO_URI").or(prop("mongo.uri")).as[String]
