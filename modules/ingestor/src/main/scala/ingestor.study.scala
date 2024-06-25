@@ -6,10 +6,10 @@ import cats.syntax.all.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
 import lila.search.spec.StudySource
-import mongo4cats.bson.{ BsonValue, Document }
+import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument
-import mongo4cats.operations.{ Accumulator, Aggregate, Filter, Projection }
+import mongo4cats.operations.{ Aggregate, Filter, Projection }
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
@@ -43,12 +43,12 @@ object StudyIngestor:
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       using Logger[IO]
   ): IO[StudyIngestor] =
-    (mongo.getCollection("study"), mongo.getCollection("study_chapter_flat"))
+    (mongo.getCollection("study"), ChapterRepo(mongo))
       .mapN(apply(elastic, store, config))
 
   def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       studies: MongoCollection,
-      chapters: MongoCollection
+      chapters: ChapterRepo
   )(using
       Logger[IO]
   ): StudyIngestor = new:
@@ -62,7 +62,7 @@ object StudyIngestor:
               // val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
               val (toDelete, toIndex) = events.partition(_.isDelete)
               val studyIds            = events.flatten(_.docId).distinct
-              Chapter.chapterDataByIds(chapters, studyIds) >>= IO.println
+              chapters.byStudyIds(studyIds) >>= IO.println
     // storeBulk(toIndex.flatten(_.fullDocument))
     //   *> elastic.deleteMany(index, toDelete)
     //   *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
@@ -102,8 +102,8 @@ object StudyIngestor:
     extension (docs: List[Document])
       private def toSources: IO[List[StudySourceWithId]] =
         val studyIds = docs.flatMap(_.id).distinct
-        Chapter
-          .chapterDataByIds(chapters, studyIds)
+        chapters
+          .byStudyIds(studyIds)
           .flatMap: chapters =>
             docs
               .traverse(_.toSource(chapters))
@@ -122,7 +122,7 @@ object StudyIngestor:
 
     type StudySourceWithId = (String, StudySource)
     extension (doc: Document)
-      private def toSource(chapters: Map[String, Chapter]): IO[Option[StudySourceWithId]] = ???
+      private def toSource(chapters: Map[String, StudyChapterText]): IO[Option[StudySourceWithId]] = ???
       // val id = doc.id
       // val name = doc.getString(Study.name)
       // val ownerId = doc.getString(Study.ownerId)
@@ -148,84 +148,3 @@ object StudyIngestor:
     val members     = "members"
     val ownerId     = "ownerId"
     val description = "description"
-
-  case class Chapter(name: String, tags: List[String], comments: List[String])
-
-  object Chapter:
-    val name    = "name"
-    val studyId = "studyId"
-    val tags    = "tags"
-
-    // accumulates comments into a list
-    val comments     = "comments"
-    val commentTexts = "comments.v.co.text"
-
-    val addFields =
-      Aggregate.addFields(comments -> Document.empty.add("$objectToArray" -> "$root").toBsonDocument)
-
-    val unwinding = Aggregate.unwind(comments.dollarPrefix)
-    val matching  = Aggregate.matchBy(Filter.exists(commentTexts))
-    val replaceRoot = Aggregate.replaceWith(
-      Document.empty.add(
-        "$mergeObjects" -> List(
-          Document(
-            _id      -> BsonValue.string(_id.dollarPrefix),
-            studyId  -> BsonValue.string(studyId.dollarPrefix),
-            name     -> BsonValue.string(name.dollarPrefix),
-            tags     -> BsonValue.string(tags.dollarPrefix),
-            comments -> BsonValue.string(commentTexts.dollarPrefix)
-          )
-        )
-      )
-    )
-
-    // TODO maybe group by studyId as We accumulate all chapter data
-    val group = Aggregate.group(
-      _id,
-      Accumulator
-        .push(comments, comments.dollarPrefix)
-        .combinedWith(Accumulator.first(name, name.dollarPrefix))
-        .combinedWith(Accumulator.first(tags, tags.dollarPrefix))
-        .combinedWith(Accumulator.first(studyId, studyId.dollarPrefix))
-    )
-
-    // Fetches chapter names by their study ids
-    // could be stream it's too large
-    def chapterDataByIds(chapters: MongoCollection, studyIds: Seq[String])(using
-        Logger[IO]
-    ): IO[Map[String, Chapter]] =
-      val filterByIds = Aggregate.matchBy(Filter.in(Chapter.studyId, studyIds))
-      val chapterAggregates = List(addFields, unwinding, matching, replaceRoot, group)
-        .foldLeft(filterByIds)(_.combinedWith(_))
-      for
-        _ <- IO.println(chapterAggregates)
-        _ <- IO.println(studyIds)
-        x <- chapters
-          .aggregate[Document](chapterAggregates)
-          .all
-          .map(_.toList)
-        _ <- IO.println(x)
-        y <- x.traverse(Chapter.fromDoc).map(_.flatten.toMap)
-      yield y
-
-    def withStudyId(
-        studyId: String,
-        name: String,
-        tags: List[String],
-        comments: List[String]
-    ): (String, Chapter) =
-      studyId -> Chapter(name, tags, comments)
-
-    def fromDoc(doc: Document)(using Logger[IO]): IO[Option[(String, Chapter)]] =
-      val studyId = doc.getString(Chapter.studyId)
-      val name    = doc.getString(Chapter.name)
-      // TODO filter meaning tags only
-      val tags     = doc.getList(Chapter.tags).map(_.flatMap(_.asString))
-      val comments = doc.getList(Chapter.comments).map(_.flatMap(_.asList).flatten.flatMap(_.asString))
-      (studyId, name, tags, comments)
-        .mapN(Chapter.withStudyId)
-        .pure[IO]
-        .flatTap: x =>
-          def reason = studyId.fold("missing studyId")(_ => "") + tags.fold("missing tags")(_ => "")
-            + comments.fold("missing comments")(_ => "") + name.fold("missing name")(_ => "")
-          info"failed to get chapter data from $doc becaues $reason".whenA(x.isEmpty)
