@@ -38,7 +38,7 @@ object ElasticConfig:
 case class IngestorConfig(forum: IngestorConfig.Forum, team: IngestorConfig.Team)
 
 object IngestorConfig:
-  case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Long])
+  case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Long], maxPostLength: Int)
   case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Long])
 
   private object Forum:
@@ -51,7 +51,8 @@ object IngestorConfig:
         .or(prop("ingestor.forum.start.at"))
         .as[Long]
         .option
-    def config = (batchSize, timeWindows, startAt).parMapN(Forum.apply)
+    private def maxPostLength = env("MAX_POST_LENGTH").or(prop("max.post.length")).as[Int].default(5_000)
+    def config                = (batchSize, timeWindows, startAt, maxPostLength).parMapN(Forum.apply)
 
   private object Team:
     private def batchSize =

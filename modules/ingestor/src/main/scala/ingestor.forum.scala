@@ -67,6 +67,7 @@ object ForumIngestor:
         .find(filter)
         .projection(postProjection)
         .boundedStream(config.batchSize)
+        .filter(_.validText)
         .chunkN(config.batchSize)
         .map(_.toList)
         .metered(1.second) // to avoid overloading the elasticsearch
@@ -112,6 +113,7 @@ object ForumIngestor:
         .batchSize(config.batchSize)
         .boundedStream(config.batchSize)
         .drop(skip)
+        .filter(_.validText)
         .groupWithin(config.batchSize, config.timeWindows.second)
         .evalTap(_.traverse_(x => debug"received $x"))
         .map(_.toList)
@@ -161,9 +163,15 @@ object ForumIngestor:
       private def topicId: Option[String] =
         doc.getString(F.topicId)
 
+      private def validText: Boolean =
+        doc.getString(F.text).exists(_.length <= config.maxPostLength)
+
     extension (event: ChangeStreamDocument[Document])
       private def isDelete: Boolean =
         event.operationType == DELETE || event.fullDocument.exists(_.isErased)
+
+      private def validText: Boolean =
+        event.fullDocument.exists(_.validText)
 
   object F:
     val text      = "text"
