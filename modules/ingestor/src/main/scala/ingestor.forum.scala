@@ -26,7 +26,12 @@ object ForumIngestor:
   private val index = Index.Forum
 
   private val interestedOperations = List(DELETE, INSERT, REPLACE).map(_.getValue)
-  private val eventFilter          = Filter.in("operationType", interestedOperations)
+
+  private def maxPostSizeFilter(max: Int) =
+    Filter.expr(s"{ $$lte: [{ $$strLenCP: '$$fullDocument.text' }, $max] }")
+
+  private def eventFilter(maxPostLength: Int) =
+    Filter.in("operationType", interestedOperations) && maxPostSizeFilter(maxPostLength)
 
   private val interestedFields = List(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt)
   private val postProjection   = Projection.include(interestedFields)
@@ -35,7 +40,8 @@ object ForumIngestor:
     List("operationType", "clusterTime", "documentKey._id") ++ interestedFields.map("fullDocument." + _)
   private val eventProjection = Projection.include(interestedEventFields)
 
-  private val aggregate = Aggregate.matchBy(eventFilter).combinedWith(Aggregate.project(eventProjection))
+  private def aggregate(maxPostLength: Int) =
+    Aggregate.matchBy(eventFilter(maxPostLength)).combinedWith(Aggregate.project(eventProjection))
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum)(
       using Logger[IO]
@@ -104,7 +110,7 @@ object ForumIngestor:
         .map(_.map(doc => (doc.id -> doc.getString(Topic.name)).mapN(_ -> _)).flatten.toMap)
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
-      val builder = posts.watch(aggregate)
+      val builder = posts.watch(aggregate(config.maxPostLength))
       // skip the first event if we're starting from a specific timestamp
       // since the event at that timestamp is already indexed
       val skip = since.fold(0)(_ => 1)
@@ -113,7 +119,6 @@ object ForumIngestor:
         .batchSize(config.batchSize)
         .boundedStream(config.batchSize)
         .drop(skip)
-        .filter(_.validText)
         .groupWithin(config.batchSize, config.timeWindows.second)
         .evalTap(_.traverse_(x => debug"received $x"))
         .map(_.toList)
@@ -168,9 +173,6 @@ object ForumIngestor:
     extension (event: ChangeStreamDocument[Document])
       private def isDelete: Boolean =
         event.operationType == DELETE || event.fullDocument.exists(_.isErased)
-
-      private def validText: Boolean =
-        event.fullDocument.exists(_.validText)
 
   object F:
     val text      = "text"
