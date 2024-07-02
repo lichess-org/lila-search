@@ -51,8 +51,9 @@ object IngestorConfig:
         .or(prop("ingestor.forum.start.at"))
         .as[Long]
         .option
-    private def maxPostLength = env("MAX_POST_LENGTH").or(prop("max.post.length")).as[Int].default(5_000)
-    def config                = (batchSize, timeWindows, startAt, maxPostLength).parMapN(Forum.apply)
+    private def maxPostLength =
+      env("INGESTOR_FORUM_MAX_POST_LENGTH").or(prop("ingestor.forum.max.post.length")).as[Int].default(5_000)
+    def config = (batchSize, timeWindows, startAt, maxPostLength).parMapN(Forum.apply)
 
   private object Team:
     private def batchSize =
