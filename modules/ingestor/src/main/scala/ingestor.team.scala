@@ -63,6 +63,7 @@ object TeamIngestor:
           .storeBulk(index, sources)
           .handleErrorWith: e =>
             Logger[IO].error(e)(s"Failed to index teams: ${docs.map(_.id).mkString(", ")}")
+          .whenA(sources.nonEmpty)
         *> info"Indexed ${sources.size} teams"
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
