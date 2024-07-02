@@ -59,9 +59,12 @@ object TeamIngestor:
     private def storeBulk(docs: List[Document]): IO[Unit] =
       val sources = docs.toSources
       info"Received ${docs.size} teams to index" *>
-        elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} teams"
+        elastic
+          .storeBulk(index, sources)
           .handleErrorWith: e =>
             Logger[IO].error(e)(s"Failed to index teams: ${docs.map(_.id).mkString(", ")}")
+          .whenA(sources.nonEmpty)
+        *> info"Indexed ${sources.size} teams"
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)
