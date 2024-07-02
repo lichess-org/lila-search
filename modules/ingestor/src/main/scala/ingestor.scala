@@ -16,10 +16,9 @@ object Ingestor:
   ): IO[Ingestor] =
     (
       ForumIngestor(mongo, elastic, store, config.forum),
-      TeamIngestor(mongo, elastic, store, config.team),
-      StudyIngestor(mongo, elastic, store, config.study)
+      TeamIngestor(mongo, elastic, store, config.team)
     )
-      .mapN: (forum, team, study) =>
+      .mapN: (forum, team) =>
         new Ingestor:
           def run() =
-            forum.watch.merge(team.watch).merge(study.watch).compile.drain
+            forum.watch.merge(team.watch).compile.drain
