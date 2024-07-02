@@ -138,15 +138,14 @@ object ForumIngestor:
         (doc.id, doc.topicId)
           .flatMapN: (id, topicId) =>
             doc.toSource(topicMap.get(topicId), topicId).map(id -> _)
-          .match
-            case Some(value) => value.some.pure[IO]
-            case _ =>
-              val reason = doc.id.fold("missing doc._id; ")(_ => "")
-                + doc.topicId.fold("missing doc.topicId; ")(_ => "")
-                + doc.topicId
-                  .map(id => topicMap.get(id).fold("topic or topic.name is missing")(_ => ""))
-                  .getOrElse("")
-              info"failed to convert document to source: $doc because $reason".as(none)
+          .pure[IO]
+          .flatTap: source =>
+            def reason = doc.id.fold("missing doc._id; ")(_ => "")
+              + doc.topicId.fold("missing doc.topicId; ")(_ => "")
+              + doc.topicId
+                .map(id => topicMap.get(id).fold("topic or topic.name is missing")(_ => ""))
+                .getOrElse("")
+            info"failed to convert document to source: $doc because $reason".whenA(source.isEmpty)
 
       private def toSource(topicName: Option[String], topicId: String): Option[ForumSource] =
         (
