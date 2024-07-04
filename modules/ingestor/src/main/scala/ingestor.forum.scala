@@ -121,7 +121,7 @@ object ForumIngestor:
         .drop(skip)
         .groupWithin(config.batchSize, config.timeWindows.second)
         .evalTap(_.traverse_(x => debug"received $x"))
-        .map(_.toList)
+        .map(_.toList.unique)
 
     private type SourceWithId = (String, ForumSource)
 
