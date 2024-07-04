@@ -31,10 +31,11 @@ extension [A](changes: List[ChangeStreamDocument[A]])
    */
   def unique: List[ChangeStreamDocument[A]] =
     changes
-      .foldRight(List.empty[ChangeStreamDocument[A]] -> Set.empty) { case (change, (acc, ids)) =>
+      .foldRight(List.empty[ChangeStreamDocument[A]] -> Set.empty) { case (change, p @ (acc, ids)) =>
         val id = change.docId.getOrElse("")
-        if ids(id) then acc  -> ids
-        else (change :: acc) -> (ids + id)
+        if !ids.contains(id) && id != ""
+        then (change :: acc) -> (ids + id)
+        else p
       }
       ._1
 
