@@ -24,6 +24,20 @@ type MongoCollection = GenericMongoCollection[IO, Document, [A] =>> fs2.Stream[I
 
 extension [A](change: ChangeStreamDocument[A]) def docId: Option[String] = change.documentKey.flatMap(_.id)
 
+extension [A](changes: List[ChangeStreamDocument[A]])
+  /**
+   * Returns a list of distinct changes by their document id in the reverse order they appear in the input
+   * list. If a change has no document id, We ignore it.
+   */
+  def unique: List[ChangeStreamDocument[A]] =
+    changes
+      .foldRight(List.empty[ChangeStreamDocument[A]] -> Set.empty) { case (change, (acc, ids)) =>
+        val id = change.docId.getOrElse("")
+        if ids(id) then acc  -> ids
+        else (change :: acc) -> (ids + id)
+      }
+      ._1
+
 extension (doc: Document)
   private def id: Option[String] =
     doc.getString(_id)
@@ -37,7 +51,7 @@ given Indexable[Source] =
     case t: Source.TeamCase  => writeToString(t.team)
 
 extension (instant: Instant)
-  def asBsonTimestamp: BsonTimestamp = BsonTimestamp(instant.getEpochSecond.toInt, 1)
+  inline def asBsonTimestamp: BsonTimestamp = BsonTimestamp(instant.getEpochSecond.toInt, 1)
 
 def range(field: String)(since: Instant, until: Option[Instant]): Filter =
   val gtes = Filter.gte(field, since)
