@@ -107,7 +107,7 @@ object ForumIngestor:
         .find(Filter.in(_id, ids))
         .projection(Projection.include(List(_id, Topic.name)))
         .all
-        .map(_.map(doc => (doc.id -> doc.getString(Topic.name)).mapN(_ -> _)).flatten.toMap)
+        .map(_.map(doc => (doc.id, doc.getString(Topic.name)).mapN(_ -> _)).flatten.toMap)
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
       val builder = posts.watch(aggregate(config.maxPostLength))
