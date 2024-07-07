@@ -60,8 +60,7 @@ def range(field: String)(since: Instant, until: Option[Instant]): Filter =
 
 extension (elastic: ESClient[IO])
 
-  @scala.annotation.targetName("deleteManyWithIds")
-  def deleteMany(index: Index, ids: List[Id])(using Logger[IO]): IO[Unit] =
+  def deleteMany_(index: Index, ids: List[Id])(using Logger[IO]): IO[Unit] =
     elastic
       .deleteMany(index, ids)
       .flatTap(_ => Logger[IO].info(s"Deleted ${ids.size} ${index.value}s"))
@@ -72,11 +71,11 @@ extension (elastic: ESClient[IO])
   @scala.annotation.targetName("deleteManyWithDocs")
   def deleteMany(index: Index, events: List[Document])(using Logger[IO]): IO[Unit] =
     info"Received ${events.size} ${index.value} to delete" *>
-      deleteMany(index, events.flatMap(_.id).map(Id.apply)).whenA(events.nonEmpty)
+      deleteMany_(index, events.flatMap(_.id).map(Id.apply)).whenA(events.nonEmpty)
 
   @scala.annotation.targetName("deleteManyWithChanges")
   def deleteMany(index: Index, events: List[ChangeStreamDocument[Document]])(using Logger[IO]): IO[Unit] =
     info"Received ${events.size} ${index.value} to delete" *>
-      deleteMany(index, events.flatMap(_.docId).map(Id.apply)).whenA(events.nonEmpty)
+      deleteMany_(index, events.flatMap(_.docId).map(Id.apply)).whenA(events.nonEmpty)
 
 extension (s: String) def dollarPrefix = "$" + s
