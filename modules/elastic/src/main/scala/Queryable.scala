@@ -20,14 +20,15 @@ object QueryParser:
   def apply(q: String, filterKeys: Seq[String]): ParsedQuery =
 
     val terms = spaceRegex.split(q.trim.toLowerCase).toList
-
-    terms.foldLeft(ParsedQuery(Nil, Map.empty)) { case (parsed, term) =>
-      filterKeys
-        .collectFirst {
-          case fk if term.startsWith(s"$fk:") =>
-            parsed.copy(
-              filters = parsed.filters + (fk -> term.drop(fk.size + 1))
-            )
-        }
-        .getOrElse(parsed.copy(terms = parsed.terms :+ term))
-    }
+    if filterKeys.isEmpty then ParsedQuery(terms, Map.empty)
+    else
+      terms.foldLeft(ParsedQuery(Nil, Map.empty)) { case (parsed, term) =>
+        filterKeys
+          .collectFirst {
+            case fk if term.startsWith(s"$fk:") =>
+              parsed.copy(
+                filters = parsed.filters + (fk -> term.drop(fk.size + 1))
+              )
+          }
+          .getOrElse(parsed.copy(terms = parsed.terms :+ term))
+      }
