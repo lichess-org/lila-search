@@ -22,13 +22,9 @@ object QueryParser:
     val terms = spaceRegex.split(q.trim.toLowerCase).toList
     if filterKeys.isEmpty then ParsedQuery(terms, Map.empty)
     else
-      terms.foldLeft(ParsedQuery(Nil, Map.empty)) { case (parsed, term) =>
+      terms.foldLeft(ParsedQuery(Nil, Map.empty)): (parsed, term) =>
         filterKeys
-          .collectFirst {
+          .collectFirst:
             case fk if term.startsWith(s"$fk:") =>
-              parsed.copy(
-                filters = parsed.filters + (fk -> term.drop(fk.size + 1))
-              )
-          }
+              parsed.copy(filters = parsed.filters + (fk -> term.drop(fk.size + 1)))
           .getOrElse(parsed.copy(terms = parsed.terms :+ term))
-      }
