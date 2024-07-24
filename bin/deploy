@@ -1,7 +1,7 @@
 #!/bin/sh
 
 REMOTE=$1
-REMOTE_DIR="/home/lila-search-v3"
+REMOTE_DIR="/home/lila-search"
 
 echo "Deploy to server $REMOTE:$REMOTE_DIR"
 
@@ -32,7 +32,7 @@ echo "rsync complete"
 
 read -n 1 -p "Press [Enter] to continue."
 
-echo "Restart lila-search-v3"
-ssh $REMOTE "chown -R lila-search-v3:lila-search-v3 /home/lila-search-v3 && systemctl restart lichess-search-v3"
+echo "Restart lila-search"
+ssh $REMOTE "chown -R lila-search:lila-search /home/lila-search && systemctl restart lila-search"
 
 echo "Deploy complete"
