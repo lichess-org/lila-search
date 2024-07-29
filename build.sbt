@@ -36,7 +36,8 @@ lazy val elastic = project
       elastic4sJavaClient,
       elastic4sCatsEffect
     )
-  ).dependsOn(core)
+  )
+  .dependsOn(core)
 
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
@@ -47,7 +48,8 @@ lazy val api = (project in file("modules/api"))
       catsCore,
       smithy4sCore
     )
-  ).dependsOn(core)
+  )
+  .dependsOn(core)
 
 lazy val ingestor = (project in file("modules/ingestor"))
   .settings(
