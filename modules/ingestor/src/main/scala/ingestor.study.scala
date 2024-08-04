@@ -62,7 +62,8 @@ object StudyIngestor:
               // val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
               val (toDelete, toIndex) = events.partition(_.isDelete)
               val studyIds            = events.flatten(_.docId).distinct
-              chapters.byStudyIds(studyIds) >>= IO.println
+              IO.println(s"distinc study ids: $studyIds") >>
+                chapters.byStudyIds(studyIds) >>= IO.println
     // storeBulk(toIndex.flatten(_.fullDocument))
     //   *> elastic.deleteMany(index, toDelete)
     //   *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
@@ -95,7 +96,7 @@ object StudyIngestor:
         .drop(skip)
         // .evalTap(x => debug"Study change stream event: $x")
         .groupWithin(config.batchSize, config.timeWindows.second)
-        .map(_.toList)
+        .map(_.toList.unique)
 
     // TOOD: only need to index the latest study
     // We should do that in changeStream by using some fs2 operators

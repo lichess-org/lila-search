@@ -50,23 +50,20 @@ object ChapterRepo:
 
     val rootElementsAsArray = addFields(F.comments -> Document("$objectToArray" -> BsonValue.string("$root")))
 
-    val unwinding = unwind(F.comments.dollarPrefix)
-    val matching  = matchBy(Filter.exists(F.commentTexts))
-
     val groupBy = group(
       F.studyId.dollarPrefix,
       push(F.comments, F.commentTexts.dollarPrefix)
-        .combinedWith(addToSet(F.name, F.name.dollarPrefix))
-        .combinedWith(addToSet(F.tags, F.tags.dollarPrefix))
-        .combinedWith(addToSet(F.description, F.description.dollarPrefix))
-        .combinedWith(addToSet(F.gamebook, F.gamebook.dollarPrefix))
-        .combinedWith(addToSet(F.conceal, F.conceal.dollarPrefix))
-        .combinedWith(addToSet(F.practice, F.practice.dollarPrefix))
+        .combinedWith(push(F.name, F.name.dollarPrefix))
+        .combinedWith(push(F.tags, F.tags.dollarPrefix))
+        .combinedWith(push(F.description, F.description.dollarPrefix))
+        .combinedWith(push(F.gamebook, F.gamebook.dollarPrefix))
+        .combinedWith(push(F.conceal, F.conceal.dollarPrefix))
+        .combinedWith(push(F.practice, F.practice.dollarPrefix))
     )
 
     def aggregate(studyIds: List[String]): Aggregate =
       val filter = matchBy(Filter.in(F.studyId, studyIds))
-      List(rootElementsAsArray, unwinding, matching, groupBy).fold(filter)(_.combinedWith(_))
+      List(rootElementsAsArray, groupBy).fold(filter)(_.combinedWith(_))
 
   def apply(mongo: MongoDatabase[IO])(using Logger[IO]): IO[ChapterRepo] =
     mongo.getCollection("study_chapter_flat").map(apply)
@@ -88,24 +85,28 @@ object ChapterRepo:
 
     def fromDoc(doc: Document)(using Logger[IO]): IO[Option[(String, StudyChapterText)]] =
       val studyId = doc.id
-      val names   = doc.getNestedListOrEmpty(F.name).mkString(" ")
+      val names   = doc.getNestedListOrEmpty(F.name)
       // TODO filter meaning tags only
-      val tags         = doc.getNestedListOrEmpty(F.tags).mkString(" ")
-      val comments     = doc.getNestedListOrEmpty(F.comments).mkString(" ")
-      val descriptions = doc.getListOfStringOrEmpty(F.description).mkString(" ")
-      val conceal =
-        doc.getList(F.conceal).map(_.flatten(_.asBoolean).nonEmpty).map(_.fold("conceal puzzle", ""))
+      val tags         = doc.getNestedListOrEmpty(F.tags)
+      val comments     = doc.getNestedListOrEmpty(F.comments)
+      val descriptions = doc.getListOfStringOrEmpty(F.description)
+      val conceal: Option[List[String]] =
+        doc.getList(F.conceal).map(_.flatten(_.asInt).map(_ => "conceal puzzle"))
       val gamebook =
-        doc.getList(F.gamebook).map(_.flatten(_.asBoolean).exists(identity)).map(_.fold("lesson", ""))
+        doc.getList(F.gamebook).map(_.flatten(_.asBoolean).collect { case true => "gamebook" })
       val practice =
-        doc.getList(F.practice).map(_.flatten(_.asBoolean).exists(identity)).map(_.fold("practice", ""))
+        doc.getList(F.practice).map(_.flatten(_.asBoolean).collect { case true => "practice" })
+
       val studyText = StudyChapterText:
-        (List(conceal, gamebook, practice).flatten ++ List(names, tags, comments, descriptions))
-          .mkString(" ")
+        (conceal ++ gamebook ++ practice ++ names ++ tags ++ comments ++ descriptions)
+          .mkString("", ", ", " ")
       studyId.map(_ -> studyText).pure[IO]
 
   extension (doc: Document)
-    def getNestedListOrEmpty(field: String) =
+    def getNestedListOrEmpty(field: String): List[String] =
+      doc.getList(field).map(_.flatMap(_.asList).flatten.flatMap(_.asString)).getOrElse(Nil)
+
+    def getKNestedListOrEmpty(k: Int)(field: String) =
       doc.getList(field).map(_.flatMap(_.asList).flatten.flatMap(_.asString)).getOrElse(Nil)
 
     def getListOfStringOrEmpty(field: String) =
