@@ -3,29 +3,36 @@ package ingestor
 
 import cats.effect.IO
 import cats.syntax.all.*
+import io.circe.*
 import mongo4cats.bson.{ BsonValue, Document }
+import mongo4cats.circe.*
 import mongo4cats.database.MongoDatabase
 import mongo4cats.operations.{ Accumulator, Aggregate, Filter }
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
-opaque type ChapterText = String
-object ChapterText:
-  def apply(value: String): ChapterText        = value
-  extension (c: ChapterText) def value: String = c
-
-opaque type StudyChapterText = String
-object StudyChapterText:
-  def apply(value: String): StudyChapterText        = value
-  extension (c: StudyChapterText) def value: String = c
-
 trait ChapterRepo:
   // Aggregate chapters data and convert them to StudyChapterText by their study ids
-  def byStudyIds(ids: List[String]): IO[Map[String, StudyChapterText]]
+  def byStudyIds(ids: List[String]): IO[Map[String, String]]
 
-case class ChapterData(names: List[String], tags: List[String], comments: List[String]):
-  def toStudyText: StudyChapterText = StudyChapterText:
-    (names ++ tags ++ comments).mkString(" ")
+case class ChapterData(
+    _id: String,
+    name: List[String],
+    tags: List[List[String]],
+    comments: List[List[List[String]]],
+    description: List[String],
+    conceal: List[Int],
+    practice: List[Boolean],
+    gamebook: List[Boolean]
+) derives Codec.AsObject:
+  def toStudyText: String =
+    (conceal.map(_ => "conceal puzzle") ++
+      practice.collect { case true => "practice" } ++
+      gamebook.collect { case true => "gamebook" } ++
+      name ++ tags.flatten ++ comments.flatten.flatten ++ description)
+      .mkString("", ", ", " ")
+
+  def toPair = _id -> toStudyText
 
 object ChapterRepo:
 
@@ -69,45 +76,11 @@ object ChapterRepo:
     mongo.getCollection("study_chapter_flat").map(apply)
 
   def apply(coll: MongoCollection)(using Logger[IO]): ChapterRepo = new:
-    def byStudyIds(ids: List[String]): IO[Map[String, StudyChapterText]] =
+    def byStudyIds(ids: List[String]): IO[Map[String, String]] =
       coll
-        .aggregate[Document](Query.aggregate(ids))
+        .aggregateWithCodec[ChapterData](Query.aggregate(ids))
         .stream
-        .evalTap(x => debug"$x")
-        .parEvalMapUnordered(50)(fromDoc) // parEvalMap
         .evalTap(x => debug"$x")
         .compile
         .toList
-        .map(_.flatten.toMap)
-
-    def withStudyId(studyId: String, names: List[String], tags: List[String], comments: List[String]) =
-      studyId -> ChapterData(names, tags, comments).toStudyText
-
-    def fromDoc(doc: Document)(using Logger[IO]): IO[Option[(String, StudyChapterText)]] =
-      val studyId = doc.id
-      val names   = doc.getNestedListOrEmpty(F.name)
-      // TODO filter meaning tags only
-      val tags         = doc.getNestedListOrEmpty(F.tags)
-      val comments     = doc.getNestedListOrEmpty(F.comments)
-      val descriptions = doc.getListOfStringOrEmpty(F.description)
-      val conceal: Option[List[String]] =
-        doc.getList(F.conceal).map(_.flatten(_.asInt).map(_ => "conceal puzzle"))
-      val gamebook =
-        doc.getList(F.gamebook).map(_.flatten(_.asBoolean).collect { case true => "gamebook" })
-      val practice =
-        doc.getList(F.practice).map(_.flatten(_.asBoolean).collect { case true => "practice" })
-
-      val studyText = StudyChapterText:
-        (conceal ++ gamebook ++ practice ++ names ++ tags ++ comments ++ descriptions)
-          .mkString("", ", ", " ")
-      studyId.map(_ -> studyText).pure[IO]
-
-  extension (doc: Document)
-    def getNestedListOrEmpty(field: String): List[String] =
-      doc.getList(field).map(_.flatMap(_.asList).flatten.flatMap(_.asString)).getOrElse(Nil)
-
-    def getKNestedListOrEmpty(k: Int)(field: String) =
-      doc.getList(field).map(_.flatMap(_.asList).flatten.flatMap(_.asString)).getOrElse(Nil)
-
-    def getListOfStringOrEmpty(field: String) =
-      doc.getList(F.name).map(_.flatten(_.asString)).getOrElse(Nil)
+        .map(_.map(_.toPair).toMap)

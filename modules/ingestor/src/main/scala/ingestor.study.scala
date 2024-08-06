@@ -123,7 +123,7 @@ object StudyIngestor:
 
     type StudySourceWithId = (String, StudySource)
     extension (doc: Document)
-      private def toSource(chapters: Map[String, StudyChapterText]): IO[Option[StudySourceWithId]] = ???
+      private def toSource(chapters: Map[String, String]): IO[Option[StudySourceWithId]] = ???
       // val id = doc.id
       // val name = doc.getString(Study.name)
       // val ownerId = doc.getString(Study.ownerId)
