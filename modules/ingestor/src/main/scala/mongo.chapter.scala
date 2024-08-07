@@ -14,9 +14,9 @@ import org.typelevel.log4cats.syntax.*
 
 trait ChapterRepo:
   // Aggregate chapters data and convert them to StudyChapterText by their study ids
-  def byStudyIds(ids: List[String]): IO[Map[String, String]]
+  def byStudyIds(ids: List[String]): IO[Map[String, StudyData]]
 
-case class ChapterData(
+case class StudyData(
     _id: String,
     name: List[String],
     tags: List[List[Tag]],
@@ -26,20 +26,23 @@ case class ChapterData(
     practice: List[Boolean],
     gamebook: List[Boolean]
 ) derives Codec.AsObject:
-  def toStudyText: String =
+  def chapterTexts: String =
     (conceal.map(_ => "conceal puzzle") ++
       practice.collect { case true => "practice" } ++
       gamebook.collect { case true => "gamebook" } ++
-      name ++ relevantTags ++ comments.flatten.flatten ++ description)
+      relevantTags ++ comments.flatten.flatten ++ description)
       .mkString("", ", ", " ")
 
-  def toPair = _id -> toStudyText
+  def chapterNames = name
+    .collect { case c if !StudyData.defaultNameRegex.matches(c) => c }
+    .mkString(" ")
 
   def relevantTags = tags.flatten.collect {
-    case t if ChapterData.relevantPgnTags.contains(t.name) => t.value
+    case t if StudyData.relevantPgnTags.contains(t.name) => t.value
   }
 
-object ChapterData:
+object StudyData:
+
   import io.circe.Decoder.decodeString
   import io.circe.Encoder.encodeString
   given Decoder[Tag] = decodeString.emap: s =>
@@ -61,6 +64,8 @@ object ChapterData:
     Tag.Opening,
     Tag.Annotator
   )
+
+  private val defaultNameRegex = """Chapter \d+""".r
 
 object ChapterRepo:
 
@@ -104,11 +109,11 @@ object ChapterRepo:
     mongo.getCollection("study_chapter_flat").map(apply)
 
   def apply(coll: MongoCollection)(using Logger[IO]): ChapterRepo = new:
-    def byStudyIds(ids: List[String]): IO[Map[String, String]] =
+    def byStudyIds(ids: List[String]): IO[Map[String, StudyData]] =
       coll
-        .aggregateWithCodec[ChapterData](Query.aggregate(ids))
+        .aggregateWithCodec[StudyData](Query.aggregate(ids))
         .stream
         .evalTap(x => debug"$x")
         .compile
         .toList
-        .map(_.map(_.toPair).toMap)
+        .map(_.map(x => x._id -> x).toMap)
