@@ -56,7 +56,9 @@ lazy val ingestor = (project in file("modules/ingestor"))
     name           := "ingestor",
     publish        := {},
     publish / skip := true,
+    resolvers += lilaMaven,
     libraryDependencies ++= Seq(
+      chess,
       catsCore,
       fs2,
       fs2IO,

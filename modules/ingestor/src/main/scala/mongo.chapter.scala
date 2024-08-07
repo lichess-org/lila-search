@@ -3,6 +3,7 @@ package ingestor
 
 import cats.effect.IO
 import cats.syntax.all.*
+import chess.format.pgn.Tag
 import io.circe.*
 import mongo4cats.bson.{ BsonValue, Document }
 import mongo4cats.circe.*
@@ -18,7 +19,7 @@ trait ChapterRepo:
 case class ChapterData(
     _id: String,
     name: List[String],
-    tags: List[List[String]],
+    tags: List[List[Tag]],
     comments: List[List[List[String]]],
     description: List[String],
     conceal: List[Int],
@@ -29,10 +30,37 @@ case class ChapterData(
     (conceal.map(_ => "conceal puzzle") ++
       practice.collect { case true => "practice" } ++
       gamebook.collect { case true => "gamebook" } ++
-      name ++ tags.flatten ++ comments.flatten.flatten ++ description)
+      name ++ relevantTags ++ comments.flatten.flatten ++ description)
       .mkString("", ", ", " ")
 
   def toPair = _id -> toStudyText
+
+  def relevantTags = tags.flatten.collect {
+    case t if ChapterData.relevantPgnTags.contains(t.name) => t.value
+  }
+
+object ChapterData:
+  import io.circe.Decoder.decodeString
+  import io.circe.Encoder.encodeString
+  given Decoder[Tag] = decodeString.emap: s =>
+    s.split(":", 2) match
+      case Array(name, value) => Tag(name, value).asRight
+      case _                  => "Invalid pgn tag $v".asLeft
+
+  given Encoder[Tag] = encodeString.contramap(t => s"${t.name}:${t.value}")
+
+  private val relevantPgnTags: Set[chess.format.pgn.TagType] = Set(
+    Tag.Variant,
+    Tag.Event,
+    Tag.Round,
+    Tag.White,
+    Tag.Black,
+    Tag.WhiteFideId,
+    Tag.BlackFideId,
+    Tag.ECO,
+    Tag.Opening,
+    Tag.Annotator
+  )
 
 object ChapterRepo:
 
