@@ -44,9 +44,9 @@ object StudyIngestor:
       using Logger[IO]
   ): IO[StudyIngestor] =
     (mongo.getCollection("study"), ChapterRepo(mongo))
-      .mapN(apply(elastic, store, config))
+      .mapN(ly(elastic, store, config))
 
-  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
+  def ly(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       studies: MongoCollection,
       chapters: ChapterRepo
   )(using
@@ -59,14 +59,11 @@ object StudyIngestor:
           changeStream(last)
             .filterNot(_.isEmpty)
             .evalMap: events =>
-              // val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
+              val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
               val (toDelete, toIndex) = events.partition(_.isDelete)
-              val studyIds            = events.flatten(_.docId).distinct
-              IO.println(s"distinc study ids: $studyIds") >>
-                chapters.byStudyIds(studyIds) >>= IO.println
-    // storeBulk(toIndex.flatten(_.fullDocument))
-    //   *> elastic.deleteMany(index, toDelete)
-    //   *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
+              storeBulk(toIndex.flatten(_.fullDocument))
+                *> elastic.deleteMany(index, toDelete)
+                *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
 
     def storeBulk(docs: List[Document]): IO[Unit] =
       info"Received ${docs.size} studies to index" *>
@@ -110,42 +107,33 @@ object StudyIngestor:
               .traverse(_.toSource(chapters))
               .map(_.flatten)
 
-// final case class StudySource(
-//     name: String,
-//     owner: String,
-//     members: List[String],
-//     chapterNames: String,
-//     chapterTexts: String,
-//     likes: Int,
-//     public: Boolean,
-//     topics: List[String] = List()
-// )
-
     type StudySourceWithId = (String, StudySource)
     extension (doc: Document)
-      private def toSource(chapters: Map[String, StudyData]): IO[Option[StudySourceWithId]] = ???
-      // val id = doc.id
-      // val name = doc.getString(Study.name)
-      // val ownerId = doc.getString(Study.ownerId)
-      // val members = doc.getList(Study.members).map(_.flatMap(_.asString))
-      // val description = doc.getString(Study.description)
-      // val likes = doc.getInt(Study.likes)
-      // val chapterIds = doc.getList(Chapter._id).map(_.flatMap(_.asString))
-      // val chapterNames = chapterIds.flatMap(_.flatMap(chapters.get).map(_.name))
-      // val chapterTexts = chapterIds.flatMap(_.flatMap(chapters.get).map(_.comments))
-      // (id, name, ownerId, members, description, likes, chapterNames, chapterTexts)
-      //   .mapN(StudySource.apply)
-      //   .map(id -> _)
-      //   .pure[IO]
+      private def toSource(chapters: Map[String, StudyData]): IO[Option[StudySourceWithId]] =
+        doc.id
+          .flatMap: id =>
+            val name         = doc.getString(F.name)
+            val ownerId      = doc.getString(F.ownerId)
+            val members      = doc.getList(F.members).map(_.flatMap(_.asString)).getOrElse(Nil)
+            val topics       = doc.getList(F.topics).map(_.flatMap(_.asString)).getOrElse(Nil)
+            val likes        = doc.getInt(F.likes).getOrElse(0)
+            val chapterTexts = chapters.get(id).map(_.chapterTexts)
+            val chapterNames = chapters.get(id).map(_.chapterNames)
+            val public       = doc.getString(F.visibility).map(_ == "public").getOrElse(true)
+            (name, ownerId, members.some, chapterNames, chapterTexts, likes.some, public.some, topics.some)
+              .mapN(StudySource.apply)
+              .map(id -> _)
+          .pure[IO]
 
     extension (event: ChangeStreamDocument[Document])
       private def isDelete: Boolean =
         event.operationType == DELETE
       // event.fullDocument.fold(false)(x => !x.isEnabled)
 
-  object Study:
-    val name        = "name"
-    val likes       = "likes"
-    val members     = "members"
-    val ownerId     = "ownerId"
-    val description = "description"
+  object F:
+    val name       = "name"
+    val likes      = "likes"
+    val members    = "members"
+    val ownerId    = "ownerId"
+    val visibility = "visibility"
+    val topics     = "topics"
