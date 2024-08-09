@@ -13,7 +13,7 @@ import org.typelevel.log4cats.syntax.*
 import java.time.Instant
 
 trait StudyIngestor:
-  // watch change events from MongoDB and ingest studies data into elastic search
+  // pull changes from study MongoDB and ingest into elastic search
   def watch: fs2.Stream[IO, Unit]
 
 object StudyIngestor:
@@ -22,7 +22,7 @@ object StudyIngestor:
 
   private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics)
 
-  private val eventProjection = Projection.include(interestedfields)
+  private val docProjector = Projection.include(interestedfields)
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       using Logger[IO]
@@ -30,8 +30,6 @@ object StudyIngestor:
     (mongo.getCollection("study"), ChapterRepo(mongo))
       .mapN(apply(elastic, store, config))
 
-  // TODO detect delete chapter ==> using oplogs
-  // TODO it never catch up with the latest data
   def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       studies: MongoCollection,
       chapters: ChapterRepo
@@ -51,7 +49,7 @@ object StudyIngestor:
         .eval(IO.println(s"Indexing studies from $since to $until")) >>
         studies
           .find(filter)
-          .projection(eventProjection)
+          .projection(docProjector)
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList)

@@ -26,7 +26,10 @@ object Ingestor:
   def apply(studyMongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig)(
       using Logger[IO]
   ): IO[Ingestor] =
-    StudyIngestor(studyMongo, elastic, store, config.study).map: studyIngestor =>
+    (
+      StudyIngestor(studyMongo, elastic, store, config.study),
+      StudyDeleter(studyMongo, elastic, store, config.study)
+    ).mapN: (studyIngestor, studyDeleter) =>
       new Ingestor:
         def run() =
-          studyIngestor.watch.compile.drain
+          studyIngestor.watch.merge(studyDeleter.watch).compile.drain
