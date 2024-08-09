@@ -6,12 +6,14 @@ import cats.syntax.all.*
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.Logger
 
+import java.time.Instant
+
 trait Ingestor:
   def run(): IO[Unit]
 
 object Ingestor:
 
-  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig)(using
+  def apply1(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig)(using
       Logger[IO]
   ): IO[Ingestor] =
     (
@@ -22,3 +24,11 @@ object Ingestor:
         new Ingestor:
           def run() =
             forum.watch.merge(team.watch).compile.drain
+
+  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig)(using
+      Logger[IO]
+  ): IO[Ingestor] =
+    StudyIngestor(mongo, elastic, store, config.study).map: studyIngestor =>
+      new Ingestor:
+        def run() =
+          studyIngestor.watch(since = Instant.now(), until = none).compile.drain

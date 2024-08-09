@@ -3,13 +3,10 @@ package ingestor
 
 import cats.effect.IO
 import cats.syntax.all.*
-import com.mongodb.client.model.changestream.FullDocument
-import com.mongodb.client.model.changestream.OperationType.*
 import lila.search.spec.StudySource
 import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
-import mongo4cats.models.collection.ChangeStreamDocument
-import mongo4cats.operations.{ Aggregate, Filter, Projection }
+import mongo4cats.operations.Projection
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
@@ -18,52 +15,45 @@ import scala.concurrent.duration.*
 
 trait StudyIngestor:
   // watch change events from MongoDB and ingest studies data into elastic search
-  def watch: fs2.Stream[IO, Unit]
+  def watch(since: Instant, until: Option[Instant]): fs2.Stream[IO, Unit]
 
 object StudyIngestor:
 
   private val index = Index.Study
 
-  private val interestedOperations = List(DELETE, INSERT, UPDATE, REPLACE).map(_.getValue)
-  private val eventFilter          = Filter.in("operationType", interestedOperations)
+  private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics, F.erasedAt)
 
-  // private val interestedFields = List("_id", F.name, F.description, F.nbMembers, F.name, F.enabled)
-
-  private val interestedEventFields =
-    List(
-      "operationType",
-      "clusterTime",
-      "documentKey._id",
-      "fullDocument"
-    ) // ++ interestedFields.map("fullDocument." + _)
-  private val eventProjection = Projection.include(interestedEventFields)
-
-  private val aggregate = Aggregate.matchBy(eventFilter).combinedWith(Aggregate.project(eventProjection))
+  private val eventProjection = Projection.include(interestedfields)
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       using Logger[IO]
   ): IO[StudyIngestor] =
     (mongo.getCollection("study"), ChapterRepo(mongo))
-      .mapN(ly(elastic, store, config))
+      .mapN(apply(elastic, store, config))
 
-  def ly(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
+  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       studies: MongoCollection,
       chapters: ChapterRepo
   )(using
       Logger[IO]
   ): StudyIngestor = new:
-    def watch =
-      fs2.Stream
-        .eval(startAt.flatTap(since => info"Starting studies ingestor from $since"))
-        .flatMap: last =>
-          changeStream(last)
-            .filterNot(_.isEmpty)
-            .evalMap: events =>
-              val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
-              val (toDelete, toIndex) = events.partition(_.isDelete)
-              storeBulk(toIndex.flatten(_.fullDocument))
-                *> elastic.deleteMany(index, toDelete)
-                *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
+    def watch(since: Instant, until: Option[Instant]): fs2.Stream[IO, Unit] =
+      run(since, until)
+
+    def run(since: Instant, until: Option[Instant]): fs2.Stream[IO, Unit] =
+      val filter = range(F.createdAt)(since, until)
+        .or(range(F.updatedAt)(since, until))
+        .or(range(F.erasedAt)(since, until))
+      studies
+        .find(filter)
+        .projection(eventProjection)
+        .boundedStream(config.batchSize)
+        .chunkN(config.batchSize)
+        .map(_.toList)
+        .metered(1.second) // to avoid overloading the elasticsearch
+        .evalMap: docs =>
+          val (toDelete, toIndex) = docs.partition(_.isErased)
+          storeBulk(toIndex) *> elastic.deleteMany(index, toDelete)
 
     def storeBulk(docs: List[Document]): IO[Unit] =
       info"Received ${docs.size} studies to index" *>
@@ -77,23 +67,9 @@ object StudyIngestor:
       store.put(index.value, time)
         *> info"Stored last indexed time ${time.getEpochSecond} for $index"
 
-    private def startAt: IO[Option[Instant]] =
+    // TODO private
+    def startAt: IO[Option[Instant]] =
       config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
-
-    private def changeStream(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
-      // skip the first event if we're starting from a specific timestamp
-      // since the event at that timestamp is already indexed
-      val skip    = since.fold(0)(_ => 1)
-      val builder = studies.watch(aggregate)
-      since
-        .fold(builder)(x => builder.startAtOperationTime(x.asBsonTimestamp))
-        .batchSize(config.batchSize)
-        .fullDocument(FullDocument.UPDATE_LOOKUP) // this is required for update event
-        .boundedStream(config.batchSize)
-        .drop(skip)
-        // .evalTap(x => debug"Study change stream event: $x")
-        .groupWithin(config.batchSize, config.timeWindows.second)
-        .map(_.toList.unique)
 
     // TOOD: only need to index the latest study
     // We should do that in changeStream by using some fs2 operators
@@ -125,10 +101,9 @@ object StudyIngestor:
               .map(id -> _)
           .pure[IO]
 
-    extension (event: ChangeStreamDocument[Document])
-      private def isDelete: Boolean =
-        event.operationType == DELETE
-      // event.fullDocument.fold(false)(x => !x.isEnabled)
+      // TODO verify
+      private def isErased: Boolean =
+        doc.get("erasedAt").isDefined
 
   object F:
     val name       = "name"
@@ -137,3 +112,6 @@ object StudyIngestor:
     val ownerId    = "ownerId"
     val visibility = "visibility"
     val topics     = "topics"
+    val createdAt  = "createdAt"
+    val erasedAt   = "erasedAt"
+    val updatedAt  = "updatedAt"
