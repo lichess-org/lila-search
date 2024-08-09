@@ -21,7 +21,7 @@ object StudyIngestor:
 
   private val index = Index.Study
 
-  private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics, F.erasedAt)
+  private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics)
 
   private val eventProjection = Projection.include(interestedfields)
 
@@ -43,7 +43,6 @@ object StudyIngestor:
     def run(since: Instant, until: Option[Instant]): fs2.Stream[IO, Unit] =
       val filter = range(F.createdAt)(since, until)
         .or(range(F.updatedAt)(since, until))
-        .or(range(F.erasedAt)(since, until))
       studies
         .find(filter)
         .projection(eventProjection)
@@ -51,9 +50,7 @@ object StudyIngestor:
         .chunkN(config.batchSize)
         .map(_.toList)
         .metered(1.second) // to avoid overloading the elasticsearch
-        .evalMap: docs =>
-          val (toDelete, toIndex) = docs.partition(_.isErased)
-          storeBulk(toIndex) *> elastic.deleteMany(index, toDelete)
+        .evalMap(docs => storeBulk(docs))
 
     def storeBulk(docs: List[Document]): IO[Unit] =
       info"Received ${docs.size} studies to index" *>
@@ -101,10 +98,6 @@ object StudyIngestor:
               .map(id -> _)
           .pure[IO]
 
-      // TODO verify
-      private def isErased: Boolean =
-        doc.get("erasedAt").isDefined
-
   object F:
     val name       = "name"
     val likes      = "likes"
@@ -113,5 +106,4 @@ object StudyIngestor:
     val visibility = "visibility"
     val topics     = "topics"
     val createdAt  = "createdAt"
-    val erasedAt   = "erasedAt"
     val updatedAt  = "updatedAt"
