@@ -11,11 +11,10 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
 import java.time.Instant
-import scala.concurrent.duration.*
 
 trait StudyIngestor:
   // watch change events from MongoDB and ingest studies data into elastic search
-  def watch(since: Instant, until: Option[Instant]): fs2.Stream[IO, Unit]
+  def watch: fs2.Stream[IO, Unit]
 
 object StudyIngestor:
 
@@ -31,26 +30,33 @@ object StudyIngestor:
     (mongo.getCollection("study"), ChapterRepo(mongo))
       .mapN(apply(elastic, store, config))
 
+  // TODO detect delete chapter ==> using oplogs
+  // TODO it never catch up with the latest data
   def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       studies: MongoCollection,
       chapters: ChapterRepo
   )(using
       Logger[IO]
   ): StudyIngestor = new:
-    def watch(since: Instant, until: Option[Instant]): fs2.Stream[IO, Unit] =
-      run(since, until)
+    def watch: fs2.Stream[IO, Unit] =
+      startStream
+        .metered(config.interval)
+        .flatMap: (since, until) =>
+          run(since, until)
 
-    def run(since: Instant, until: Option[Instant]): fs2.Stream[IO, Unit] =
-      val filter = range(F.createdAt)(since, until)
-        .or(range(F.updatedAt)(since, until))
-      studies
-        .find(filter)
-        .projection(eventProjection)
-        .boundedStream(config.batchSize)
-        .chunkN(config.batchSize)
-        .map(_.toList)
-        .metered(1.second) // to avoid overloading the elasticsearch
-        .evalMap(docs => storeBulk(docs))
+    def run(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
+      val filter = range(F.createdAt)(since, until.some)
+        .or(range(F.updatedAt)(since, until.some))
+      fs2.Stream
+        .eval(IO.println(s"Indexing studies from $since to $until")) >>
+        studies
+          .find(filter)
+          .projection(eventProjection)
+          .boundedStream(config.batchSize)
+          .chunkN(config.batchSize)
+          .map(_.toList)
+          // .metered(1.second) // to avoid overloading the elasticsearch
+          .evalMap(docs => storeBulk(docs) *> saveLastIndexedTimestamp(until))
 
     def storeBulk(docs: List[Document]): IO[Unit] =
       info"Received ${docs.size} studies to index" *>
@@ -64,12 +70,25 @@ object StudyIngestor:
       store.put(index.value, time)
         *> info"Stored last indexed time ${time.getEpochSecond} for $index"
 
-    // TODO private
-    def startAt: IO[Option[Instant]] =
-      config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
+    def startAt: IO[Instant] =
+      config.startAt
+        .fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
+        .flatMap(_.fold(IO.realTimeInstant)(IO.pure))
 
-    // TOOD: only need to index the latest study
-    // We should do that in changeStream by using some fs2 operators
+    def startStream =
+      fs2.Stream
+        .eval:
+          config.startAt
+            .fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
+        .flatMap: startAt =>
+          startAt.fold(fs2.Stream.empty)(since => fs2.Stream(since))
+            ++ fs2.Stream
+              .eval(IO.realTimeInstant)
+              .flatMap(now => fs2.Stream.unfold(now)(s => (s, s.plusSeconds(config.interval.toSeconds)).some))
+        .zipWithNext
+        .map: (since, until) =>
+          since -> until.get
+
     extension (docs: List[Document])
       private def toSources: IO[List[StudySourceWithId]] =
         val studyIds = docs.flatMap(_.id).distinct

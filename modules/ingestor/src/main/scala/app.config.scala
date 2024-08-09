@@ -5,6 +5,8 @@ import cats.effect.IO
 import cats.syntax.all.*
 import ciris.*
 
+import scala.concurrent.duration.*
+
 object AppConfig:
 
   def load: IO[AppConfig] = appConfig.load[IO]
@@ -41,7 +43,7 @@ case class IngestorConfig(forum: IngestorConfig.Forum, team: IngestorConfig.Team
 object IngestorConfig:
   case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Long], maxPostLength: Int)
   case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Long])
-  case class Study(batchSize: Int, timeWindows: Int, startAt: Option[Long])
+  case class Study(batchSize: Int, timeWindows: Int, startAt: Option[Long], interval: FiniteDuration)
 
   private object Forum:
     private def batchSize =
@@ -73,6 +75,12 @@ object IngestorConfig:
       env("INGESTOR_STUDY_TIME_WINDOWS").or(prop("ingestor.study.time.windows")).as[Int].default(10)
     private def startAt =
       env("INGESTOR_STUDY_START_AT").or(prop("ingestor.study.start.at")).as[Long].option
-    def config = (batchSize, timeWindows, startAt).mapN(Study.apply)
+    private def interval =
+      env("INGESTOR_STUDY_INTERVAL")
+        .or(prop("ingestor.study.interval"))
+        .as[Long]
+        .default(300)
+        .map(_.seconds)
+    def config = (batchSize, timeWindows, startAt, interval).mapN(Study.apply)
 
   def config = (Forum.config, Team.config, Study.config).mapN(IngestorConfig.apply)

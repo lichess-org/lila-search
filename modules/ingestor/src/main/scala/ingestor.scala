@@ -6,8 +6,6 @@ import cats.syntax.all.*
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.Logger
 
-import java.time.Instant
-
 trait Ingestor:
   def run(): IO[Unit]
 
@@ -31,4 +29,4 @@ object Ingestor:
     StudyIngestor(mongo, elastic, store, config.study).map: studyIngestor =>
       new Ingestor:
         def run() =
-          studyIngestor.watch(since = Instant.now(), until = none).compile.drain
+          studyIngestor.watch.compile.drain
