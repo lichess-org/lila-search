@@ -40,7 +40,7 @@ object StudyIngestor:
   ): StudyIngestor = new:
     def watch: fs2.Stream[IO, Unit] =
       startStream
-        .metered(config.interval)
+        .meteredStartImmediately(config.interval)
         .flatMap: (since, until) =>
           run(since, until)
 

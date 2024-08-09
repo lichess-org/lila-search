@@ -23,10 +23,10 @@ object Ingestor:
           def run() =
             forum.watch.merge(team.watch).compile.drain
 
-  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig)(using
-      Logger[IO]
+  def apply(studyMongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig)(
+      using Logger[IO]
   ): IO[Ingestor] =
-    StudyIngestor(mongo, elastic, store, config.study).map: studyIngestor =>
+    StudyIngestor(studyMongo, elastic, store, config.study).map: studyIngestor =>
       new Ingestor:
         def run() =
           studyIngestor.watch.compile.drain
