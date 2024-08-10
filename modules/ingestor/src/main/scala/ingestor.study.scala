@@ -6,7 +6,7 @@ import cats.syntax.all.*
 import lila.search.spec.StudySource
 import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
-import mongo4cats.operations.Projection
+import mongo4cats.operations.{ Filter, Projection }
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
@@ -22,39 +22,63 @@ object StudyIngestor:
 
   private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics)
 
-  private val docProjector = Projection.include(interestedfields)
+  private val indexDocProjector  = Projection.include(interestedfields)
+  private val deleteDocProjector = Projection.include(F.oplogId)
 
-  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
-      using Logger[IO]
+  def apply(
+      study: MongoDatabase[IO],
+      local: MongoDatabase[IO],
+      elastic: ESClient[IO],
+      store: KVStore,
+      config: IngestorConfig.Study
+  )(using
+      Logger[IO]
   ): IO[StudyIngestor] =
-    (mongo.getCollection("study"), ChapterRepo(mongo))
+    (study.getCollection("study"), ChapterRepo(study), local.getCollection("oplog.rs"))
       .mapN(apply(elastic, store, config))
 
   def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       studies: MongoCollection,
-      chapters: ChapterRepo
+      chapters: ChapterRepo,
+      oplogs: MongoCollection
   )(using
       Logger[IO]
   ): StudyIngestor = new:
     def watch: fs2.Stream[IO, Unit] =
       startStream
         .meteredStartImmediately(config.interval)
-        .flatMap: (since, until) =>
-          run(since, until)
+        .evalMap: (since, until) =>
+          (pullAndIndex(since, until) >> pullAndDelete(since, until)).compile.drain
+            >> saveLastIndexedTimestamp(until)
 
-    def run(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
+    def pullAndIndex(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
       fs2.Stream
-        .eval(IO.println(s"Indexing studies from $since to $until")) >>
+        .eval(info"Indexing studies from $since to $until") >>
         studies
           .find(filter)
-          .projection(docProjector)
+          .projection(indexDocProjector)
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList)
-          // .metered(1.second) // to avoid overloading the elasticsearch
-          .evalMap(docs => storeBulk(docs) *> saveLastIndexedTimestamp(until))
+          .evalMap(storeBulk)
+
+    def pullAndDelete(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
+      val filter =
+        range("ts")(since.asBsonTimestamp, until.asBsonTimestamp.some)
+          .and(Filter.eq("ns", "lichess.study"))
+          .and(Filter.eq("op", "d"))
+      fs2.Stream
+        .eval(info"Deleting studies from $since to $until") >>
+        oplogs
+          .find(filter)
+          .projection(deleteDocProjector)
+          .boundedStream(config.batchSize)
+          .chunkN(config.batchSize)
+          .map(_.toList.flatMap(extractId))
+          .evalTap(xs => info"Deleting $xs")
+          .evalMap(elastic.deleteMany(index, _))
 
     def storeBulk(docs: List[Document]): IO[Unit] =
       info"Received ${docs.size} studies to index" *>
@@ -68,10 +92,8 @@ object StudyIngestor:
       store.put(index.value, time)
         *> info"Stored last indexed time ${time.getEpochSecond} for $index"
 
-    def startAt: IO[Instant] =
-      config.startAt
-        .fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
-        .flatMap(_.fold(IO.realTimeInstant)(IO.pure))
+    def extractId(doc: Document): Option[Id] =
+      doc.getNestedAs[String](F.oplogId).map(Id.apply)
 
     def startStream =
       fs2.Stream
@@ -124,3 +146,4 @@ object StudyIngestor:
     val topics     = "topics"
     val createdAt  = "createdAt"
     val updatedAt  = "updatedAt"
+    val oplogId    = "o._id"
