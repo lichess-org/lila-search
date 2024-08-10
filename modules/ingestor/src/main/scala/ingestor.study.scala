@@ -130,18 +130,38 @@ object StudyIngestor:
       private def toSource(chapters: Map[String, StudyData]): IO[Option[StudySourceWithId]] =
         doc.id
           .flatMap: id =>
-            val name         = doc.getString(F.name)
-            val ownerId      = doc.getString(F.ownerId)
-            val members      = doc.getDocument(F.members).fold(Nil)(_.toMap.keys.toList)
-            val topics       = doc.getList(F.topics).map(_.flatMap(_.asString)).getOrElse(Nil)
-            val likes        = doc.getInt(F.likes).getOrElse(0)
-            val chapterTexts = chapters.get(id).map(_.chapterTexts)
-            val chapterNames = chapters.get(id).map(_.chapterNames)
-            val public       = doc.getString(F.visibility).map(_ == "public").getOrElse(true)
-            (name, ownerId, members.some, chapterNames, chapterTexts, likes.some, public.some, topics.some)
+            (
+              doc.getName,
+              doc.getOwnerId,
+              doc.getMembers.some,
+              doc.getChapterNames(chapters),
+              doc.getChapterTexts(chapters),
+              doc.getLikes.some,
+              doc.getPublic.some,
+              doc.getTopics.some
+            )
               .mapN(StudySource.apply)
               .map(id -> _)
           .pure[IO]
+          .flatTap: source =>
+            def reason =
+              doc.id.fold("missing doc._id; ")(_ => "")
+                + doc.getName.fold("missing doc.name; ")(_ => "")
+                + doc.getOwnerId.fold("missing doc.ownerId; ")(_ => "")
+                + doc.getChapterNames(chapters).fold("missing doc.chapterNames; ")(_ => "")
+                + doc.getChapterTexts(chapters).fold("missing doc.chapterTexts; ")(_ => "")
+            info"failed to convert document to source: $doc because $reason".whenA(source.isEmpty)
+
+      private def getName    = doc.getString(F.name)
+      private def getOwnerId = doc.getString(F.ownerId)
+      private def getMembers = doc.getDocument(F.members).fold(Nil)(_.toMap.keys.toList)
+      private def getTopics  = doc.getList(F.topics).map(_.flatMap(_.asString)).getOrElse(Nil)
+      private def getLikes   = doc.getInt(F.likes).getOrElse(0)
+      private def getChapterTexts(chapters: Map[String, StudyData]) =
+        chapters.get(doc.id.getOrElse("")).map(_.chapterTexts)
+      private def getChapterNames(chapters: Map[String, StudyData]) =
+        chapters.get(doc.id.getOrElse("")).map(_.chapterNames)
+      private def getPublic = doc.getString(F.visibility).map(_ == "public").getOrElse(true)
 
   object F:
     val name       = "name"
