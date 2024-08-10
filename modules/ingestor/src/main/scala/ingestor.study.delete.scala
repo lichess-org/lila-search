@@ -17,11 +17,11 @@ trait StudyDeleter:
 object StudyDeleter:
   private val index = Index.Study
 
-  private val docProjector = Projection.include(_id)
+  private val docProjector = Projection.include(F.id)
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       using Logger[IO]
   ): IO[StudyDeleter] =
-    mongo.getCollection("oplog").map(apply(elastic, store, config))
+    mongo.getCollection("oplog.rs").map(apply(elastic, store, config))
   def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       oplogs: MongoCollection
   )(using
@@ -34,16 +34,24 @@ object StudyDeleter:
           run(since, until)
 
     def run(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
+      // val filter =
+      //   range("ts")(since, until.some).and(Filter.eq("op", "d")).and(Filter.eq("ns", "lichess.study"))
+
       val filter =
-        range("ts")(since, until.some).and(Filter.eq("op", "d")).and(Filter.eq("ns", "lichess.study"))
+        range("ts")(since.asBsonTimestamp, until.asBsonTimestamp.some)
+          .and(Filter.eq("ns", "lichess.study"))
+          .and(Filter.eq("op", "d"))
+      println(filter)
+
       fs2.Stream
-        .eval(IO.println(s"Indexing studies from $since to $until")) >>
+        .eval(IO.println(s"Deleting studies from $since to $until")) >>
         oplogs
           .find(filter)
           .projection(docProjector)
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
-          .map(_.toList)
+          .map(_.toList.flatMap(extractId))
+          .evalTap(IO.println)
           .evalMap(docs => elastic.deleteMany(index, docs))
 
     def startStream =
@@ -59,3 +67,9 @@ object StudyDeleter:
         .zipWithNext
         .map: (since, until) =>
           since -> until.get
+
+    def extractId(doc: Document): Option[Id] =
+      doc.getNestedAs[String](F.id).map(Id.apply)
+
+  object F:
+    val id = "o._id"

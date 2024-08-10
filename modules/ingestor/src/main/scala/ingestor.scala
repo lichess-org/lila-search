@@ -23,13 +23,34 @@ object Ingestor:
           def run() =
             forum.watch.merge(team.watch).compile.drain
 
-  def apply(studyMongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig)(
-      using Logger[IO]
+  def apply2(
+      studyMongo: MongoDatabase[IO],
+      studyLocal: MongoDatabase[IO],
+      elastic: ESClient[IO],
+      store: KVStore,
+      config: IngestorConfig
+  )(using
+      Logger[IO]
   ): IO[Ingestor] =
     (
       StudyIngestor(studyMongo, elastic, store, config.study),
-      StudyDeleter(studyMongo, elastic, store, config.study)
+      StudyDeleter(studyLocal, elastic, store, config.study)
     ).mapN: (studyIngestor, studyDeleter) =>
       new Ingestor:
         def run() =
           studyIngestor.watch.merge(studyDeleter.watch).compile.drain
+
+  def apply(
+      studyMongo: MongoDatabase[IO],
+      studyLocal: MongoDatabase[IO],
+      elastic: ESClient[IO],
+      store: KVStore,
+      config: IngestorConfig
+  )(using
+      Logger[IO]
+  ): IO[Ingestor] =
+    StudyDeleter(studyLocal, elastic, store, config.study)
+      .map: studyDeleter =>
+        new Ingestor:
+          def run() =
+            studyDeleter.watch.compile.drain
