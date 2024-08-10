@@ -48,7 +48,7 @@ object StudyIngestor:
       startStream
         .meteredStartImmediately(config.interval)
         .evalMap: (since, until) =>
-          (pullAndIndex(since, until) ++ pullAndDelete(since, until)).compile.drain
+          (pullAndIndex(since, until).compile.drain) // ++ pullAndDelete(since, until)).compile.drain
             >> saveLastIndexedTimestamp(until)
 
     def pullAndIndex(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
@@ -124,12 +124,7 @@ object StudyIngestor:
               .traverseFilter(_.toSource(chapters))
               .flatTap(IO.println)
 
-    // TODO fix chapter texts
     // TODO log reasons
-    // TODO handle members
-    /*
-     *members": {"arex": {"role": "w", "addedAt": {"$date": "2017-01-31T17:07:05.325Z"}}, "lovlas": {"role": "w", "addedAt": {"$date": "2017-01-31T23:52:34.984Z"}}, "assios": {"role": "w", "addedAt": {"$date": "2017-01-31T23:52:41.185Z"}}, "tonyro": {"role": "w", "addedAt": {"$date": "2017-01-31T23:52:42.882Z"}}, "thibault": {"role": "w", "addedAt": {"$date": "2018-04-04T21:39:38.682Z"}}, "veloce": {"role": "w", "addedAt": {"$date": "2018-04-04T21:24:48.861Z"}}}
-     * */
     type StudySourceWithId = (String, StudySource)
     extension (doc: Document)
       private def toSource(chapters: Map[String, StudyData]): IO[Option[StudySourceWithId]] =
@@ -137,7 +132,7 @@ object StudyIngestor:
           .flatMap: id =>
             val name         = doc.getString(F.name)
             val ownerId      = doc.getString(F.ownerId)
-            val members      = doc.getList(F.members).map(_.flatMap(_.asString)).getOrElse(Nil)
+            val members      = doc.getDocument(F.members).fold(Nil)(_.toMap.keys.toList)
             val topics       = doc.getList(F.topics).map(_.flatMap(_.asString)).getOrElse(Nil)
             val likes        = doc.getInt(F.likes).getOrElse(0)
             val chapterTexts = chapters.get(id).map(_.chapterTexts)
