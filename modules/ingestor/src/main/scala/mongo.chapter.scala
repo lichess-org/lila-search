@@ -113,7 +113,6 @@ object ChapterRepo:
       coll
         .aggregateWithCodec[StudyData](Query.aggregate(ids))
         .stream
-        .evalTap(x => debug"$x")
         .compile
         .toList
         .map(_.map(x => x._id -> x).toMap)

@@ -48,22 +48,23 @@ object StudyIngestor:
       startStream
         .meteredStartImmediately(config.interval)
         .evalMap: (since, until) =>
-          (pullAndIndex(since, until).compile.drain) // ++ pullAndDelete(since, until)).compile.drain
-            >> saveLastIndexedTimestamp(until)
+          info"Indexing studies from $since to $until" *>
+            pullAndIndex(since, until).compile.drain *>
+            info"deleting studies from $since to $until" *>
+            pullAndDelete(since, until).compile.drain
+            *> saveLastIndexedTimestamp(until)
 
     def pullAndIndex(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
-      fs2.Stream
-        .eval(info"Indexing studies from $since to $until $filter") >>
-        studies
-          .find(filter)
-          .projection(indexDocProjection)
-          .boundedStream(config.batchSize)
-          .chunkN(config.batchSize)
-          .map(_.toList)
-          // .evalMap(IO.println)
-          .evalMap(docs => storeBulk(docs))
+      studies
+        .find(filter)
+        .projection(indexDocProjection)
+        .boundedStream(config.batchSize)
+        .chunkN(config.batchSize)
+        .map(_.toList)
+        .evalTap(_.traverse_(x => debug"received $x"))
+        .evalMap(docs => storeBulk(docs))
 
     def pullAndDelete(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
       val filter =
@@ -72,16 +73,14 @@ object StudyIngestor:
           .and(Filter.lt("ts", until.asBsonTimestamp))
           .and(Filter.eq("ns", "lichess.study"))
           .and(Filter.eq("op", "d"))
-      fs2.Stream
-        .eval(info"Deleting studies from $since to $until") >>
-        oplogs
-          .find(filter)
-          .projection(deleteDocProjection)
-          .boundedStream(config.batchSize)
-          .chunkN(config.batchSize)
-          .map(_.toList.flatMap(extractId))
-          .evalTap(xs => info"Deleting $xs")
-          .evalMap(elastic.deleteMany(index, _))
+      oplogs
+        .find(filter)
+        .projection(deleteDocProjection)
+        .boundedStream(config.batchSize)
+        .chunkN(config.batchSize)
+        .map(_.toList.flatMap(extractId))
+        .evalTap(xs => info"Deleting $xs")
+        .evalMap(elastic.deleteMany(index, _))
 
     def storeBulk(docs: List[Document]): IO[Unit] =
       info"Received ${docs.size} studies to index" *>
@@ -115,14 +114,11 @@ object StudyIngestor:
     extension (docs: List[Document])
       private def toSources: IO[List[StudySourceWithId]] =
         val studyIds = docs.flatMap(_.id).distinct // TODO do We need distict here?
-        println("distict test")
-        println(studyIds == docs.flatMap(_.id))
         chapters
           .byStudyIds(studyIds)
           .flatMap: chapters =>
             docs
               .traverseFilter(_.toSource(chapters))
-              .flatTap(IO.println)
 
     // TODO log reasons
     type StudySourceWithId = (String, StudySource)
