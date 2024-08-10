@@ -54,8 +54,8 @@ given Indexable[Source] =
 extension (instant: Instant)
   inline def asBsonTimestamp: BsonTimestamp = BsonTimestamp(instant.getEpochSecond.toInt, 1)
 
-def range[A](field: String)(since: A, until: Option[A]): Filter =
-  val gtes = Filter.gte(field, since)
+def range(field: String)(since: Instant, until: Option[Instant]): Filter =
+  inline def gtes = Filter.gte(field, since)
   until.fold(gtes)(until => gtes.and(Filter.lt(field, until)))
 
 extension (elastic: ESClient[IO])

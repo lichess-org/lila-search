@@ -20,10 +20,10 @@ object StudyIngestor:
 
   private val index = Index.Study
 
-  private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics)
+  private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics, F.likes)
 
-  private val indexDocProjector  = Projection.include(interestedfields)
-  private val deleteDocProjector = Projection.include(F.oplogId)
+  private val indexDocProjection  = Projection.include(interestedfields)
+  private val deleteDocProjection = Projection.include(F.oplogId)
 
   def apply(
       study: MongoDatabase[IO],
@@ -48,32 +48,35 @@ object StudyIngestor:
       startStream
         .meteredStartImmediately(config.interval)
         .evalMap: (since, until) =>
-          (pullAndIndex(since, until) >> pullAndDelete(since, until)).compile.drain
+          (pullAndIndex(since, until) ++ pullAndDelete(since, until)).compile.drain
             >> saveLastIndexedTimestamp(until)
 
     def pullAndIndex(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
       fs2.Stream
-        .eval(info"Indexing studies from $since to $until") >>
+        .eval(info"Indexing studies from $since to $until $filter") >>
         studies
           .find(filter)
-          .projection(indexDocProjector)
+          .projection(indexDocProjection)
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList)
-          .evalMap(storeBulk)
+          // .evalMap(IO.println)
+          .evalMap(docs => storeBulk(docs))
 
     def pullAndDelete(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
       val filter =
-        range("ts")(since.asBsonTimestamp, until.asBsonTimestamp.some)
+        Filter
+          .gte("ts", since.asBsonTimestamp)
+          .and(Filter.lt("ts", until.asBsonTimestamp))
           .and(Filter.eq("ns", "lichess.study"))
           .and(Filter.eq("op", "d"))
       fs2.Stream
         .eval(info"Deleting studies from $since to $until") >>
         oplogs
           .find(filter)
-          .projection(deleteDocProjector)
+          .projection(deleteDocProjection)
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList.flatMap(extractId))
@@ -111,14 +114,22 @@ object StudyIngestor:
 
     extension (docs: List[Document])
       private def toSources: IO[List[StudySourceWithId]] =
-        val studyIds = docs.flatMap(_.id).distinct
+        val studyIds = docs.flatMap(_.id).distinct // TODO do We need distict here?
+        println("distict test")
+        println(studyIds == docs.flatMap(_.id))
         chapters
           .byStudyIds(studyIds)
           .flatMap: chapters =>
             docs
-              .traverse(_.toSource(chapters))
-              .map(_.flatten)
+              .traverseFilter(_.toSource(chapters))
+              .flatTap(IO.println)
 
+    // TODO fix chapter texts
+    // TODO log reasons
+    // TODO handle members
+    /*
+     *members": {"arex": {"role": "w", "addedAt": {"$date": "2017-01-31T17:07:05.325Z"}}, "lovlas": {"role": "w", "addedAt": {"$date": "2017-01-31T23:52:34.984Z"}}, "assios": {"role": "w", "addedAt": {"$date": "2017-01-31T23:52:41.185Z"}}, "tonyro": {"role": "w", "addedAt": {"$date": "2017-01-31T23:52:42.882Z"}}, "thibault": {"role": "w", "addedAt": {"$date": "2018-04-04T21:39:38.682Z"}}, "veloce": {"role": "w", "addedAt": {"$date": "2018-04-04T21:24:48.861Z"}}}
+     * */
     type StudySourceWithId = (String, StudySource)
     extension (doc: Document)
       private def toSource(chapters: Map[String, StudyData]): IO[Option[StudySourceWithId]] =
