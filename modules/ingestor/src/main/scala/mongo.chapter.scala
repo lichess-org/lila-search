@@ -10,7 +10,6 @@ import mongo4cats.circe.*
 import mongo4cats.database.MongoDatabase
 import mongo4cats.operations.{ Accumulator, Aggregate, Filter }
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.syntax.*
 
 trait ChapterRepo:
   // Aggregate chapters data and convert them to StudyChapterText by their study ids

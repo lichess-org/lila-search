@@ -9,9 +9,9 @@ import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.Logger
 
 class AppResources(
-    val mongo: MongoDatabase[IO],
-    val studyMongo: MongoDatabase[IO],
-    val studyOplog: MongoDatabase[IO],
+    val lichess: MongoDatabase[IO],
+    val study: MongoDatabase[IO],
+    val studyLocal: MongoDatabase[IO],
     val elastic: ESClient[IO],
     val store: KVStore
 )
