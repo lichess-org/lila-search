@@ -1,4 +1,3 @@
-import org.typelevel.scalacoptions.{ ScalacOption, ScalacOptions }
 import Dependencies.*
 
 inThisBuild(

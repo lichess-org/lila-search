@@ -45,7 +45,7 @@ object StudyIngestor:
       Logger[IO]
   ): StudyIngestor = new:
     def watch: fs2.Stream[IO, Unit] =
-      startStream
+      intervalStream
         .meteredStartImmediately(config.interval)
         .evalMap: (since, until) =>
           info"Indexing studies from $since to $until" *>
@@ -97,7 +97,7 @@ object StudyIngestor:
     def extractId(doc: Document): Option[Id] =
       doc.getNestedAs[String](F.oplogId).map(Id.apply)
 
-    def startStream =
+    def intervalStream: fs2.Stream[IO, (Instant, Instant)] =
       fs2.Stream
         .eval:
           config.startAt
@@ -108,8 +108,7 @@ object StudyIngestor:
               .eval(IO.realTimeInstant)
               .flatMap(now => fs2.Stream.unfold(now)(s => (s, s.plusSeconds(config.interval.toSeconds)).some))
         .zipWithNext
-        .map: (since, until) =>
-          since -> until.get
+        .map((since, until) => since -> until.get)
 
     extension (docs: List[Document])
       private def toSources: IO[List[StudySourceWithId]] =

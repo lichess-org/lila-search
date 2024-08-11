@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.sksamuel.elastic4s.Indexable
-import lila.search.spec.{ ForumSource, Source }
+import lila.search.spec.Source
 import mongo4cats.bson.Document
 import mongo4cats.collection.GenericMongoCollection
 import mongo4cats.models.collection.ChangeStreamDocument
