@@ -28,4 +28,9 @@ object Ingestor:
     ).mapN: (forum, team, study) =>
       new Ingestor:
         def run() =
-          forum.watch.merge(team.watch).merge(study.watch).compile.drain
+          fs2
+            .Stream(forum.watch, team.watch, study.watch)
+            .covary[IO]
+            .parJoinUnbounded
+            .compile
+            .drain
