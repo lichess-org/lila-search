@@ -42,14 +42,12 @@ case class StudyData(
 
 object StudyData:
 
-  import io.circe.Decoder.decodeString
-  import io.circe.Encoder.encodeString
-  given Decoder[Tag] = decodeString.emap: s =>
+  given Decoder[Tag] = Decoder.decodeString.emap: s =>
     s.split(":", 2) match
       case Array(name, value) => Tag(name, value).asRight
       case _                  => "Invalid pgn tag $v".asLeft
 
-  given Encoder[Tag] = encodeString.contramap(t => s"${t.name}:${t.value}")
+  given Encoder[Tag] = Encoder.encodeString.contramap(t => s"${t.name}:${t.value}")
 
   private val relevantPgnTags: Set[chess.format.pgn.TagType] = Set(
     Tag.Variant,
