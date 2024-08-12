@@ -29,8 +29,9 @@ object MongoConfig:
   private def uri  = env("MONGO_URI").or(prop("mongo.uri")).as[String]
   private def name = env("MONGO_DATABASE").or(prop("mongo.database")).as[String].default("lichess")
 
-  private def studyUri  = env("MONGO_STUDY_URI").or(prop("mongo.study.uri")).as[String]
-  private def studyName = env("MONGO_STUDY_DATABASE").or(prop("mongo.database")).as[String].default("lichess")
+  private def studyUri = env("MONGO_STUDY_URI").or(prop("mongo.study.uri")).as[String]
+  private def studyName =
+    env("MONGO_STUDY_DATABASE").or(prop("mongo.study.database")).as[String].default("lichess")
 
   def config = (uri, name, studyUri, studyName).parMapN(MongoConfig.apply)
 
