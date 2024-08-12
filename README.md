@@ -36,5 +36,11 @@ prepare
 
 Start ingestor service:
 ```sh
-ingestor/run
+ingestor/runMain lila.search.ingestor.App
+```
+
+### start ingestor cli tool
+
+```sh
+ingestor/runMain lila.search.ingestor.cli --help
 ```
