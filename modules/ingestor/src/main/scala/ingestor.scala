@@ -11,14 +11,26 @@ trait Ingestor:
 
 object Ingestor:
 
-  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig)(using
+  def apply(
+      lichess: MongoDatabase[IO],
+      study: MongoDatabase[IO],
+      local: MongoDatabase[IO],
+      elastic: ESClient[IO],
+      store: KVStore,
+      config: IngestorConfig
+  )(using
       Logger[IO]
   ): IO[Ingestor] =
     (
-      ForumIngestor(mongo, elastic, store, config.forum),
-      TeamIngestor(mongo, elastic, store, config.team)
-    )
-      .mapN: (forum, team) =>
-        new Ingestor:
-          def run() =
-            forum.watch.merge(team.watch).compile.drain
+      ForumIngestor(lichess, elastic, store, config.forum),
+      TeamIngestor(lichess, elastic, store, config.team),
+      StudyIngestor(study, local, elastic, store, config.study)
+    ).mapN: (forum, team, study) =>
+      new Ingestor:
+        def run() =
+          fs2
+            .Stream(forum.watch, team.watch, study.watch)
+            .covary[IO]
+            .parJoinUnbounded
+            .compile
+            .drain

@@ -178,10 +178,10 @@ object ForumIngestor:
     val text      = "text"
     val topicId   = "topicId"
     val troll     = "troll"
-    val createdAt = "createdAt"
     val userId    = "userId"
-    val erasedAt  = "erasedAt"
+    val createdAt = "createdAt"
     val updatedAt = "updatedAt"
+    val erasedAt  = "erasedAt"
 
   object Topic:
     val name = "name"

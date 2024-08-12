@@ -5,6 +5,8 @@ import cats.effect.IO
 import cats.syntax.all.*
 import ciris.*
 
+import scala.concurrent.duration.*
+
 object AppConfig:
 
   def load: IO[AppConfig] = appConfig.load[IO]
@@ -20,15 +22,17 @@ case class AppConfig(
     elastic: ElasticConfig,
     ingestor: IngestorConfig
 )
-case class MongoConfig(uri: String, name: String)
+case class MongoConfig(uri: String, name: String, studyUri: String, studyName: String)
 
-// TODO study mongo config
 object MongoConfig:
 
   private def uri  = env("MONGO_URI").or(prop("mongo.uri")).as[String]
-  private def name = env("MONGO_DATABASE").or(prop("mongo.database")).as[String]
+  private def name = env("MONGO_DATABASE").or(prop("mongo.database")).as[String].default("lichess")
 
-  def config = (uri, name).parMapN(MongoConfig.apply)
+  private def studyUri  = env("MONGO_STUDY_URI").or(prop("mongo.study.uri")).as[String]
+  private def studyName = env("MONGO_STUDY_DATABASE").or(prop("mongo.database")).as[String].default("lichess")
+
+  def config = (uri, name, studyUri, studyName).parMapN(MongoConfig.apply)
 
 case class ElasticConfig(uri: String)
 
@@ -41,7 +45,7 @@ case class IngestorConfig(forum: IngestorConfig.Forum, team: IngestorConfig.Team
 object IngestorConfig:
   case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Long], maxPostLength: Int)
   case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Long])
-  case class Study(batchSize: Int, timeWindows: Int, startAt: Option[Long])
+  case class Study(batchSize: Int, timeWindows: Int, startAt: Option[Long], interval: FiniteDuration)
 
   private object Forum:
     private def batchSize =
@@ -73,6 +77,12 @@ object IngestorConfig:
       env("INGESTOR_STUDY_TIME_WINDOWS").or(prop("ingestor.study.time.windows")).as[Int].default(10)
     private def startAt =
       env("INGESTOR_STUDY_START_AT").or(prop("ingestor.study.start.at")).as[Long].option
-    def config = (batchSize, timeWindows, startAt).mapN(Study.apply)
+    private def interval =
+      env("INGESTOR_STUDY_INTERVAL")
+        .or(prop("ingestor.study.interval"))
+        .as[Long]
+        .default(300)
+        .map(_.seconds)
+    def config = (batchSize, timeWindows, startAt, interval).mapN(Study.apply)
 
   def config = (Forum.config, Team.config, Study.config).mapN(IngestorConfig.apply)

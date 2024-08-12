@@ -28,7 +28,7 @@ object cli
     for
       config <- AppConfig.load.toResource
       res    <- AppResources.instance(config)
-      forum  <- ForumIngestor(res.mongo, res.elastic, res.store, config.ingestor.forum).toResource
+      forum  <- ForumIngestor(res.lichess, res.elastic, res.store, config.ingestor.forum).toResource
     yield forum
 
   def execute(opts: IndexOpts): IO[Unit] =

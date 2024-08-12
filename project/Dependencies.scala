@@ -3,8 +3,11 @@ import smithy4s.codegen.BuildInfo.version as smithy4sVersion
 
 object Dependencies {
 
+  val lilaMaven = "lila-maven" at "https://raw.githubusercontent.com/lichess-org/lila-maven/master"
+
   object V {
     val catsEffect = "3.5.4"
+    val chess      = "15.7.11"
     val ciris      = "3.6.0"
     val decline    = "2.4.1"
     val elastic4s  = "8.14.0"
@@ -16,6 +19,8 @@ object Dependencies {
 
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
   def smithy4s(artifact: String) = "com.disneystreaming.smithy4s" %% s"smithy4s-$artifact" % smithy4sVersion
+
+  val chess = "org.lichess" %% "scalachess" % V.chess
 
   val catsCore   = "org.typelevel" %% "cats-core"   % "2.12.0"
   val catsEffect = "org.typelevel" %% "cats-effect" % V.catsEffect
@@ -47,6 +52,7 @@ object Dependencies {
 
   val mongo4catsCore = "io.github.kirill5k" %% "mongo4cats-core" % V.mongo4cats
   val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % V.mongo4cats
+  val circe = "io.circe" %% "circe-core" % "0.14.9"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.6"

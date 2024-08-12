@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.sksamuel.elastic4s.Indexable
-import lila.search.spec.{ ForumSource, Source }
+import lila.search.spec.Source
 import mongo4cats.bson.Document
 import mongo4cats.collection.GenericMongoCollection
 import mongo4cats.models.collection.ChangeStreamDocument
@@ -55,7 +55,7 @@ extension (instant: Instant)
   inline def asBsonTimestamp: BsonTimestamp = BsonTimestamp(instant.getEpochSecond.toInt, 1)
 
 def range(field: String)(since: Instant, until: Option[Instant]): Filter =
-  val gtes = Filter.gte(field, since)
+  inline def gtes = Filter.gte(field, since)
   until.fold(gtes)(until => gtes.and(Filter.lt(field, until)))
 
 extension (elastic: ESClient[IO])

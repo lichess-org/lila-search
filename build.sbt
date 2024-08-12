@@ -1,4 +1,3 @@
-import org.typelevel.scalacoptions.{ ScalacOption, ScalacOptions }
 import Dependencies.*
 
 inThisBuild(
@@ -56,7 +55,9 @@ lazy val ingestor = (project in file("modules/ingestor"))
     name           := "ingestor",
     publish        := {},
     publish / skip := true,
+    resolvers += lilaMaven,
     libraryDependencies ++= Seq(
+      chess,
       catsCore,
       fs2,
       fs2IO,
@@ -68,7 +69,9 @@ lazy val ingestor = (project in file("modules/ingestor"))
       smithy4sJson,
       jsoniterCore,
       jsoniterMacro,
+      circe,
       mongo4catsCore,
+      mongo4catsCirce,
       log4Cats,
       logback,
       weaver,
