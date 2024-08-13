@@ -17,14 +17,14 @@ object Ingestor:
       local: MongoDatabase[IO],
       elastic: ESClient[IO],
       store: KVStore,
-      config: IngestorConfig
+      config: AppConfig
   )(using
       Logger[IO]
   ): IO[Ingestor] =
     (
-      ForumIngestor(lichess, elastic, store, config.forum),
-      TeamIngestor(lichess, elastic, store, config.team),
-      StudyIngestor(study, local, elastic, store, config.study)
+      ForumIngestor(lichess, elastic, store, config.ingestor.forum),
+      TeamIngestor(lichess, elastic, store, config.ingestor.team),
+      StudyIngestor(study, local, elastic, store, config.ingestor.study, config.mongo.studyName)
     ).mapN: (forum, team, study) =>
       new Ingestor:
         def run() =
