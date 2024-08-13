@@ -122,14 +122,13 @@ object StudyIngestor:
 
     extension (docs: List[Document])
       private def toSources: IO[List[StudySourceWithId]] =
-        val studyIds = docs.flatMap(_.id).distinct // TODO do We need distict here?
+        val studyIds = docs.flatMap(_.id).distinct
         chapters
           .byStudyIds(studyIds)
           .flatMap: chapters =>
             docs
               .traverseFilter(_.toSource(chapters))
 
-    // TODO log reasons
     type StudySourceWithId = (String, StudySource)
     extension (doc: Document)
       private def toSource(chapters: Map[String, StudyData]): IO[Option[StudySourceWithId]] =
