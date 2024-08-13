@@ -31,14 +31,15 @@ object StudyIngestor:
       local: MongoDatabase[IO],
       elastic: ESClient[IO],
       store: KVStore,
-      config: IngestorConfig.Study
+      config: IngestorConfig.Study,
+      studyName: String
   )(using
       Logger[IO]
   ): IO[StudyIngestor] =
     (study.getCollection("study"), ChapterRepo(study), local.getCollection("oplog.rs"))
-      .mapN(apply(elastic, store, config))
+      .mapN(apply(elastic, store, config, studyName))
 
-  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
+  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study, studyName: String)(
       studies: MongoCollection,
       chapters: ChapterRepo,
       oplogs: MongoCollection
@@ -74,7 +75,7 @@ object StudyIngestor:
         Filter
           .gte("ts", since.asBsonTimestamp)
           .and(Filter.lt("ts", until.asBsonTimestamp))
-          .and(Filter.eq("ns", "study.study"))
+          .and(Filter.eq("ns", s"$studyName.study"))
           .and(Filter.eq("op", "d"))
       oplogs
         .find(filter)
