@@ -15,6 +15,7 @@ import java.time.Instant
 trait StudyIngestor:
   // pull changes from study MongoDB and ingest into elastic search
   def watch: fs2.Stream[IO, Unit]
+  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
 
 object StudyIngestor:
 
@@ -47,14 +48,16 @@ object StudyIngestor:
     def watch: fs2.Stream[IO, Unit] =
       intervalStream
         .meteredStartImmediately(config.interval)
-        .evalMap: (since, until) =>
-          info"Indexing studies from $since to $until" *>
-            pullAndIndex(since, until).compile.drain *>
-            info"deleting studies from $since to $until" *>
-            pullAndDelete(since, until).compile.drain
-            *> saveLastIndexedTimestamp(until)
+        .flatMap: (since, until) =>
+          run(since, until, dryRun = false)
 
-    def pullAndIndex(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
+    def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit] =
+      fs2.Stream.eval(info"Indexing studies from $since to $until") ++
+        pullAndIndex(since, until, dryRun) ++
+        fs2.Stream.eval(info"deleting studies from $since to $until") ++
+        pullAndDelete(since, until, dryRun)
+
+    def pullAndIndex(since: Instant, until: Instant, dryRun: Boolean = false): fs2.Stream[IO, Unit] =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
       studies
@@ -64,14 +67,14 @@ object StudyIngestor:
         .chunkN(config.batchSize)
         .map(_.toList)
         .evalTap(_.traverse_(x => debug"received $x"))
-        .evalMap(docs => storeBulk(docs))
+        .evalMap(storeBulk(_, dryRun))
 
-    def pullAndDelete(since: Instant, until: Instant): fs2.Stream[IO, Unit] =
+    def pullAndDelete(since: Instant, until: Instant, dryRun: Boolean = false): fs2.Stream[IO, Unit] =
       val filter =
         Filter
           .gte("ts", since.asBsonTimestamp)
           .and(Filter.lt("ts", until.asBsonTimestamp))
-          .and(Filter.eq("ns", "lichess.study"))
+          .and(Filter.eq("ns", "study.study"))
           .and(Filter.eq("op", "d"))
       oplogs
         .find(filter)
@@ -80,15 +83,22 @@ object StudyIngestor:
         .chunkN(config.batchSize)
         .map(_.toList.flatMap(extractId))
         .evalTap(xs => info"Deleting $xs")
-        .evalMap(elastic.deleteMany(index, _))
+        .evalMap:
+          dryRun.fold(
+            xs => xs.traverse_(x => debug"Would delete $x"),
+            elastic.deleteMany(index, _)
+          )
 
-    def storeBulk(docs: List[Document]): IO[Unit] =
+    def storeBulk(docs: List[Document], dryRun: Boolean = false): IO[Unit] =
       info"Received ${docs.size} studies to index" *>
         docs.toSources.flatMap: sources =>
-          elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} studies"
-            .handleErrorWith: e =>
-              Logger[IO].error(e)(s"Failed to index studies: ${docs.map(_.id).mkString(", ")}")
-            .whenA(docs.nonEmpty)
+          dryRun.fold(
+            sources.traverse_(source => debug"Would index $source"),
+            elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} studies"
+              .handleErrorWith: e =>
+                Logger[IO].error(e)(s"Failed to index studies: ${docs.map(_.id).mkString(", ")}")
+              .whenA(docs.nonEmpty)
+          )
 
     def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)

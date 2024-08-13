@@ -22,21 +22,34 @@ object cli
   given Logger[IO] = Slf4jLogger.getLogger[IO]
 
   override def main: Opts[IO[ExitCode]] =
-    opts.parse.map(x => execute(x).as(ExitCode.Success))
+    opts.parse.map: opts =>
+      makeExecutor.use(_.execute(opts).as(ExitCode.Success))
 
-  def makeIngestor: Resource[IO, ForumIngestor] =
+  def makeExecutor: Resource[IO, Executor] =
     for
       config <- AppConfig.load.toResource
       res    <- AppResources.instance(config)
       forum  <- ForumIngestor(res.lichess, res.elastic, res.store, config.ingestor.forum).toResource
-    yield forum
+      study <- StudyIngestor(
+        res.study,
+        res.studyLocal,
+        res.elastic,
+        res.store,
+        config.ingestor.study
+      ).toResource
+    yield Executor(forum, study)
 
-  def execute(opts: IndexOpts): IO[Unit] =
-    if opts.index == Index.Forum then makeIngestor.use(_.run(opts.since, opts.until, opts.dry).compile.drain)
-    else IO.println("We only support forum backfill for now")
+  class Executor(val forum: ForumIngestor, val study: StudyIngestor):
+    def execute(opts: IndexOpts): IO[Unit] =
+      opts.index match
+        case Index.Forum =>
+          forum.run(opts.since, opts.until, opts.dry).compile.drain
+        case Index.Study =>
+          study.run(opts.since, opts.until, opts.dry).compile.drain
+        case _ => IO.println("We only support forum/study backfill for now")
 
 object opts:
-  case class IndexOpts(index: Index, since: Instant, until: Option[Instant], dry: Boolean)
+  case class IndexOpts(index: Index, since: Instant, until: Instant, dry: Boolean)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt)
 
@@ -60,7 +73,7 @@ object opts:
         short = "u",
         metavar = "time in epoch seconds"
       )
-      .orNone,
+      .orElse(Instant.now.pure[Opts]),
     Opts
       .flag(
         long = "dry",
@@ -71,7 +84,7 @@ object opts:
       .map(_.isDefined)
   ).mapN(IndexOpts.apply)
     .mapValidated(x =>
-      if x.until.forall(_.isAfter(x.since)) then Validated.valid(x)
+      if x.until.isAfter(x.since) then Validated.valid(x)
       else Validated.invalidNel(s"since: ${x.since} must be before until: ${x.until}")
     )
 
