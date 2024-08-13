@@ -112,4 +112,5 @@ object ChapterRepo:
         .stream
         .compile
         .toList
+        .flatTap(docs => Logger[IO].debug(s"Received $docs chapters"))
         .map(_.map(x => x._id -> x).toMap)

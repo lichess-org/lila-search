@@ -19,7 +19,7 @@ trait ForumIngestor:
   // watch change events from MongoDB and ingest forum posts into elastic search
   def watch: fs2.Stream[IO, Unit]
   // Fetch posts in [since, until] and ingest into elastic search
-  def run(since: Instant, until: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit]
+  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
 
 object ForumIngestor:
 
@@ -65,10 +65,10 @@ object ForumIngestor:
                 *> elastic.deleteMany(index, toDelete)
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now()))
 
-    def run(since: Instant, until: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit] =
-      val filter = range(F.createdAt)(since, until)
-        .or(range(F.updatedAt)(since, until))
-        .or(range(F.erasedAt)(since, until))
+    def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit] =
+      val filter = range(F.createdAt)(since, until.some)
+        .or(range(F.updatedAt)(since, until.some))
+        .or(range(F.erasedAt)(since, until.some))
       posts
         .find(filter)
         .projection(postProjection)
