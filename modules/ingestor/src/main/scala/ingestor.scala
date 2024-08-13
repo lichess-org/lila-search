@@ -25,11 +25,11 @@ object Ingestor:
       ForumIngestor(lichess, elastic, store, config.forum),
       TeamIngestor(lichess, elastic, store, config.team),
       StudyIngestor(study, local, elastic, store, config.study)
-    ).mapN: (forum, team, study) =>
+    ).mapN: (forum, team, _) =>
       new Ingestor:
         def run() =
           fs2
-            .Stream(forum.watch, team.watch, study.watch)
+            .Stream(forum.watch, team.watch) // , study.watch)
             .covary[IO]
             .parJoinUnbounded
             .compile
