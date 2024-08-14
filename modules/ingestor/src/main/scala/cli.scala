@@ -35,8 +35,7 @@ object cli
         res.studyLocal,
         res.elastic,
         res.store,
-        config.ingestor.study,
-        config.mongo.studyName
+        config.ingestor.study
       ).toResource
     yield Executor(forum, study)
 

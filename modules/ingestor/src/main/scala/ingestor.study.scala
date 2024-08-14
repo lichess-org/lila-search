@@ -31,21 +31,16 @@ object StudyIngestor:
       local: MongoDatabase[IO],
       elastic: ESClient[IO],
       store: KVStore,
-      config: IngestorConfig.Study,
-      studyName: String
-  )(using
-      Logger[IO]
-  ): IO[StudyIngestor] =
+      config: IngestorConfig.Study
+  )(using Logger[IO]): IO[StudyIngestor] =
     (study.getCollection("study"), ChapterRepo(study), local.getCollection("oplog.rs"))
-      .mapN(apply(elastic, store, config, studyName))
+      .mapN(apply(elastic, store, config))
 
-  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study, studyName: String)(
+  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
       studies: MongoCollection,
       chapters: ChapterRepo,
       oplogs: MongoCollection
-  )(using
-      Logger[IO]
-  ): StudyIngestor = new:
+  )(using Logger[IO]): StudyIngestor = new:
     def watch: fs2.Stream[IO, Unit] =
       intervalStream
         .meteredStartImmediately(config.interval)
@@ -75,7 +70,7 @@ object StudyIngestor:
         Filter
           .gte("ts", since.asBsonTimestamp)
           .and(Filter.lt("ts", until.asBsonTimestamp))
-          .and(Filter.eq("ns", s"$studyName.study"))
+          .and(Filter.eq("ns", s"${config.databaseName}.study"))
           .and(Filter.eq("op", "d"))
       oplogs
         .find(filter)
