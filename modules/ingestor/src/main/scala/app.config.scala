@@ -24,16 +24,17 @@ case class AppConfig(
 )
 case class MongoConfig(uri: String, name: String, studyUri: String, studyName: String)
 
+private def studyDatabase =
+  env("MONGO_STUDY_DATABASE").or(prop("mongo.study.database")).as[String].default("lichess")
+
 object MongoConfig:
 
   private def uri  = env("MONGO_URI").or(prop("mongo.uri")).as[String]
   private def name = env("MONGO_DATABASE").or(prop("mongo.database")).as[String].default("lichess")
 
   private def studyUri = env("MONGO_STUDY_URI").or(prop("mongo.study.uri")).as[String]
-  private def studyName =
-    env("MONGO_STUDY_DATABASE").or(prop("mongo.study.database")).as[String].default("lichess")
 
-  def config = (uri, name, studyUri, studyName).parMapN(MongoConfig.apply)
+  def config = (uri, name, studyUri, studyDatabase).parMapN(MongoConfig.apply)
 
 case class ElasticConfig(uri: String)
 
@@ -46,7 +47,7 @@ case class IngestorConfig(forum: IngestorConfig.Forum, team: IngestorConfig.Team
 object IngestorConfig:
   case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Long], maxPostLength: Int)
   case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Long])
-  case class Study(batchSize: Int, startAt: Option[Long], interval: FiniteDuration)
+  case class Study(batchSize: Int, startAt: Option[Long], interval: FiniteDuration, databaseName: String)
 
   private object Forum:
     private def batchSize =
@@ -82,6 +83,6 @@ object IngestorConfig:
         .as[Long]
         .default(300)
         .map(_.seconds)
-    def config = (batchSize, startAt, interval).mapN(Study.apply)
+    def config = (batchSize, startAt, interval, studyDatabase).mapN(Study.apply)
 
   def config = (Forum.config, Team.config, Study.config).mapN(IngestorConfig.apply)
