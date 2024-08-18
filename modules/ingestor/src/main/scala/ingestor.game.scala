@@ -4,7 +4,6 @@ package ingestor
 import cats.effect.*
 import cats.syntax.all.*
 import com.mongodb.client.model.changestream.FullDocument
-import com.monovore.decline.*
 import io.circe.*
 import mongo4cats.circe.*
 import mongo4cats.collection.MongoCollection
@@ -114,51 +113,215 @@ object GameIngestor:
 }
        * */
 
+final case class GameSource(
+    status: Int,
+    turns: Int,
+    rated: Boolean,
+    perf: Int,
+    winnerColor: Int,
+    date: SearchDateTime,
+    analysed: Boolean,
+    uids: Option[List[String]] = None,
+    winner: Option[String] = None,
+    loser: Option[String] = None,
+    averageRating: Option[Int] = None,
+    ai: Option[Int] = None,
+    duration: Option[Int] = None,
+    clockInit: Option[Int] = None,
+    clockInc: Option[Int] = None,
+    whiteUser: Option[String] = None,
+    blackUser: Option[String] = None,
+    source: Option[Int] = None
+)
+
+type PlayerId = String
+
 case class DbGame(
     id: String,                     // _id
-    players: List[String],  // us
+    players: List[PlayerId],        // us
+    winnerId: Option[PlayerId],     // wid
+    createdAt: Instant,             // ca
+    moveAt: Instant,                // ua
+    turn: Int,                      // t
+    analysed: Boolean,              // an
+    playingUids: List[PlayerId],    // pl ??? wtf is this
     whitePlayer: DbPlayer,          // p0
     blackPlayer: DbPlayer,          // p1
-    status: Int,                    // s
+    playerIds: List[String],        // is
+    binaryPieces: Array[Byte],      // ps // ByteVector from scodec
     huffmanPgn: Array[Byte],        // hp
+    status: Int,                    // s
     encodedClock: Array[Byte],      // c
+    moveTimes: Array[Byte],         // mt
     encodedWhiteClock: Array[Byte], // cw
     encodedBlackClock: Array[Byte], // cb
-    turn: Int,                      // t
-    createdAt: Instant,             // ca
-    moveAt: Instant,                 // ua
-    rated: Boolean,  // ra
+    rated: Boolean,                 // ra
+    variant: Int,                   // v
+    source: Int,                    // so
+    winnerColor: Option[Boolean]    // w
 ):
   def clock               = ClockDecoder.read(encodedClock)
   def validClock: Boolean = clock.exists(_.forall(_.sastify))
 
+  def averageUsersRating: Option[Int] = ???
+
+  def toSource: GameSource =
+    GameSource(
+      status = status,
+      turns = (turn + 1) / 2,
+      rated = rated,
+      perf = variant,
+      winnerColor = winnerColor.fold(3)(if _ then 1 else 2),
+      date = SearchDateTime.fromInstant(moveAt),
+      analysed = analysed,
+      uids = playingUids.some.filterNot(_.isEmpty),
+      winner = winnerId,
+      loser = playerIds.find(_.some != winnerId),
+      averageRating = averageUsersRating,
+      ai = ???,
+      duration = ???,
+      clockInit = ???,
+      clockInc = ???,
+      whiteUser = ???,
+      blackUser = ???,
+      source = source.some
+    )
+
 val minTotalSeconds = 5 * 60      // 5 minutes
 val maxTotalSeconds = 8 * 60 * 60 // 8 hours
+
+// object BSONFields:
+//
+// object BSONFields:
+//
+//   val id          = "_id"
+//   val playerUids  = "us"
+//   val winnerId    = "wid"
+//   val createdAt   = "ca"
+//   val movedAt     = "ua" // ua = updatedAt (bc)
+//   val turns       = "t"
+//   val analysed    = "an"
+//   val pgnImport   = "pgni"
+//   val playingUids = "pl"
+//   val whitePlayer       = "p0"
+//   val blackPlayer       = "p1"
+//   val playerIds         = "is"
+//   val binaryPieces      = "ps"
+//   val oldPgn            = "pg"
+//   val huffmanPgn        = "hp"
+//   val status            = "s"
+//   val startedAtTurn     = "st"
+//   val clock             = "c"
+//   val positionHashes    = "ph"
+//   val checkCount        = "cc"
+//   val castleLastMove    = "cl"
+//   val unmovedRooks      = "ur"
+//   val daysPerTurn       = "cd"
+//   val moveTimes         = "mt"
+//   val whiteClockHistory = "cw"
+//   val blackClockHistory = "cb"
+//   val rated             = "ra"
+//   val variant           = "v"
+//   val crazyData         = "chd"
+//   val bookmarks         = "bm"
+//   val source            = "so"
+//   val tournamentId      = "tid"
+//   val swissId           = "iid"
+//   val simulId           = "sid"
+//   val tvAt              = "tv"
+//   val winnerColor       = "w"
+//   val initialFen        = "if"
+//   val checkAt           = "ck"
+//   val drawOffers        = "do"
+//   val rules             = "rules"
 
 object DbGame:
 
   given Decoder[DbGame] =
-    Decoder.forProduct12("_id", "us", "p0", "p1", "s", "hp", "c", "cw", "cb", "t", "ca", "ua")(DbGame.apply)
+    Decoder.forProduct22(
+      "_id",
+      "us",
+      "wid",
+      "ca",
+      "ua",
+      "t",
+      "an",
+      "pl",
+      "p0",
+      "p1",
+      "is",
+      "ps",
+      "hp",
+      "s",
+      "c",
+      "mt",
+      "cw",
+      "cb",
+      "ra",
+      "v",
+      "so",
+      "w"
+    )(DbGame.apply)
 
   given Encoder[DbGame] =
-    Encoder.forProduct12("_id", "us", "p0", "p1", "s", "hp", "c", "cw", "cb", "t", "ca", "ua")(g =>
+    Encoder.forProduct22(
+      "_id",
+      "us",
+      "wid",
+      "ca",
+      "ua",
+      "t",
+      "an",
+      "pl",
+      "p0",
+      "p1",
+      "is",
+      "ps",
+      "hp",
+      "s",
+      "c",
+      "mt",
+      "cw",
+      "cb",
+      "ra",
+      "v",
+      "so",
+      "w"
+    )(g =>
       (
         g.id,
         g.players,
+        g.winnerId,
+        g.createdAt,
+        g.moveAt,
+        g.turn,
+        g.analysed,
+        g.playingUids,
         g.whitePlayer,
         g.blackPlayer,
-        g.status,
+        g.playerIds,
+        g.binaryPieces,
         g.huffmanPgn,
+        g.status,
         g.encodedClock,
+        g.moveTimes,
         g.encodedWhiteClock,
         g.encodedBlackClock,
-        g.turn,
-        g.createdAt,
-        g.moveAt
+        g.rated,
+        g.variant,
+        g.source,
+        g.winnerColor
       )
     )
 
-case class DbPlayer(rating: Option[Int], ratingDiff: Option[Int], berserk: Option[Boolean]):
+case class DbPlayer(
+    rating: Option[Int],
+    ratingDiff: Option[Int],
+    berserk: Option[Boolean],
+    aiLevel: Option[Int],
+    provisional: Option[Boolean],
+    name: Option[String]
+):
   def isBerserked = berserk.contains(true)
 
 extension (config: chess.Clock.Config)
@@ -173,8 +336,10 @@ extension (config: chess.Clock.Config)
       config.estimateTotalSecondsOver60Moves <= maxTotalSeconds
 
 object DbPlayer:
-  given Decoder[DbPlayer] = Decoder.forProduct3("e", "d", "be")(DbPlayer.apply)
-  given Encoder[DbPlayer] = Encoder.forProduct3("e", "d", "be")(p => (p.rating, p.ratingDiff, p.berserk))
+  given Decoder[DbPlayer] = Decoder.forProduct6("e", "d", "be", "ai", "p", "na")(DbPlayer.apply)
+  given Encoder[DbPlayer] = Encoder.forProduct6("e", "d", "be", "ai", "p", "na")(p =>
+    (p.rating, p.ratingDiff, p.berserk, p.aiLevel, p.provisional, p.name)
+  )
 
 object ClockDecoder:
   import chess.*
