@@ -1,7 +1,6 @@
 package lila.search
 package game
 
-import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.term.TermQuery
