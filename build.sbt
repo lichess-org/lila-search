@@ -2,7 +2,7 @@ import Dependencies.*
 
 inThisBuild(
   Seq(
-    scalaVersion  := "3.4.3",
+    scalaVersion  := "3.5.0",
     versionScheme := Some("early-semver"),
     version       := "3.0.0",
     organization  := "org.lichess.search",
