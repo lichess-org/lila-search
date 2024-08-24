@@ -74,7 +74,7 @@ extension (elastic: ESClient[IO])
       deleteMany_(index, events.flatMap(_.id).map(Id.apply)).whenA(events.nonEmpty)
 
   @scala.annotation.targetName("deleteManyWithChanges")
-  def deleteMany(index: Index, events: List[ChangeStreamDocument[Document]])(using Logger[IO]): IO[Unit] =
+  def deleteMany[A](index: Index, events: List[ChangeStreamDocument[A]])(using Logger[IO]): IO[Unit] =
     info"Received ${events.size} ${index.value} to delete" *>
       deleteMany_(index, events.flatMap(_.docId).map(Id.apply)).whenA(events.nonEmpty)
 
