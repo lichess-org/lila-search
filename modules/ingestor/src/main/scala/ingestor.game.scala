@@ -71,90 +71,69 @@ object GameIngestor:
         .fullDocument(FullDocument.UPDATE_LOOKUP) // this is required for update event
         .batchSize(config.batchSize)              // config.batchSize
         .boundedStream(config.batchSize)
+        .evalTap(x => info"received $x")
         .drop(skip)
         .groupWithin(config.batchSize, config.timeWindows.second) // config.windows
         .evalTap(_.traverse_(x => info"received $x"))
         .map(_.toList.map(_.fullDocument).flatten)
-        .evalTap(_.traverse_(x => info"clock ${x.clock}"))
-        .map(_.filter(_.validClock))
-        .evalTap(_.traverse_(x => info"valid clock ${x.clock}"))
 
     private def startAt: IO[Option[Instant]] =
       config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
 
-final case class GameSource(
-    status: Int,
-    turns: Int,
-    rated: Boolean,
-    perf: Int,
-    winnerColor: Int,
-    date: SearchDateTime,
-    analysed: Boolean,
-    uids: Option[List[String]] = None,
-    winner: Option[String] = None,
-    loser: Option[String] = None,
-    averageRating: Option[Int] = None,
-    ai: Option[Int] = None,
-    duration: Option[Int] = None,
-    clockInit: Option[Int] = None,
-    clockInc: Option[Int] = None,
-    whiteUser: Option[String] = None,
-    blackUser: Option[String] = None,
-    source: Option[Int] = None
-)
-
 type PlayerId = String
-
+// val playedPlies = ply - startedAtPly
 case class DbGame(
-    id: String,                     // _id
-    players: List[PlayerId],        // us
-    winnerId: Option[PlayerId],     // wid
-    createdAt: Instant,             // ca
-    moveAt: Instant,                // ua
-    turn: Int,                      // t
-    analysed: Boolean,              // an
-    playingUids: List[PlayerId],    // pl ??? wtf is this
-    whitePlayer: DbPlayer,          // p0
-    blackPlayer: DbPlayer,          // p1
-    playerIds: List[String],        // is
-    binaryPieces: Array[Byte],      // ps // ByteVector from scodec
-    huffmanPgn: Array[Byte],        // hp
-    status: Int,                    // s
-    encodedClock: Array[Byte],      // c
-    moveTimes: Array[Byte],         // mt
-    encodedWhiteClock: Array[Byte], // cw
-    encodedBlackClock: Array[Byte], // cb
-    rated: Boolean,                 // ra
-    variant: Int,                   // v
-    source: Int,                    // so
-    winnerColor: Option[Boolean]    // w
+    id: String,                          // _id
+    players: List[PlayerId],             // us
+    winnerId: Option[PlayerId],          // wid
+    createdAt: Instant,                  // ca
+    moveAt: Instant,                     // ua
+    turn: Int,                           // t
+    analysed: Option[Boolean],           // an
+    playingUids: Option[List[PlayerId]], // pl ??? wtf is this
+    whitePlayer: DbPlayer,               // p0
+    blackPlayer: DbPlayer,               // p1
+    // id = GamePlayerId(color.fold(ids.take(4), ids.drop(4))),
+    playerIds: Option[String],              // is
+    binaryPieces: Option[Array[Byte]],      // ps // ByteVector from scodec
+    huffmanPgn: Option[Array[Byte]],        // hp
+    status: Int,                            // s
+    encodedClock: Option[Array[Byte]],      // c
+    moveTimes: Option[Array[Byte]],         // mt
+    encodedWhiteClock: Option[Array[Byte]], // cw
+    encodedBlackClock: Option[Array[Byte]], // cb
+    // default to be false
+    rated: Option[Boolean],      // ra
+    variant: Option[Int],        // v
+    source: Option[Int],         // so
+    winnerColor: Option[Boolean] // w
 ):
-  def clock               = ClockDecoder.read(encodedClock)
-  def validClock: Boolean = clock.exists(_.forall(_.sastify))
+  // def clock               = ClockDecoder.read(encodedClock)
+  // def validClock: Boolean = clock.exists(_.forall(_.sastify))
 
   def averageUsersRating: Option[Int] = ???
 
-  def toSource: GameSource =
-    GameSource(
-      status = status,
-      turns = (turn + 1) / 2,
-      rated = rated,
-      perf = variant,
-      winnerColor = winnerColor.fold(3)(if _ then 1 else 2),
-      date = SearchDateTime.fromInstant(moveAt),
-      analysed = analysed,
-      uids = playingUids.some.filterNot(_.isEmpty),
-      winner = winnerId,
-      loser = playerIds.find(_.some != winnerId),
-      averageRating = averageUsersRating,
-      ai = ???,
-      duration = ???,
-      clockInit = ???,
-      clockInc = ???,
-      whiteUser = ???,
-      blackUser = ???,
-      source = source.some
-    )
+  // def toSource: GameSource =
+  //   GameSource(
+  //     status = status,
+  //     turns = (turn + 1) / 2,
+  //     rated = rated,
+  //     perf = variant,
+  //     winnerColor = winnerColor.fold(3)(if _ then 1 else 2),
+  //     date = SearchDateTime.fromInstant(moveAt),
+  //     analysed = analysed,
+  //     uids = playingUids.some.filterNot(_.isEmpty),
+  //     winner = winnerId,
+  //     loser = playerIds.find(_.some != winnerId),
+  //     averageRating = averageUsersRating,
+  //     ai = ???,
+  //     duration = ???,
+  //     clockInit = ???,
+  //     clockInc = ???,
+  //     whiteUser = ???,
+  //     blackUser = ???,
+  //     source = source.some
+  //   )
 
 val minTotalSeconds = 5 * 60      // 5 minutes
 val maxTotalSeconds = 8 * 60 * 60 // 8 hours
