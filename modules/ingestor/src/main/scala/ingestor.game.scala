@@ -17,6 +17,9 @@ import java.time.Instant
 import scala.concurrent.duration.*
 import mongo4cats.operations.Projection
 import mongo4cats.database.MongoDatabase
+import lila.search.spec.GameSource
+import chess.variant.*
+import chess.Speed
 
 trait GameIngestor:
   // watch change events from game5 collection and ingest games into elastic search
@@ -26,7 +29,7 @@ object GameIngestor:
 
   private val index = Index.Game
 
-  private val interestedOperations = List(INSERT, REPLACE).map(_.getValue) // We don't delete games
+  private val interestedOperations = List(INSERT, REPLACE, DELETE).map(_.getValue)
 
   // private val interestedFields = List(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt)
   // private val postProjection   = Projection.include(interestedFields)
@@ -58,43 +61,40 @@ object GameIngestor:
       fs2.Stream
         .eval(startAt.flatTap(since => info"Starting forum ingestor from $since"))
         .flatMap: since =>
-          changes(since)
-            .evalMap(IO.println)
+          changes(since).void
+    // .evalMap(IO.println)
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[DbGame]] =
       val builder = games.watch(aggregate)
       // skip the first event if we're starting from a specific timestamp
       // since the event at that timestamp is already indexed
-      val skip = since.fold(0)(_ => 1)
       since
         .fold(builder)(x => builder.startAtOperationTime(x.asBsonTimestamp))
         .fullDocument(FullDocument.UPDATE_LOOKUP) // this is required for update event
         .batchSize(config.batchSize)              // config.batchSize
         .boundedStream(config.batchSize)
-        .evalTap(x => info"received $x")
-        .drop(skip)
+        // .evalTap(x => info"received $x")
         .groupWithin(config.batchSize, config.timeWindows.second) // config.windows
-        .evalTap(_.traverse_(x => info"received $x"))
+        // .evalTap(_.traverse_(x => info"received $x"))
         .map(_.toList.map(_.fullDocument).flatten)
+        .evalTap(_.traverse_(x => IO.println(x.debug)))
 
     private def startAt: IO[Option[Instant]] =
       config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
 
 type PlayerId = String
-// val playedPlies = ply - startedAtPly
 case class DbGame(
-    id: String,                          // _id
-    players: List[PlayerId],             // us
-    winnerId: Option[PlayerId],          // wid
-    createdAt: Instant,                  // ca
-    moveAt: Instant,                     // ua
-    turn: Int,                           // t
-    analysed: Option[Boolean],           // an
-    playingUids: Option[List[PlayerId]], // pl ??? wtf is this
-    whitePlayer: DbPlayer,               // p0
-    blackPlayer: DbPlayer,               // p1
+    id: String,                 // _id
+    players: List[PlayerId],    // us
+    winnerId: Option[PlayerId], // wid
+    createdAt: Instant,         // ca
+    movedAt: Instant,           // ua
+    ply: Int,                   // t
+    analysed: Option[Boolean],  // an
+    whitePlayer: DbPlayer,      // p0
+    blackPlayer: DbPlayer,      // p1
     // id = GamePlayerId(color.fold(ids.take(4), ids.drop(4))),
-    playerIds: Option[String],              // is
+    playerIds: String,                      // is
     binaryPieces: Option[Array[Byte]],      // ps // ByteVector from scodec
     huffmanPgn: Option[Array[Byte]],        // hp
     status: Int,                            // s
@@ -108,85 +108,60 @@ case class DbGame(
     source: Option[Int],         // so
     winnerColor: Option[Boolean] // w
 ):
-  // def clock               = ClockDecoder.read(encodedClock)
-  // def validClock: Boolean = clock.exists(_.forall(_.sastify))
+  def clockConfig      = encodedClock.flatMap(ClockDecoder.read).map(_.white)
+  def clockInit        = clockConfig.map(_.limitSeconds.value)
+  def clockInc         = clockConfig.map(_.incrementSeconds.value)
+  def whiteId          = players.headOption
+  def blackId          = players.lift(1)
+  def variantOrDefault = Variant.idOrDefault(variant.map(Variant.Id.apply))
+  def speed            = Speed(clockConfig)
 
-  def averageUsersRating: Option[Int] = ???
+  private[ingestor] def loser = players.find(_.some != winnerId)
 
-  // def toSource: GameSource =
-  //   GameSource(
-  //     status = status,
-  //     turns = (turn + 1) / 2,
-  //     rated = rated,
-  //     perf = variant,
-  //     winnerColor = winnerColor.fold(3)(if _ then 1 else 2),
-  //     date = SearchDateTime.fromInstant(moveAt),
-  //     analysed = analysed,
-  //     uids = playingUids.some.filterNot(_.isEmpty),
-  //     winner = winnerId,
-  //     loser = playerIds.find(_.some != winnerId),
-  //     averageRating = averageUsersRating,
-  //     ai = ???,
-  //     duration = ???,
-  //     clockInit = ???,
-  //     clockInc = ???,
-  //     whiteUser = ???,
-  //     blackUser = ???,
-  //     source = source.some
-  //   )
+  private def aiLevel = whitePlayer.aiLevel.orElse(blackPlayer.aiLevel)
 
-val minTotalSeconds = 5 * 60      // 5 minutes
-val maxTotalSeconds = 8 * 60 * 60 // 8 hours
+  // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/core/src/main/game/Game.scala#L261
+  private def averageUsersRating = List(whitePlayer.rating, blackPlayer.rating).flatten match
+    case a :: b :: Nil => Some((a + b) / 2)
+    case a :: Nil      => Some((a + 1500) / 2)
+    case _             => None
 
-// object BSONFields:
-//
-// object BSONFields:
-//
-//   val id          = "_id"
-//   val playerUids  = "us"
-//   val winnerId    = "wid"
-//   val createdAt   = "ca"
-//   val movedAt     = "ua" // ua = updatedAt (bc)
-//   val turns       = "t"
-//   val analysed    = "an"
-//   val pgnImport   = "pgni"
-//   val playingUids = "pl"
-//   val whitePlayer       = "p0"
-//   val blackPlayer       = "p1"
-//   val playerIds         = "is"
-//   val binaryPieces      = "ps"
-//   val oldPgn            = "pg"
-//   val huffmanPgn        = "hp"
-//   val status            = "s"
-//   val startedAtTurn     = "st"
-//   val clock             = "c"
-//   val positionHashes    = "ph"
-//   val checkCount        = "cc"
-//   val castleLastMove    = "cl"
-//   val unmovedRooks      = "ur"
-//   val daysPerTurn       = "cd"
-//   val moveTimes         = "mt"
-//   val whiteClockHistory = "cw"
-//   val blackClockHistory = "cb"
-//   val rated             = "ra"
-//   val variant           = "v"
-//   val crazyData         = "chd"
-//   val bookmarks         = "bm"
-//   val source            = "so"
-//   val tournamentId      = "tid"
-//   val swissId           = "iid"
-//   val simulId           = "sid"
-//   val tvAt              = "tv"
-//   val winnerColor       = "w"
-//   val initialFen        = "if"
-//   val checkAt           = "ck"
-//   val drawOffers        = "do"
-//   val rules             = "rules"
+  // https://github.com/lichess-org/lila/blob/02ac57c4584b89a0df8f343f34074c0135c2d2b4/modules/core/src/main/game/Game.scala#L90-L97
+  def durationSeconds: Option[Int] =
+    val seconds = (movedAt.toEpochMilli / 1000 - createdAt.toEpochMilli / 1000)
+    Option.when(seconds < 60 * 60 * 12)(seconds.toInt)
+
+  def toSource: GameSource =
+    GameSource(
+      status = status,
+      turns = (ply + 1) / 2,
+      rated = rated.getOrElse(false),
+      perf = DbGame.perfId(variantOrDefault, speed),
+      winnerColor = winnerColor.fold(3)(if _ then 1 else 2),
+      date = SearchDateTime.fromInstant(movedAt),
+      analysed = analysed.getOrElse(false),
+      uids = players.some,
+      winner = winnerId,
+      loser = loser,
+      averageRating = averageUsersRating,
+      ai = aiLevel,
+      duration = durationSeconds,
+      clockInit = clockInit,
+      clockInc = clockInc,
+      whiteUser = whiteId,
+      blackUser = blackId,
+      source = source
+    )
+
+  def debug: String =
+    import smithy4s.json.Json.given
+    import com.github.plokhotnyuk.jsoniter_scala.core.*
+    writeToString(toSource)
 
 object DbGame:
 
   given Decoder[DbGame] =
-    Decoder.forProduct22(
+    Decoder.forProduct21(
       "_id",
       "us",
       "wid",
@@ -194,7 +169,6 @@ object DbGame:
       "ua",
       "t",
       "an",
-      "pl",
       "p0",
       "p1",
       "is",
@@ -212,7 +186,7 @@ object DbGame:
     )(DbGame.apply)
 
   given Encoder[DbGame] =
-    Encoder.forProduct22(
+    Encoder.forProduct21(
       "_id",
       "us",
       "wid",
@@ -220,7 +194,6 @@ object DbGame:
       "ua",
       "t",
       "an",
-      "pl",
       "p0",
       "p1",
       "is",
@@ -241,10 +214,9 @@ object DbGame:
         g.players,
         g.winnerId,
         g.createdAt,
-        g.moveAt,
-        g.turn,
+        g.movedAt,
+        g.ply,
         g.analysed,
-        g.playingUids,
         g.whitePlayer,
         g.blackPlayer,
         g.playerIds,
@@ -262,6 +234,25 @@ object DbGame:
       )
     )
 
+  def perfId(variant: Variant, speed: Speed): Int =
+    variant.match
+      case Standard | FromPosition =>
+        speed match
+          case Speed.UltraBullet    => 0
+          case Speed.Bullet         => 1
+          case Speed.Blitz          => 2
+          case Speed.Rapid          => 6
+          case Speed.Classical      => 3
+          case Speed.Correspondence => 4
+      case Crazyhouse    => 18
+      case Chess960      => 11
+      case KingOfTheHill => 12
+      case ThreeCheck    => 15
+      case Antichess     => 13
+      case Atomic        => 14
+      case Horde         => 16
+      case RacingKings   => 17
+
 case class DbPlayer(
     rating: Option[Int],
     ratingDiff: Option[Int],
@@ -269,19 +260,7 @@ case class DbPlayer(
     aiLevel: Option[Int],
     provisional: Option[Boolean],
     name: Option[String]
-):
-  def isBerserked = berserk.contains(true)
-
-extension (config: chess.Clock.Config)
-
-  // over 60 moves
-  def estimateTotalSecondsOver60Moves = config.limitSeconds.value + 60 * config.incrementSeconds.value
-
-  // Games are equal to or longer than 3+2 / 5+0 or equivalent over 60 moves (e.g., 4+1, 0+30, etc),
-  // but not more than 8h (e.g., no 240+60)
-  def sastify: Boolean =
-    minTotalSeconds <= config.estimateTotalSecondsOver60Moves &&
-      config.estimateTotalSecondsOver60Moves <= maxTotalSeconds
+)
 
 object DbPlayer:
   given Decoder[DbPlayer] = Decoder.forProduct6("e", "d", "be", "ai", "p", "na")(DbPlayer.apply)
