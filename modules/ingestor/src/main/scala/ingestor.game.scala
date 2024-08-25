@@ -88,18 +88,15 @@ object GameIngestor:
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =
       val builder = games.watch(aggregate)
-      // skip the first event if we're starting from a specific timestamp
-      // since the event at that timestamp is already indexed
       since
         .fold(builder)(x => builder.startAtOperationTime(x.asBsonTimestamp))
         .fullDocument(FullDocument.UPDATE_LOOKUP) // this is required for update event
-        .batchSize(config.batchSize)              // config.batchSize
+        .batchSize(config.batchSize)
         .boundedStream(config.batchSize)
-        // .evalTap(x => info"received $x")
-        .groupWithin(config.batchSize, config.timeWindows.second) // config.windows
+        .groupWithin(config.batchSize, config.timeWindows.second)
+        .evalTap(_.traverse_(x => debug"received $x"))
         .map(_.toList.unique)
-      // .map(_.map(_.fullDocument).flatten)
-      // .evalTap(_.traverse_(x => IO.println(x.debug)))
+        .evalTap(_.traverse_(x => x.fullDocument.traverse_(x => debug"${x.debug}")))
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)
@@ -120,7 +117,7 @@ case class DbGame(
     whitePlayer: DbPlayer,                  // p0
     blackPlayer: DbPlayer,                  // p1
     playerIds: String,                      // is
-    binaryPieces: Option[Array[Byte]],      // ps // ByteVector from scodec
+    binaryPieces: Option[Array[Byte]],      // ps
     huffmanPgn: Option[Array[Byte]],        // hp
     status: Int,                            // s
     encodedClock: Option[Array[Byte]],      // c
@@ -139,9 +136,7 @@ case class DbGame(
   def blackId          = players.flatMap(_.lift(1))
   def variantOrDefault = Variant.idOrDefault(variant.map(Variant.Id.apply))
   def speed            = Speed(clockConfig)
-
   def loser = players.flatMap(_.find(_.some != winnerId))
-
   def aiLevel = whitePlayer.aiLevel.orElse(blackPlayer.aiLevel)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/core/src/main/game/Game.scala#L261
@@ -184,80 +179,15 @@ case class DbGame(
     id -> writeToString(toSource._2)
 
 object DbGame:
+  // format: off
+  given Decoder[DbGame] = Decoder.forProduct21(
+    "_id", "us", "wid", "ca", "ua", "t", "an", "p0", "p1", "is", "ps",
+    "hp", "s", "c", "mt", "cw", "cb", "ra", "v", "so", "w")(DbGame.apply)
+  // format: on
 
-  given Decoder[DbGame] =
-    Decoder.forProduct21(
-      "_id",
-      "us",
-      "wid",
-      "ca",
-      "ua",
-      "t",
-      "an",
-      "p0",
-      "p1",
-      "is",
-      "ps",
-      "hp",
-      "s",
-      "c",
-      "mt",
-      "cw",
-      "cb",
-      "ra",
-      "v",
-      "so",
-      "w"
-    )(DbGame.apply)
-
-  given Encoder[DbGame] =
-    Encoder.forProduct21(
-      "_id",
-      "us",
-      "wid",
-      "ca",
-      "ua",
-      "t",
-      "an",
-      "p0",
-      "p1",
-      "is",
-      "ps",
-      "hp",
-      "s",
-      "c",
-      "mt",
-      "cw",
-      "cb",
-      "ra",
-      "v",
-      "so",
-      "w"
-    )(g =>
-      (
-        g.id,
-        g.players,
-        g.winnerId,
-        g.createdAt,
-        g.movedAt,
-        g.ply,
-        g.analysed,
-        g.whitePlayer,
-        g.blackPlayer,
-        g.playerIds,
-        g.binaryPieces,
-        g.huffmanPgn,
-        g.status,
-        g.encodedClock,
-        g.moveTimes,
-        g.encodedWhiteClock,
-        g.encodedBlackClock,
-        g.rated,
-        g.variant,
-        g.source,
-        g.winnerColor
-      )
-    )
+  // We don't write to the database so We don't need to implement this
+  given Encoder[DbGame] = new Encoder[DbGame]:
+    def apply(a: DbGame): Json = ???
 
   def perfId(variant: Variant, speed: Speed): Int =
     variant.match
