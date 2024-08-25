@@ -11,7 +11,7 @@ trait Ingestor:
 
 object Ingestor:
 
-  def apply1(
+  def apply(
       lichess: MongoDatabase[IO],
       study: MongoDatabase[IO],
       local: MongoDatabase[IO],
@@ -22,19 +22,18 @@ object Ingestor:
     (
       ForumIngestor(lichess, elastic, store, config.forum),
       TeamIngestor(lichess, elastic, store, config.team),
-      StudyIngestor(study, local, elastic, store, config.study),
-      GameIngestor(lichess, elastic, store, config.game)
-    ).mapN: (forum, team, study, game) =>
+      StudyIngestor(study, local, elastic, store, config.study)
+    ).mapN: (forum, team, study) =>
       new Ingestor:
         def run() =
           fs2
-            .Stream(forum.watch, team.watch, study.watch, game.watch)
+            .Stream(forum.watch, team.watch, study.watch)
             .covary[IO]
             .parJoinUnbounded
             .compile
             .drain
 
-  def apply(
+  def apply_(
       lichess: MongoDatabase[IO],
       study: MongoDatabase[IO],
       local: MongoDatabase[IO],
