@@ -24,6 +24,8 @@ import scala.concurrent.duration.*
 trait GameIngestor:
   // watch change events from game5 collection and ingest games into elastic search
   def watch: fs2.Stream[IO, Unit]
+  // Similar to watch but started from a given timestamp
+  def watch(since: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit]
   // Fetch posts in [since, until] and ingest into elastic search
   def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
 
@@ -69,14 +71,20 @@ object GameIngestor:
     def watch: fs2.Stream[IO, Unit] =
       fs2.Stream
         .eval(startAt.flatTap(since => info"Starting game ingestor from $since"))
-        .flatMap: since =>
-          changes(since)
-            .evalMap: events =>
-              val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
-              val (toDelete, toIndex) = events.partition(_.operationType == DELETE)
-              storeBulk(toIndex.flatten(_.fullDocument))
-                *> elastic.deleteMany(index, toDelete)
-                *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
+        .flatMap(watch(_, dryRun = false))
+
+    def watch(since: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit] =
+      changes(since)
+        .evalMap: events =>
+          val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
+          val (toDelete, toIndex) = events.partition(_.operationType == DELETE)
+          dryRun.fold(
+            toIndex.flatMap(_.fullDocument).traverse_(x => debug"Would index ${x.debug}")
+              *> toDelete.traverse_(x => debug"Would delete ${x.docId}"),
+            storeBulk(toIndex.flatten(_.fullDocument))
+              *> elastic.deleteMany(index, toDelete)
+              *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
+          )
 
     def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit] =
       val filter = range(F.createdAt)(since, until.some)
