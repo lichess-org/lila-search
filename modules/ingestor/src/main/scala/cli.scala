@@ -37,16 +37,19 @@ object cli
         res.store,
         config.ingestor.study
       ).toResource
-    yield Executor(forum, study)
+      game <- GameIngestor(res.lichess, res.elastic, res.store, config.ingestor.game).toResource
+    yield Executor(forum, study, game)
 
-  class Executor(val forum: ForumIngestor, val study: StudyIngestor):
+  class Executor(val forum: ForumIngestor, val study: StudyIngestor, val game: GameIngestor):
     def execute(opts: IndexOpts): IO[Unit] =
       opts.index match
         case Index.Forum =>
           forum.run(opts.since, opts.until, opts.dry).compile.drain
         case Index.Study =>
           study.run(opts.since, opts.until, opts.dry).compile.drain
-        case _ => IO.println("We only support forum/study backfill for now")
+        case Index.Game =>
+          game.run(opts.since, opts.until, opts.dry).compile.drain
+        case _ => IO.println("We only support forum/study/game backfill for now")
 
 object opts:
   case class IndexOpts(index: Index, since: Instant, until: Instant, dry: Boolean)

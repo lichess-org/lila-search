@@ -24,6 +24,8 @@ import scala.concurrent.duration.*
 trait GameIngestor:
   // watch change events from game5 collection and ingest games into elastic search
   def watch: fs2.Stream[IO, Unit]
+  // Fetch posts in [since, until] and ingest into elastic search
+  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
 
 object GameIngestor:
 
@@ -76,6 +78,22 @@ object GameIngestor:
                 *> elastic.deleteMany(index, toDelete)
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
 
+    def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit] =
+      val filter = range(F.createdAt)(since, until.some)
+        .or(range(F.updatedAt)(since, until.some))
+      games
+        .find(filter)
+        // .projection(postProjection)
+        .boundedStream(config.batchSize)
+        .chunkN(config.batchSize)
+        .map(_.toList)
+        .metered(1.second) // to avoid overloading the elasticsearch
+        .evalMap: docs =>
+          dryRun.fold(
+            docs.traverse_(doc => debug"Would index $doc"),
+            storeBulk(docs)
+          )
+
     private def storeBulk(docs: List[DbGame]): IO[Unit] =
       val sources = docs.map(_.toSource)
       info"Received ${docs.size} ${index.value}s to index" *>
@@ -104,6 +122,10 @@ object GameIngestor:
 
     private def startAt: IO[Option[Instant]] =
       config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
+
+  object F:
+    val createdAt = "createdAt"
+    val updatedAt = "updatedAt"
 
 type PlayerId = String
 case class DbGame(
@@ -136,8 +158,8 @@ case class DbGame(
   def blackId          = players.flatMap(_.lift(1))
   def variantOrDefault = Variant.idOrDefault(variant.map(Variant.Id.apply))
   def speed            = Speed(clockConfig)
-  def loser = players.flatMap(_.find(_.some != winnerId))
-  def aiLevel = whitePlayer.aiLevel.orElse(blackPlayer.aiLevel)
+  def loser            = players.flatMap(_.find(_.some != winnerId))
+  def aiLevel          = whitePlayer.aiLevel.orElse(blackPlayer.aiLevel)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/core/src/main/game/Game.scala#L261
   private def averageUsersRating = List(whitePlayer.rating, blackPlayer.rating).flatten match
