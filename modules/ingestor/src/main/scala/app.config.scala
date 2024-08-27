@@ -42,12 +42,18 @@ object ElasticConfig:
   private def uri = env("ELASTIC_URI").or(prop("elastic.uri")).as[String].default("http://127.0.0.1:9200")
   def config      = uri.map(ElasticConfig.apply)
 
-case class IngestorConfig(forum: IngestorConfig.Forum, team: IngestorConfig.Team, study: IngestorConfig.Study)
+case class IngestorConfig(
+    forum: IngestorConfig.Forum,
+    team: IngestorConfig.Team,
+    study: IngestorConfig.Study,
+    game: IngestorConfig.Game
+)
 
 object IngestorConfig:
   case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Long], maxPostLength: Int)
   case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Long])
   case class Study(batchSize: Int, startAt: Option[Long], interval: FiniteDuration, databaseName: String)
+  case class Game(batchSize: Int, timeWindows: Int, startAt: Option[Long])
 
   private object Forum:
     private def batchSize =
@@ -85,4 +91,13 @@ object IngestorConfig:
         .map(_.seconds)
     def config = (batchSize, startAt, interval, studyDatabase).mapN(Study.apply)
 
-  def config = (Forum.config, Team.config, Study.config).mapN(IngestorConfig.apply)
+  private object Game:
+    private def batchSize =
+      env("INGESTOR_GAME_BATCH_SIZE").or(prop("ingestor.game.batch.size")).as[Int].default(1000)
+    private def timeWindows =
+      env("INGESTOR_GAME_TIME_WINDOWS").or(prop("ingestor.game.time.windows")).as[Int].default(10)
+    private def startAt =
+      env("INGESTOR_GAME_START_AT").or(prop("ingestor.game.start.at")).as[Long].option
+    def config = (batchSize, timeWindows, startAt).mapN(Game.apply)
+
+  def config = (Forum.config, Team.config, Study.config, Game.config).mapN(IngestorConfig.apply)

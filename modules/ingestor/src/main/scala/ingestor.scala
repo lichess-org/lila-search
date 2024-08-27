@@ -32,3 +32,17 @@ object Ingestor:
             .parJoinUnbounded
             .compile
             .drain
+
+  def apply_(
+      lichess: MongoDatabase[IO],
+      study: MongoDatabase[IO],
+      local: MongoDatabase[IO],
+      elastic: ESClient[IO],
+      store: KVStore,
+      config: IngestorConfig
+  )(using Logger[IO]): IO[Ingestor] =
+    GameIngestor(lichess, elastic, store, config.game)
+      .map: game =>
+        new Ingestor:
+          def run() =
+            game.watch.compile.drain
