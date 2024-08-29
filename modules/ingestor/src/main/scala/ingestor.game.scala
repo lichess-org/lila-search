@@ -82,7 +82,8 @@ object GameIngestor:
           val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
           val (toDelete, toIndex) = events.partition(_.operationType == DELETE)
           dryRun.fold(
-            toIndex.flatMap(_.fullDocument).traverse_(x => debug"Would index ${x.debug}")
+            info"Would index total ${toIndex.size} games and delete ${toDelete.size} games" *>
+              toIndex.flatMap(_.fullDocument).traverse_(x => debug"Would index ${x.debug}")
               *> toDelete.traverse_(x => debug"Would delete ${x.docId}"),
             storeBulk(toIndex.flatten(_.fullDocument))
               *> elastic.deleteMany(index, toDelete)
@@ -101,7 +102,8 @@ object GameIngestor:
         .metered(1.second) // to avoid overloading the elasticsearch
         .evalMap: docs =>
           dryRun.fold(
-            docs.traverse_(doc => debug"Would index $doc"),
+            info"Would index total ${docs.size} games" *>
+              docs.traverse_(doc => debug"Would index $doc"),
             storeBulk(docs)
           )
 
