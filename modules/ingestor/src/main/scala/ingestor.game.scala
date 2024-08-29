@@ -50,9 +50,12 @@ object GameIngestor:
   // https://github.com/lichess-org/scalachess/blob/master/core/src/main/scala/Status.scala#L18-L27
   val statusFilter   = Filter.gte("fullDocument.s", 30)
   val noImportFilter = Filter.ne("fullDocument.so", 7)
+  // us fields is the list of player ids, if it's missing then it's
+  // an all anonymous (or anonymous vs stockfish) game
+  val noAllAnonFilter = Filter.exists("fullDocument.us")
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/gameSearch/src/main/GameSearchApi.scala#L52
-  val gameFilter = statusFilter.and(noImportFilter)
+  val gameFilter = statusFilter.and(noImportFilter).and(noAllAnonFilter)
 
   private val aggregate =
     Aggregate.matchBy(eventFilter.and(gameFilter)).combinedWith(Aggregate.project(eventProjection))
@@ -138,7 +141,7 @@ object GameIngestor:
 type PlayerId = String
 case class DbGame(
     id: String,                             // _id
-    players: Option[List[PlayerId]],        // us
+    players: List[PlayerId],                // us
     winnerId: Option[PlayerId],             // wid
     createdAt: Instant,                     // ca
     movedAt: Instant,                       // ua
@@ -162,11 +165,11 @@ case class DbGame(
   def clockConfig      = encodedClock.flatMap(ClockDecoder.read).map(_.white)
   def clockInit        = clockConfig.map(_.limitSeconds.value)
   def clockInc         = clockConfig.map(_.incrementSeconds.value)
-  def whiteId          = players.flatMap(_.headOption)
-  def blackId          = players.flatMap(_.lift(1))
+  def whiteId          = players.headOption
+  def blackId          = players.lift(1)
   def variantOrDefault = Variant.idOrDefault(variant.map(Variant.Id.apply))
   def speed            = Speed(clockConfig)
-  def loser            = players.flatMap(_.find(_.some != winnerId))
+  def loser            = players.find(_.some != winnerId)
   def aiLevel          = whitePlayer.aiLevel.orElse(blackPlayer.aiLevel)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/core/src/main/game/Game.scala#L261
@@ -190,7 +193,7 @@ case class DbGame(
         winnerColor = winnerColor.fold(3)(if _ then 1 else 2),
         date = SearchDateTime.fromInstant(movedAt),
         analysed = analysed.getOrElse(false),
-        uids = players.map(_.filter(_.nonEmpty)),
+        uids = players.some, // make usid not optional
         winner = winnerId,
         loser = loser,
         averageRating = averageUsersRating,
