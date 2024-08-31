@@ -52,6 +52,7 @@ object StudyIngestor:
         pullAndIndex(since, until, dryRun) ++
         fs2.Stream.eval(info"deleting studies from $since to $until") ++
         pullAndDelete(since, until, dryRun)
+        ++ fs2.Stream.eval(saveLastIndexedTimestamp(until))
 
     def pullAndIndex(since: Instant, until: Instant, dryRun: Boolean = false): fs2.Stream[IO, Unit] =
       val filter = range(F.createdAt)(since, until.some)
