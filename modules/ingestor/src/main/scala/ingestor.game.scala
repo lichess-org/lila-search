@@ -15,8 +15,8 @@ import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument
 import mongo4cats.operations.{ Aggregate, Filter, Projection }
 import org.bson.BsonTimestamp
-import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
 import scala.concurrent.duration.*
@@ -61,8 +61,9 @@ object GameIngestor:
     Aggregate.matchBy(eventFilter.and(gameFilter)).combinedWith(Aggregate.project(eventProjection))
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Game)(
-      using Logger[IO]
+      using LoggerFactory[IO]
   ): IO[GameIngestor] =
+    given Logger[IO] = summon[LoggerFactory[IO]].getLogger
     mongo.getCollectionWithCodec[DbGame]("game5").map(apply(elastic, store, config))
 
   def apply(

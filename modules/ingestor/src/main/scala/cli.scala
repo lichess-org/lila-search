@@ -7,8 +7,8 @@ import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
 import lila.search.ingestor.opts.{ IndexOpts, WatchOpts }
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.slf4j.{ Slf4jFactory, Slf4jLogger }
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
 
@@ -19,7 +19,8 @@ object cli
       version = "3.0.0"
     ):
 
-  given Logger[IO] = Slf4jLogger.getLogger[IO]
+  given Logger[IO]        = Slf4jLogger.getLogger[IO]
+  given LoggerFactory[IO] = Slf4jFactory.create[IO]
 
   override def main: Opts[IO[ExitCode]] =
     opts.parse.map: opts =>

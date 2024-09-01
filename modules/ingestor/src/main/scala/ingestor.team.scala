@@ -10,8 +10,8 @@ import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument
 import mongo4cats.operations.{ Aggregate, Filter, Projection }
-import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
 import scala.concurrent.duration.*
@@ -36,8 +36,9 @@ object TeamIngestor:
   private val aggregate = Aggregate.matchBy(eventFilter).combinedWith(Aggregate.project(eventProjection))
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Team)(
-      using Logger[IO]
+      using LoggerFactory[IO]
   ): IO[TeamIngestor] =
+    given Logger[IO] = summon[LoggerFactory[IO]].getLogger
     mongo.getCollection("team").map(apply(elastic, store, config))
 
   def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Team)(teams: MongoCollection)(using
