@@ -125,7 +125,11 @@ object GameIngestor:
         .batchSize(config.batchSize)
         .boundedStream(config.batchSize)
         .groupWithin(config.batchSize, config.timeWindows.second)
-        .evalTap(_.traverse_(x => debug"received $x"))
+        .evalTap(
+          _.traverse_(x =>
+            info"Received $x without p0 or p1 fields".whenA(x.fullDocument.exists(_.shouldDebug))
+          )
+        )
         .map(_.toList.unique)
         .evalTap(_.traverse_(x => x.fullDocument.traverse_(x => debug"${x.debug}")))
 
@@ -149,8 +153,8 @@ case class DbGame(
     movedAt: Instant,                       // ua
     ply: Int,                               // t
     analysed: Option[Boolean],              // an
-    whitePlayer: DbPlayer,                  // p0
-    blackPlayer: DbPlayer,                  // p1
+    whitePlayer: Option[DbPlayer],          // p0
+    blackPlayer: Option[DbPlayer],          // p1
     playerIds: String,                      // is
     binaryPieces: Option[Array[Byte]],      // ps
     huffmanPgn: Option[Array[Byte]],        // hp
@@ -172,13 +176,14 @@ case class DbGame(
   def variantOrDefault = Variant.idOrDefault(variant.map(Variant.Id.apply))
   def speed            = Speed(clockConfig)
   def loser            = players.find(_.some != winnerId)
-  def aiLevel          = whitePlayer.aiLevel.orElse(blackPlayer.aiLevel)
+  def aiLevel          = whitePlayer.flatMap(_.aiLevel).orElse(blackPlayer.flatMap(_.aiLevel))
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/core/src/main/game/Game.scala#L261
-  private def averageUsersRating = List(whitePlayer.rating, blackPlayer.rating).flatten match
-    case a :: b :: Nil => Some((a + b) / 2)
-    case a :: Nil      => Some((a + 1500) / 2)
-    case _             => None
+  private def averageUsersRating =
+    List(whitePlayer.flatMap(_.rating), blackPlayer.flatMap(_.rating)).flatten match
+      case a :: b :: Nil => Some((a + b) / 2)
+      case a :: Nil      => Some((a + 1500) / 2)
+      case _             => None
 
   // https://github.com/lichess-org/lila/blob/02ac57c4584b89a0df8f343f34074c0135c2d2b4/modules/core/src/main/game/Game.scala#L90-L97
   def durationSeconds: Option[Int] =
@@ -207,6 +212,9 @@ case class DbGame(
         blackUser = blackId,
         source = source
       )
+
+  def shouldDebug =
+    whitePlayer.isEmpty || blackPlayer.isEmpty
 
   def debug =
     import smithy4s.json.Json.given
