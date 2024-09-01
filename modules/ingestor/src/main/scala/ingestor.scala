@@ -4,7 +4,7 @@ package ingestor
 import cats.effect.*
 import cats.syntax.all.*
 import mongo4cats.database.MongoDatabase
-import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.LoggerFactory
 
 trait Ingestor:
   def run(): IO[Unit]
@@ -18,7 +18,7 @@ object Ingestor:
       elastic: ESClient[IO],
       store: KVStore,
       config: IngestorConfig
-  )(using Logger[IO]): IO[Ingestor] =
+  )(using LoggerFactory[IO]): IO[Ingestor] =
     (
       ForumIngestor(lichess, elastic, store, config.forum),
       TeamIngestor(lichess, elastic, store, config.team),

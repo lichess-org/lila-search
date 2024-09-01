@@ -7,8 +7,8 @@ import lila.search.spec.StudySource
 import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
 import mongo4cats.operations.{ Filter, Projection }
-import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
 
@@ -32,7 +32,8 @@ object StudyIngestor:
       elastic: ESClient[IO],
       store: KVStore,
       config: IngestorConfig.Study
-  )(using Logger[IO]): IO[StudyIngestor] =
+  )(using LoggerFactory[IO]): IO[StudyIngestor] =
+    given Logger[IO] = summon[LoggerFactory[IO]].getLogger
     (study.getCollection("study"), ChapterRepo(study), local.getCollection("oplog.rs"))
       .mapN(apply(elastic, store, config))
 
