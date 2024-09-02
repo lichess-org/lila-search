@@ -3,6 +3,7 @@ package ingestor
 
 import cats.effect.IO
 import cats.syntax.all.*
+import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
 import lila.search.spec.ForumSource
 import mongo4cats.bson.Document
@@ -25,7 +26,7 @@ object ForumIngestor:
 
   private val index = Index.Forum
 
-  private val interestedOperations = List(DELETE, INSERT, REPLACE).map(_.getValue)
+  private val interestedOperations = List(DELETE, INSERT, REPLACE, UPDATE).map(_.getValue)
 
   private def maxPostSizeFilter(max: Int) =
     Filter.expr(s"{ $$lte: [{ $$strLenCP: '$$fullDocument.text' }, $max] }")
@@ -117,6 +118,7 @@ object ForumIngestor:
       val skip = since.fold(0)(_ => 1)
       since
         .fold(builder)(x => builder.startAtOperationTime(x.asBsonTimestamp))
+        .fullDocument(FullDocument.UPDATE_LOOKUP) // this is required for update event
         .batchSize(config.batchSize)
         .boundedStream(config.batchSize)
         .drop(skip)
