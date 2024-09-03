@@ -39,8 +39,7 @@ Start ingestor service:
 ingestor/runMain lila.search.ingestor.App
 ```
 
-### start ingestor cli tool
-
+Start ingestor cli tool
 ```sh
 ingestor/runMain lila.search.ingestor.cli --help
 ```
