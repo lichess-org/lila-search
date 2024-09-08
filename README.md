@@ -43,3 +43,9 @@ Start ingestor cli tool
 ```sh
 ingestor/runMain lila.search.ingestor.cli --help
 ```
+
+### release
+
+```bash
+sbt release with-defaults
+```
