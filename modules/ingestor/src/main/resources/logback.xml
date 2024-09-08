@@ -5,9 +5,10 @@
     <variable name="MONGO_DRIVER_LOG_LEVEL" value="${MONGO_DRIVER_LOG_LEVEL:-INFO}" />
 
     <variable name="LOG_INGESTOR_FILE_NAME" value="${LOG_INGESTOR_FILE_NAME:-ingestor.log}"/>
+    <variable name="LOG_DIR" value="${LOG_DIR:-logs}"/>
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/${LOG_INGESTOR_FILE_NAME}</file>
+      <file>${LOG_DIR}/${LOG_INGESTOR_FILE_NAME}</file>
         <encoder>
             <pattern>%date [%thread] %-5level %logger{20} - %msg%n%xException</pattern>
         </encoder>
