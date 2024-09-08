@@ -13,11 +13,26 @@ structure InternalServerError {
   message: String
 }
 
+@trait(selector: "string")
+@refinement(
+   targetType: "lila.search.Id"
+   providerImport: "lila.search.spec.providers.given"
+)
+structure IdFormat {}
+
+@IdFormat
+@unwrap
+string IdString
+
 list Ids {
-  member: String
+  member: IdString
 }
 
 list Strings {
+  member: String
+}
+
+list PlayerIds {
   member: String
 }
 

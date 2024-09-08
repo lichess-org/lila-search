@@ -52,7 +52,7 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
   override def deleteById(index: Index, id: String): Future[Unit] =
     request_(s"$baseUrl/delete/id/${index.value}/$id")
 
-  override def deleteByIds(index: Index, ids: List[String]): Future[Unit] =
+  override def deleteByIds(index: Index, ids: List[Id]): Future[Unit] =
     request_(s"$baseUrl/delete/ids/${index.value}", IdsInput(ids))
 
   override def count(query: Query): Future[CountOutput] =
@@ -97,7 +97,7 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
 
 final private case class SearchInput(query: Query)
 final private case class SourceInput(source: Source)
-final private case class IdsInput(ids: List[String])
+final private case class IdsInput(ids: List[Id])
 
 object implicits:
 

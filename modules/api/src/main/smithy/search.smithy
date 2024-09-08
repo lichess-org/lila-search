@@ -317,7 +317,7 @@ structure GameSource {
   @jsonName("p")
   perf: Integer
   @jsonName("u")
-  uids: Ids
+  uids: PlayerIds
   @jsonName("w")
   winner: String
   @jsonName("o")
@@ -355,7 +355,7 @@ structure StudySource {
   @required
   owner: String
   @required
-  members: Ids
+  members: PlayerIds
   @required
   chapterNames: String
 

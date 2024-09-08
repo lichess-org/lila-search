@@ -57,7 +57,7 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.deleteById(Index.Game, "iddddd"))).map(expect.same(_, ()))
 
   test("deleteByIds endpoint"): client =>
-    IO.fromFuture(IO(client.deleteByIds(Index.Game, List("a", "b", "c")))).map(expect.same(_, ()))
+    IO.fromFuture(IO(client.deleteByIds(Index.Game, List(Id("a"), Id("b"), Id("c"))))).map(expect.same(_, ()))
 
   test("mapping endpoint"): client =>
     IO.fromFuture(IO(client.mapping(Index.Study))).map(expect.same(_, ()))

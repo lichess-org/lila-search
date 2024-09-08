@@ -6,6 +6,9 @@ import smithy4s.*
 
 object providers:
 
+  given RefinementProvider[IdFormat, String, Id] =
+    Refinement.drivenBy(x => Id(x).asRight, _.value)
+
   given RefinementProvider[DateTimeFormat, String, SearchDateTime] =
     Refinement.drivenBy(SearchDateTime.fromString, _.value)
 
