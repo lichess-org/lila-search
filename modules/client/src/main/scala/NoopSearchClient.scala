@@ -11,7 +11,7 @@ object NoopSearchClient extends SearchClient:
 
   override def storeBulkTeam(sources: List[TeamSourceWithId]): Future[Unit] = Future.successful(())
 
-  override def deleteByIds(index: Index, ids: List[String]): Future[Unit] = Future.successful(())
+  override def deleteByIds(index: Index, ids: List[Id]): Future[Unit] = Future.successful(())
 
   override def storeBulkForum(sources: List[ForumSourceWithId]): Future[Unit] = Future.successful(())
 
