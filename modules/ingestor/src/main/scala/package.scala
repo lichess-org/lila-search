@@ -32,7 +32,7 @@ extension [A](changes: List[ChangeStreamDocument[A]])
   def unique: List[ChangeStreamDocument[A]] =
     changes
       .foldRight(List.empty[ChangeStreamDocument[A]] -> Set.empty) { case (change, p @ (acc, ids)) =>
-        if change.docId.exists(ids.contains)
+        if change.docId.exists(!ids.contains)
         then (change :: acc) -> (ids + id)
         else p
       }
