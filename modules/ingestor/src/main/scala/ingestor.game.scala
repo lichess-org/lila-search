@@ -131,7 +131,7 @@ object GameIngestor:
             info"Received $x without p0 or p1 fields".whenA(x.fullDocument.exists(_.shouldDebug))
           )
         )
-        .map(_.toList.unique)
+        .map(_.toList.distincByDocId)
         .evalTap(_.traverse_(x => x.fullDocument.traverse_(x => debug"${x.debug}")))
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =

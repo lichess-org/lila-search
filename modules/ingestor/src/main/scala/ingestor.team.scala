@@ -87,7 +87,7 @@ object TeamIngestor:
         .drop(skip)
         .evalTap(x => debug"Team change stream event: $x")
         .groupWithin(config.batchSize, config.timeWindows.second)
-        .map(_.toList.unique)
+        .map(_.toList.distincByDocId)
 
     extension (docs: List[Document])
       private def toSources: List[(String, TeamSource)] =

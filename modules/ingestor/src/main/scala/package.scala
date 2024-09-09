@@ -22,21 +22,10 @@ val _id = "_id"
 
 type MongoCollection = GenericMongoCollection[IO, Document, [A] =>> fs2.Stream[IO, A]]
 
-extension [A](change: ChangeStreamDocument[A]) def docId: Option[String] = change.documentKey.flatMap(_.id)
-
-extension [A](changes: List[ChangeStreamDocument[A]])
-  /**
-   * Returns a list of distinct changes by their document id in the reverse order they appear in the input
-   * list. If a change has no document id, We ignore it.
-   */
-  def unique: List[ChangeStreamDocument[A]] =
-    changes
-      .foldRight(List.empty[ChangeStreamDocument[A]] -> Set.empty) { case (change, p @ (acc, ids)) =>
-        if change.docId.exists(!ids.contains(_))
-        then (change :: acc) -> (ids + id)
-        else p
-      }
-      ._1
+given [A]: HasDocId[ChangeStreamDocument[A]] with
+  extension (change: ChangeStreamDocument[A])
+    def docId: Option[String] =
+      change.documentKey.flatMap(_.id)
 
 extension (doc: Document)
   private def id: Option[String] =
