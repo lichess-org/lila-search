@@ -8,11 +8,11 @@ trait HasDocId[A]:
      * Returns a list of distinct changes by their document id in the reverse order they appear in the input
      * list. If a change has no document id, We ignore it.
      */
-    def unique: List[A] =
+    def distincByDocId: List[A] =
       xs
-        .foldRight(List.empty[A] -> Set.empty) { case (change, p @ (acc, ids)) =>
-          if change.docId.exists(!ids.contains(_))
-          then (change :: acc) -> (ids + id)
-          else p
+        .foldRight(List.empty[A] -> Set.empty[String]) { case (change, p @ (acc, ids)) =>
+          change.docId.fold(p) { id =>
+            ids.contains(id).fold(p, (change :: acc) -> (ids + id))
+          }
         }
         ._1

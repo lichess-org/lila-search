@@ -124,7 +124,7 @@ object ForumIngestor:
         .drop(skip)
         .groupWithin(config.batchSize, config.timeWindows.second)
         .evalTap(_.traverse_(x => debug"received $x"))
-        .map(_.toList.unique)
+        .map(_.toList.distincByDocId)
 
     private type SourceWithId = (String, ForumSource)
 
