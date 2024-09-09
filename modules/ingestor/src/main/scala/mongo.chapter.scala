@@ -36,9 +36,8 @@ case class StudyData(
     .collect { case c if !StudyData.defaultNameRegex.matches(c) => c }
     .mkString(" ")
 
-  def relevantTags = tags.flatten.collect {
+  def relevantTags = tags.flatten.collect:
     case t if StudyData.relevantPgnTags.contains(t.name) => t.value
-  }
 
 object StudyData:
 
