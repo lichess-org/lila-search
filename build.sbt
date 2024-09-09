@@ -74,6 +74,7 @@ lazy val ingestor = (project in file("modules/ingestor"))
       log4Cats,
       logback,
       weaver,
+      weaverScalaCheck,
       testContainers
     ),
     Compile / run / fork := true
