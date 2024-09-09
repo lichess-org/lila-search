@@ -102,7 +102,7 @@ object GameQuery:
         hasAi.toList.map: a =>
           a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
 
-      def toQueries(query: Option[?], name: String): List[TermQuery] =
+      def toQueries(query: Option[String | Int | Boolean], name: String): List[TermQuery] =
         query.toList.map:
           case s: String => termQuery(name, s.toLowerCase)
           case x         => termQuery(name, x)
