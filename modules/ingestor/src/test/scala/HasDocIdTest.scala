@@ -15,12 +15,11 @@ object HasDocIdTest extends SimpleIOSuite with Checkers:
     extension (a: Change) def docId: Option[String] = a.docId
 
   given Show[Change] = Show.fromToString
-  given Arbitrary[Change] = Arbitrary {
+  given Arbitrary[Change] = Arbitrary:
     for
       value <- Gen.posNum[Int]
       docId <- Gen.option(Gen.alphaNumStr)
     yield Change(value, docId)
-  }
 
   test("distincByDocId is empty when input is empty"):
     val changes = List.empty[Change]
@@ -28,24 +27,20 @@ object HasDocIdTest extends SimpleIOSuite with Checkers:
     IO(expect(List.empty[Option[String]] == result))
 
   test("distincByDocId is empty when all docIds are none"):
-    forall { (changes: List[Change]) =>
+    forall: (changes: List[Change]) =>
       val xs = changes.map(_.copy(docId = none))
-      IO(expect(xs.distincByDocId.isEmpty))
-    }
+      expect(xs.distincByDocId.isEmpty)
 
   test("distincByDocId contains only item with defined docId"):
-    forall { (changes: List[Change]) =>
-      IO(expect(changes.distincByDocId.forall(_.docId.isDefined)))
-    }
+    forall: (changes: List[Change]) =>
+      expect(changes.distincByDocId.forall(_.docId.isDefined))
 
   test("distincByDocId is idempotent"):
-    forall { (changes: List[Change]) =>
-      IO(expect(changes.distincByDocId == changes.distincByDocId.distincByDocId))
-    }
+    forall: (changes: List[Change]) =>
+      expect(changes.distincByDocId == changes.distincByDocId.distincByDocId)
 
   test("distincByDocId == reverse.distincBy.reverse"):
-    forall { (changes: List[Change]) =>
+    forall: (changes: List[Change]) =>
       val result         = changes.distincByDocId
       val doubleReversed = changes.reverse.filter(_.docId.isDefined).distinctBy(_.docId).reverse
-      IO(expect(result == doubleReversed))
-    }
+      expect(result == doubleReversed)
