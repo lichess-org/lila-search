@@ -1,4 +1,5 @@
 import Dependencies.*
+import org.typelevel.scalacoptions.ScalacOptions
 
 inThisBuild(
   Seq(
@@ -13,10 +14,22 @@ inThisBuild(
   )
 )
 
+val commonSettings = Seq(
+  tpolecatScalacOptions ++= Set(
+    ScalacOptions.sourceFuture,
+    ScalacOptions.other("-rewrite"),
+    ScalacOptions.other("-indent"),
+    ScalacOptions.explain,
+    ScalacOptions.release("21"),
+    ScalacOptions.other("-Wsafe-init") // fix in: https://github.com/typelevel/scalac-options/pull/136
+  )
+)
+
 lazy val core = project
   .in(file("modules/core"))
   .settings(
     name := "core",
+    commonSettings,
     libraryDependencies ++= Seq(
       catsCore
     )
@@ -26,6 +39,7 @@ lazy val elastic = project
   .in(file("modules/elastic"))
   .settings(
     name           := "elastic",
+    commonSettings,
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -41,6 +55,7 @@ lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     name                     := "api",
+    commonSettings,
     smithy4sWildcardArgument := "?",
     libraryDependencies ++= Seq(
       catsCore,
@@ -52,6 +67,7 @@ lazy val api = (project in file("modules/api"))
 lazy val ingestor = (project in file("modules/ingestor"))
   .settings(
     name           := "ingestor",
+    commonSettings,
     publish        := {},
     publish / skip := true,
     resolvers += lilaMaven,
@@ -85,6 +101,7 @@ lazy val ingestor = (project in file("modules/ingestor"))
 lazy val client = (project in file("modules/client"))
   .settings(
     name := "client",
+    commonSettings,
     libraryDependencies ++= Seq(
       smithy4sJson,
       jsoniterCore,
@@ -97,6 +114,7 @@ lazy val client = (project in file("modules/client"))
 lazy val app = (project in file("modules/app"))
   .settings(
     name           := "lila-search",
+    commonSettings,
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
