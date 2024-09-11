@@ -46,19 +46,30 @@ object GameIngestor:
 
   private val eventProjection = Projection.include(interestedEventFields)
 
-  // Filter games that finished
-  // https://github.com/lichess-org/scalachess/blob/master/core/src/main/scala/Status.scala#L18-L27
-  val statusFilter   = Filter.gte("fullDocument.s", 30)
-  val noImportFilter = Filter.ne("fullDocument.so", 7)
-  // us fields is the list of player ids, if it's missing then it's
-  // an all anonymous (or anonymous vs stockfish) game
-  val noAllAnonFilter = Filter.exists("fullDocument.us")
+  // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/gameSearch/src/main/GameSearchApi.scala#L52
+  val gameFilter: Filter =
+    // Filter games that finished
+    // https://github.com/lichess-org/scalachess/blob/18edf46a50445048fdc2ee5a83752e5b3884f490/core/src/main/scala/Status.scala#L18-L27
+    val statusFilter   = Filter.gte("s", 30)
+    val noImportFilter = Filter.ne("so", 7)
+    // us fields is the list of player ids, if it's missing then it's
+    // an all anonymous (or anonymous vs stockfish) game
+    val noAllAnonFilter = Filter.exists("us")
+    statusFilter.and(noImportFilter).and(noAllAnonFilter)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/gameSearch/src/main/GameSearchApi.scala#L52
-  val gameFilter = statusFilter.and(noImportFilter).and(noAllAnonFilter)
+  val changeFilter: Filter =
+    // Filter games that finished
+    // https://github.com/lichess-org/scalachess/blob/18edf46a50445048fdc2ee5a83752e5b3884f490/core/src/main/scala/Status.scala#L18-L27
+    val statusFilter   = Filter.gte("fullDocument.s", 30)
+    val noImportFilter = Filter.ne("fullDocument.so", 7)
+    // us fields is the list of player ids, if it's missing then it's
+    // an all anonymous (or anonymous vs stockfish) game
+    val noAllAnonFilter = Filter.exists("fullDocument.us")
+    statusFilter.and(noImportFilter).and(noAllAnonFilter)
 
   private val aggregate =
-    Aggregate.matchBy(eventFilter.and(gameFilter)).combinedWith(Aggregate.project(eventProjection))
+    Aggregate.matchBy(eventFilter.and(changeFilter)).combinedWith(Aggregate.project(eventProjection))
 
   def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Game)(
       using LoggerFactory[IO]
@@ -95,7 +106,7 @@ object GameIngestor:
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
       games
-        .find(filter)
+        .find(filter.and(gameFilter))
         // .projection(postProjection)
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
@@ -142,8 +153,8 @@ object GameIngestor:
       config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
 
   object F:
-    val createdAt = "createdAt"
-    val updatedAt = "updatedAt"
+    val createdAt = "ca"
+    val updatedAt = "ua"
 
 type PlayerId = String
 case class DbGame(
