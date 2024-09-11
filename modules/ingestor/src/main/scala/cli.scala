@@ -80,7 +80,7 @@ object opts:
   val indexOpt = (
     Opts.option[Index](
       long = "index",
-      help = "Target index (only `forum` for now)",
+      help = "Target index",
       short = "i",
       metavar = "forum|team|study|game"
     ),
@@ -115,7 +115,7 @@ object opts:
   val watchOpt = (
     Opts.option[Index](
       long = "index",
-      help = "Target index (only `forum` for now)",
+      help = "Target index (only `game` for now)",
       short = "i",
       metavar = "forum|team|study|game"
     ),
