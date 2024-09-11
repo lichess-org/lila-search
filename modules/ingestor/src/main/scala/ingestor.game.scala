@@ -142,8 +142,8 @@ object GameIngestor:
       config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
 
   object F:
-    val createdAt = "createdAt"
-    val updatedAt = "updatedAt"
+    val createdAt = "ca"
+    val updatedAt = "ua"
 
 type PlayerId = String
 case class DbGame(
