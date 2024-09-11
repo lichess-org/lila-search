@@ -19,6 +19,8 @@ import scala.concurrent.duration.*
 trait TeamIngestor:
   // watch change events from MongoDB and ingest team data into elastic search
   def watch: fs2.Stream[IO, Unit]
+  // Fetch teams in [since, until] and ingest into elastic search
+  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
 
 object TeamIngestor:
 
@@ -28,6 +30,7 @@ object TeamIngestor:
   private val eventFilter          = Filter.in("operationType", interestedOperations)
 
   private val interestedFields = List("_id", F.name, F.description, F.nbMembers, F.name, F.enabled)
+  private val postProjection   = Projection.include(interestedFields)
 
   private val interestedEventFields =
     List("operationType", "clusterTime", "documentKey._id") ++ interestedFields.map("fullDocument." + _)
@@ -56,6 +59,25 @@ object TeamIngestor:
               storeBulk(toIndex.flatten(_.fullDocument))
                 *> elastic.deleteMany(index, toDelete)
                 *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
+
+    def run(since: Instant, until: Instant, dryRun: Boolean) =
+      val filter = range(F.createdAt)(since, until.some)
+        .or(range(F.updatedAt)(since, until.some))
+        .or(range(F.erasedAt)(since, until.some))
+      teams
+        .find(filter)
+        .projection(postProjection)
+        .boundedStream(config.batchSize)
+        .chunkN(config.batchSize)
+        .map(_.toList)
+        .metered(1.second) // to avoid overloading the elasticsearch
+        .evalMap: docs =>
+          val (toDelete, toIndex) = docs.partition(!_.isEnabled)
+          dryRun.fold(
+            toIndex.traverse_(doc => debug"Would index $doc")
+              *> toDelete.traverse_(doc => debug"Would delete $doc"),
+            storeBulk(toIndex) *> elastic.deleteMany(index, toDelete)
+          )
 
     private def storeBulk(docs: List[Document]): IO[Unit] =
       val sources = docs.toSources
@@ -114,3 +136,6 @@ object TeamIngestor:
     val description = "description"
     val nbMembers   = "nbMembers"
     val enabled     = "enabled"
+    val createdAt   = "createdAt"
+    val updatedAt   = "updatedAt"
+    val erasedAt    = "erasedAt"

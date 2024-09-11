@@ -31,6 +31,7 @@ object cli
       config <- AppConfig.load.toResource
       res    <- AppResources.instance(config)
       forum  <- ForumIngestor(res.lichess, res.elastic, res.store, config.ingestor.forum).toResource
+      team   <- TeamIngestor(res.lichess, res.elastic, res.store, config.ingestor.team).toResource
       study <- StudyIngestor(
         res.study,
         res.studyLocal,
@@ -39,9 +40,14 @@ object cli
         config.ingestor.study
       ).toResource
       game <- GameIngestor(res.lichess, res.elastic, res.store, config.ingestor.game).toResource
-    yield Executor(forum, study, game)
+    yield Executor(forum, study, game, team)
 
-  class Executor(val forum: ForumIngestor, val study: StudyIngestor, val game: GameIngestor):
+  class Executor(
+      val forum: ForumIngestor,
+      val study: StudyIngestor,
+      val game: GameIngestor,
+      val team: TeamIngestor
+  ):
     def execute(opts: IndexOpts | WatchOpts): IO[Unit] =
       opts match
         case opts: IndexOpts => index(opts)
@@ -55,7 +61,8 @@ object cli
           study.run(opts.since, opts.until, opts.dry).compile.drain
         case Index.Game =>
           game.run(opts.since, opts.until, opts.dry).compile.drain
-        case _ => IO.println("We only support forum/study/game backfill for now")
+        case Index.Team =>
+          team.run(opts.since, opts.until, opts.dry).compile.drain
 
     def watch(opts: WatchOpts): IO[Unit] =
       opts.index match
