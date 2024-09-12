@@ -44,6 +44,13 @@ Start ingestor cli tool
 ingestor/runMain lila.search.ingestor.cli --help
 ```
 
+#### CLI tool
+
+```sh
+# rebuild all indexes (for dev sites)
+ingestor/runMain lila.search.ingestor.cli rebuild
+```
+
 ### release
 
 ```bash

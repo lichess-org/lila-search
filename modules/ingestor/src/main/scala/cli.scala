@@ -6,7 +6,7 @@ import cats.effect.*
 import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
-import lila.search.ingestor.opts.{ IndexOpts, WatchOpts }
+import lila.search.ingestor.opts.{ IndexOpts, RebuildOpts, WatchOpts }
 import org.typelevel.log4cats.slf4j.{ Slf4jFactory, Slf4jLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
@@ -48,10 +48,11 @@ object cli
       val game: GameIngestor,
       val team: TeamIngestor
   ):
-    def execute(opts: IndexOpts | WatchOpts): IO[Unit] =
+    def execute(opts: IndexOpts | RebuildOpts | WatchOpts): IO[Unit] =
       opts match
-        case opts: IndexOpts => index(opts)
-        case opts: WatchOpts => watch(opts)
+        case opts: IndexOpts   => index(opts)
+        case opts: RebuildOpts => rebuild(opts)
+        case opts: WatchOpts   => watch(opts)
 
     def index(opts: IndexOpts): IO[Unit] =
       opts.index match
@@ -64,6 +65,12 @@ object cli
         case Index.Team =>
           team.run(opts.since, opts.until, opts.dry).compile.drain
 
+    def rebuild(opts: RebuildOpts): IO[Unit] =
+      forum.run(Instant.ofEpochSecond(0), Instant.now, opts.dry).compile.drain >>
+        study.run(Instant.ofEpochSecond(0), Instant.now, opts.dry).compile.drain >>
+        game.run(Instant.ofEpochSecond(0), Instant.now, opts.dry).compile.drain >>
+        team.run(Instant.ofEpochSecond(0), Instant.now, opts.dry).compile.drain
+
     def watch(opts: WatchOpts): IO[Unit] =
       opts.index match
         case Index.Game =>
@@ -72,9 +79,11 @@ object cli
 
 object opts:
   case class IndexOpts(index: Index, since: Instant, until: Instant, dry: Boolean)
+  case class RebuildOpts(dry: Boolean)
   case class WatchOpts(index: Index, since: Instant, dry: Boolean)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
+    Opts.subcommand("rebuild", "rebuild all indexes and their documents")(rebuildOpt) <+>
     Opts.subcommand("watch", "watch change events and index documents")(watchOpt)
 
   val indexOpt = (
@@ -111,6 +120,18 @@ object opts:
       if x.until.isAfter(x.since) then Validated.valid(x)
       else Validated.invalidNel(s"since: ${x.since} must be before until: ${x.until}")
     )
+
+  val rebuildOpt = (
+    Opts
+      .flag(
+        long = "dry",
+        help = "Dry run",
+        short = "d"
+      )
+      .orNone
+      .map(_.isDefined)
+    )
+    .map(RebuildOpts.apply)
 
   val watchOpt = (
     Opts.option[Index](
