@@ -53,15 +53,15 @@ object cli
         case opts: IndexOpts => index(opts)
         case opts: WatchOpts => watch(opts)
 
-    import opts.IndexType
+    import opts.{ All, Single }
     def index(opts: IndexOpts): IO[Unit] =
       opts.index match
-        case IndexType.All =>
+        case All =>
           forum.run(opts.since, opts.until, opts.dry).compile.drain *>
             study.run(opts.since, opts.until, opts.dry).compile.drain *>
             game.run(opts.since, opts.until, opts.dry).compile.drain *>
             team.run(opts.since, opts.until, opts.dry).compile.drain
-        case IndexType.Single(index) =>
+        case Single(index) =>
           index match
             case Index.Forum =>
               forum.run(opts.since, opts.until, opts.dry).compile.drain
@@ -79,10 +79,9 @@ object cli
         case _ => IO.println("We only support game watch for now")
 
 object opts:
-  enum IndexType:
-    case Single(index: Index)
-    case All
-  case class IndexOpts(index: IndexType, since: Instant, until: Instant, dry: Boolean)
+  case class Single(index: Index)
+  object All
+  case class IndexOpts(index: Single | All.type, since: Instant, until: Instant, dry: Boolean)
   case class WatchOpts(index: Index, since: Instant, dry: Boolean)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
@@ -96,7 +95,7 @@ object opts:
         short = "i",
         metavar = "forum|team|study|game"
       )
-      .map(IndexType.Single.apply)
+      .map(Single.apply)
 
   val allIndexOpt =
     Opts
@@ -104,7 +103,7 @@ object opts:
         long = "all",
         help = "All indexes"
       )
-      .as(IndexType.All)
+      .as(All)
 
   val inputOpts = singleIndexOpt orElse allIndexOpt
 
