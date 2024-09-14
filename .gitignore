@@ -1,4 +1,5 @@
 .bloop/
+.bsp/
 .metals/
 logs
 target
@@ -8,6 +9,7 @@ target
 /.classpath
 /.project
 /.settings
+/.vscode
 /RUNNING_PID
 # docker sbt
 /?
