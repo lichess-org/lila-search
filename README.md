@@ -47,8 +47,11 @@ ingestor/runMain lila.search.ingestor.cli --help
 #### CLI tool
 
 ```sh
-# rebuild all indexes (for dev sites)
-ingestor/runMain lila.search.ingestor.cli rebuild
+# index all documents for specific index
+sbt 'ingestor/runMain lila.search.ingestor.cli index --index team --since 0'
+
+# index all documents for all indexes
+sbt 'ingestor/runMain lila.search.ingestor.cli index --all --since 0'
 ```
 
 ### release
