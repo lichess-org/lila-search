@@ -3,7 +3,7 @@ import org.typelevel.scalacoptions.ScalacOptions
 
 inThisBuild(
   Seq(
-    scalaVersion  := "3.5.0",
+    scalaVersion  := "3.5.1",
     versionScheme := Some("early-semver"),
     organization  := "org.lichess.search",
     run / fork    := true,
@@ -38,7 +38,7 @@ lazy val core = project
 lazy val elastic = project
   .in(file("modules/elastic"))
   .settings(
-    name           := "elastic",
+    name := "elastic",
     commonSettings,
     publish        := {},
     publish / skip := true,
@@ -54,7 +54,7 @@ lazy val elastic = project
 lazy val api = (project in file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
-    name                     := "api",
+    name := "api",
     commonSettings,
     smithy4sWildcardArgument := "?",
     libraryDependencies ++= Seq(
@@ -66,7 +66,7 @@ lazy val api = (project in file("modules/api"))
 
 lazy val ingestor = (project in file("modules/ingestor"))
   .settings(
-    name           := "ingestor",
+    name := "ingestor",
     commonSettings,
     publish        := {},
     publish / skip := true,
@@ -113,7 +113,7 @@ lazy val client = (project in file("modules/client"))
 
 lazy val app = (project in file("modules/app"))
   .settings(
-    name           := "lila-search",
+    name := "lila-search",
     commonSettings,
     publish        := {},
     publish / skip := true,
