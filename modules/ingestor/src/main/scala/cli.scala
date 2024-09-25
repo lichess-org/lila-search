@@ -79,8 +79,8 @@ object cli
         case _ => IO.println("We only support game watch for now")
 
 object opts:
-  case class Single(index: Index)
   object All
+  case class Single(index: Index)
   case class IndexOpts(index: Single | All.type, since: Instant, until: Instant, dry: Boolean)
   case class WatchOpts(index: Index, since: Instant, dry: Boolean)
 
@@ -99,16 +99,17 @@ object opts:
 
   val allIndexOpt =
     Opts
-      .flag(
-        long = "all",
-        help = "All indexes"
-      )
+      .flag(long = "all", help = "All indexes")
       .as(All)
 
-  val inputOpts = singleIndexOpt orElse allIndexOpt
+  val dryOpt =
+    Opts
+      .flag(long = "dry", help = "Dry run", short = "d")
+      .orNone
+      .map(_.isDefined)
 
   val indexOpt = (
-    inputOpts,
+    singleIndexOpt orElse allIndexOpt,
     Opts.option[Instant](
       long = "since",
       help = "Index all documents since",
@@ -123,14 +124,7 @@ object opts:
         metavar = "time in epoch seconds"
       )
       .orElse(Instant.now.pure[Opts]),
-    Opts
-      .flag(
-        long = "dry",
-        help = "Dry run",
-        short = "d"
-      )
-      .orNone
-      .map(_.isDefined)
+    dryOpt
   ).mapN(IndexOpts.apply)
     .mapValidated(x =>
       if x.until.isAfter(x.since) then Validated.valid(x)
@@ -152,14 +146,7 @@ object opts:
         metavar = "time in epoch seconds"
       )
       .orElse(Instant.now.pure[Opts]),
-    Opts
-      .flag(
-        long = "dry",
-        help = "Dry run",
-        short = "d"
-      )
-      .orNone
-      .map(_.isDefined)
+    dryOpt
   ).mapN(WatchOpts.apply)
 
   given Argument[Index] =
