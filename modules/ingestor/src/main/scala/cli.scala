@@ -53,24 +53,21 @@ object cli
         case opts: IndexOpts => index(opts)
         case opts: WatchOpts => watch(opts)
 
-    import opts.{ All, Single }
     def index(opts: IndexOpts): IO[Unit] =
       opts.index match
-        case All =>
+        case Index.Forum =>
+          forum.run(opts.since, opts.until, opts.dry).compile.drain
+        case Index.Study =>
+          study.run(opts.since, opts.until, opts.dry).compile.drain
+        case Index.Game =>
+          game.run(opts.since, opts.until, opts.dry).compile.drain
+        case Index.Team =>
+          team.run(opts.since, opts.until, opts.dry).compile.drain
+        case _ =>
           forum.run(opts.since, opts.until, opts.dry).compile.drain *>
             study.run(opts.since, opts.until, opts.dry).compile.drain *>
             game.run(opts.since, opts.until, opts.dry).compile.drain *>
             team.run(opts.since, opts.until, opts.dry).compile.drain
-        case Single(index) =>
-          index match
-            case Index.Forum =>
-              forum.run(opts.since, opts.until, opts.dry).compile.drain
-            case Index.Study =>
-              study.run(opts.since, opts.until, opts.dry).compile.drain
-            case Index.Game =>
-              game.run(opts.since, opts.until, opts.dry).compile.drain
-            case Index.Team =>
-              team.run(opts.since, opts.until, opts.dry).compile.drain
 
     def watch(opts: WatchOpts): IO[Unit] =
       opts.index match
@@ -79,9 +76,7 @@ object cli
         case _ => IO.println("We only support game watch for now")
 
 object opts:
-  object All
-  case class Single(index: Index)
-  case class IndexOpts(index: Single | All.type, since: Instant, until: Instant, dry: Boolean)
+  case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, dry: Boolean)
   case class WatchOpts(index: Index, since: Instant, dry: Boolean)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
@@ -95,12 +90,11 @@ object opts:
         short = "i",
         metavar = "forum|team|study|game"
       )
-      .map(Single.apply)
 
   val allIndexOpt =
     Opts
       .flag(long = "all", help = "All indexes")
-      .as(All)
+      .void
 
   val dryOpt =
     Opts
