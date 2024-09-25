@@ -14,13 +14,13 @@ object CLITest extends weaver.FunSuite:
     decline.Command("test", "Test Command")(opts.parse).parse(args)
 
   test("index command"):
-    expect(
-      testCommand("index", "--index", "team", "--since", "0", "--until", "1", "--dry") ==
-        IndexOpts(Index.Team, Instant.ofEpochSecond(0), Instant.ofEpochSecond(1), true).asRight
+    expect.same(
+      testCommand("index", "--index", "team", "--since", "0", "--until", "1", "--dry"),
+      IndexOpts(Index.Team, Instant.ofEpochSecond(0), Instant.ofEpochSecond(1), true).asRight
     )
 
   test("watch command"):
-    expect(
-      testCommand("watch", "--index", "team", "--since", "0", "--dry") ==
-        WatchOpts(Index.Team, Instant.ofEpochSecond(0), true).asRight
+    expect.same(
+      testCommand("watch", "--index", "team", "--since", "0", "--dry"),
+      WatchOpts(Index.Team, Instant.ofEpochSecond(0), true).asRight
     )
