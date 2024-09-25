@@ -3,7 +3,6 @@ package ingestor
 
 import cats.syntax.all.*
 import com.monovore.decline
-import com.monovore.decline.Help
 
 import java.time.Instant
 
@@ -11,7 +10,7 @@ import opts.*
 
 object CLITest extends weaver.FunSuite:
 
-  def testCommand(args: String*): Either[Help, IndexOpts | WatchOpts] =
+  def testCommand(args: String*) =
     decline.Command("test", "Test Command")(opts.parse).parse(args)
 
   test("index command"):
