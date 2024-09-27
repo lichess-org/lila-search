@@ -3,7 +3,6 @@ package ingestor
 
 import cats.effect.IO
 import cats.syntax.all.*
-import ciris.ConfigDecoder
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.sksamuel.elastic4s.Indexable
 import lila.search.spec.Source
@@ -17,7 +16,7 @@ import org.typelevel.log4cats.syntax.*
 import smithy4s.json.Json.given
 import smithy4s.schema.Schema
 
-import java.time.{ DateTimeException, Instant }
+import java.time.Instant
 
 val _id = "_id"
 
@@ -68,9 +67,3 @@ extension (elastic: ESClient[IO])
       deleteMany_(index, events.flatMap(_.docId).map(Id.apply)).whenA(events.nonEmpty)
 
 extension (s: String) def dollarPrefix = "$" + s
-
-given ConfigDecoder[String, Instant] = ConfigDecoder[String]
-  .as[Long]
-  .mapOption("Instant"): l =>
-    try Some(Instant.ofEpochSecond(l))
-    catch case _: DateTimeException => None

@@ -7,6 +7,8 @@ import ciris.*
 
 import java.time.Instant
 import scala.concurrent.duration.*
+import java.time.DateTimeException
+import CirisCodec.given
 
 object AppConfig:
 
@@ -99,3 +101,10 @@ object IngestorConfig:
     def config = (batchSize, timeWindows, startAt).mapN(Game.apply)
 
   def config = (Forum.config, Team.config, Study.config, Game.config).mapN(IngestorConfig.apply)
+
+object CirisCodec:
+  given ConfigDecoder[String, Instant] = ConfigDecoder[String]
+    .as[Long]
+    .mapOption("Instant"): l =>
+      try Some(Instant.ofEpochSecond(l))
+      catch case _: DateTimeException => None
