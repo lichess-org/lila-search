@@ -94,7 +94,7 @@ object TeamIngestor:
         *> info"Stored last indexed time ${time.getEpochSecond} for $index"
 
     private def startAt: IO[Option[Instant]] =
-      config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
+      config.startAt.fold(store.get(index.value))(_.some.pure[IO])
 
     private def changeStream(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
       // skip the first event if we're starting from a specific timestamp
