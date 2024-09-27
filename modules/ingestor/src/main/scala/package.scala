@@ -17,7 +17,7 @@ import org.typelevel.log4cats.syntax.*
 import smithy4s.json.Json.given
 import smithy4s.schema.Schema
 
-import java.time.{DateTimeException, Instant}
+import java.time.{ DateTimeException, Instant }
 
 val _id = "_id"
 
