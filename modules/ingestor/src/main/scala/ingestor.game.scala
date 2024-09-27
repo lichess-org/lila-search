@@ -150,7 +150,7 @@ object GameIngestor:
         *> info"Stored last indexed time ${time.getEpochSecond} for $index"
 
     private def startAt: IO[Option[Instant]] =
-      config.startAt.fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
+      config.startAt.fold(store.get(index.value))(_.some.pure[IO])
 
   object F:
     val createdAt = "ca"

@@ -108,8 +108,7 @@ object StudyIngestor:
     def intervalStream: fs2.Stream[IO, (Instant, Instant)] =
       fs2.Stream
         .eval:
-          config.startAt
-            .fold(store.get(index.value))(Instant.ofEpochSecond(_).some.pure[IO])
+          config.startAt.fold(store.get(index.value))(_.some.pure[IO])
         .flatMap: startAt =>
           startAt.fold(fs2.Stream.empty)(since => fs2.Stream(since))
             ++ fs2.Stream
