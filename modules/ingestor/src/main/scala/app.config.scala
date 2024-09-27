@@ -5,6 +5,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import ciris.*
 
+import java.time.Instant
 import scala.concurrent.duration.*
 
 object AppConfig:
@@ -50,10 +51,10 @@ case class IngestorConfig(
 )
 
 object IngestorConfig:
-  case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Long], maxPostLength: Int)
-  case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Long])
-  case class Study(batchSize: Int, startAt: Option[Long], interval: FiniteDuration, databaseName: String)
-  case class Game(batchSize: Int, timeWindows: Int, startAt: Option[Long])
+  case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Instant], maxPostLength: Int)
+  case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
+  case class Study(batchSize: Int, startAt: Option[Instant], interval: FiniteDuration, databaseName: String)
+  case class Game(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
 
   private object Forum:
     private def batchSize =
@@ -61,10 +62,7 @@ object IngestorConfig:
     private def timeWindows =
       env("INGESTOR_FORUM_TIME_WINDOWS").or(prop("ingestor.forum.time.windows")).as[Int].default(10)
     private def startAt =
-      env("INGESTOR_FORUM_START_AT")
-        .or(prop("ingestor.forum.start.at"))
-        .as[Long]
-        .option
+      env("INGESTOR_FORUM_START_AT").or(prop("ingestor.forum.start.at")).as[Instant].option
     private def maxPostLength =
       env("INGESTOR_FORUM_MAX_POST_LENGTH").or(prop("ingestor.forum.max.post.length")).as[Int].default(5_000)
     def config = (batchSize, timeWindows, startAt, maxPostLength).parMapN(Forum.apply)
@@ -75,14 +73,14 @@ object IngestorConfig:
     private def timeWindows =
       env("INGESTOR_TEAM_TIME_WINDOWS").or(prop("ingestor.team.time.windows")).as[Int].default(10)
     private def startAt =
-      env("INGESTOR_TEAM_START_AT").or(prop("ingestor.team.start.at")).as[Long].option
+      env("INGESTOR_TEAM_START_AT").or(prop("ingestor.team.start.at")).as[Instant].option
     def config = (batchSize, timeWindows, startAt).mapN(Team.apply)
 
   private object Study:
     private def batchSize =
       env("INGESTOR_STUDY_BATCH_SIZE").or(prop("ingestor.study.batch.size")).as[Int].default(100)
     private def startAt =
-      env("INGESTOR_STUDY_START_AT").or(prop("ingestor.study.start.at")).as[Long].option
+      env("INGESTOR_STUDY_START_AT").or(prop("ingestor.study.start.at")).as[Instant].option
     private def interval =
       env("INGESTOR_STUDY_INTERVAL")
         .or(prop("ingestor.study.interval"))
@@ -97,7 +95,7 @@ object IngestorConfig:
     private def timeWindows =
       env("INGESTOR_GAME_TIME_WINDOWS").or(prop("ingestor.game.time.windows")).as[Int].default(10)
     private def startAt =
-      env("INGESTOR_GAME_START_AT").or(prop("ingestor.game.start.at")).as[Long].option
+      env("INGESTOR_GAME_START_AT").or(prop("ingestor.game.start.at")).as[Instant].option
     def config = (batchSize, timeWindows, startAt).mapN(Game.apply)
 
   def config = (Forum.config, Team.config, Study.config, Game.config).mapN(IngestorConfig.apply)
