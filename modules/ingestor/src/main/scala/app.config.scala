@@ -7,7 +7,7 @@ import ciris.*
 
 import java.time.Instant
 import scala.concurrent.duration.*
-import java.time.DateTimeException
+
 import CirisCodec.given
 
 object AppConfig:
@@ -105,6 +105,4 @@ object IngestorConfig:
 object CirisCodec:
   given ConfigDecoder[String, Instant] = ConfigDecoder[String]
     .as[Long]
-    .mapOption("Instant"): l =>
-      try Some(Instant.ofEpochSecond(l))
-      catch case _: DateTimeException => None
+    .map(Instant.ofEpochSecond)
