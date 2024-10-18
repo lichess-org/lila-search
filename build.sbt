@@ -132,10 +132,14 @@ lazy val app = (project in file("modules/app"))
       cirisHtt4s,
       log4Cats,
       logback,
+      otel4sJava,
+      opentelemetryExporter,
+      opentelemetryAutoConfig,
       weaver,
       testContainers
     ),
-    Compile / run / fork := true
+    Compile / run / fork := true,
+    javaOptions += "-Dotel.java.global-autoconfigure.enabled=true"
   )
   .enablePlugins(JavaAppPackaging)
   .dependsOn(api, elastic)
