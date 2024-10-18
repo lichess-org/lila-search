@@ -3,7 +3,9 @@ package app
 
 import cats.effect.*
 import cats.mtl.Local
-import io.opentelemetry.api.GlobalOpenTelemetry
+import cats.syntax.all.*
+import io.opentelemetry.api.{ GlobalOpenTelemetry, OpenTelemetry as JOpenTelemetry }
+import io.opentelemetry.instrumentation.runtimemetrics.java17.*
 import org.typelevel.log4cats.slf4j.{ Slf4jFactory, Slf4jLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.instances.local.*
@@ -29,11 +31,16 @@ object App extends IOApp.Simple:
       given IOLocal[Context] <- IOLocal(Context.root).toResource
       given OtelJava[IO]     <- summon[IO[OtelJava[IO]]].toResource
       given Meter[IO]        <- summon[IO[Meter[IO]]].toResource
+      _                      <- registerRuntimeMetrics[IO](summon[OtelJava[IO]].underlying)
       config                 <- AppConfig.load.toResource
       _                      <- Logger[IO].info(s"Starting lila-search with config: $config").toResource
       res                    <- AppResources.instance(config)
       _                      <- SearchApp(res, config).run()
     yield ()
+
+  private def registerRuntimeMetrics[F[_]: Sync](openTelemetry: JOpenTelemetry): Resource[F, Unit] =
+    val acquire = Sync[F].delay(RuntimeMetrics.create(openTelemetry))
+    Resource.make(acquire)(r => Sync[F].delay(r.close())).void
 
 class SearchApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO], Meter[IO]):
   def run(): Resource[IO, Unit] =

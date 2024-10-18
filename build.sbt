@@ -133,8 +133,9 @@ lazy val app = (project in file("modules/app"))
       log4Cats,
       logback,
       otel4sJava,
-      opentelemetryExporter,
-      opentelemetryAutoConfig,
+      otelJavaExporter,
+      otelJavaAutoConfig,
+      otelJavaRuntimeMetrics,
       weaver,
       testContainers
     ),
