@@ -7,8 +7,8 @@ import cats.syntax.all.*
 import com.comcast.ip4s.*
 import lila.search.spec.*
 import org.http4s.Uri
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.noop.NoOpLogger
+import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import smithy4s.Timestamp
 import weaver.*
 
@@ -16,7 +16,8 @@ import java.time.Instant
 
 object IntegrationSuite extends IOSuite:
 
-  given Logger[IO] = NoOpLogger[IO]
+  given Logger[IO]        = NoOpLogger[IO]
+  given LoggerFactory[IO] = NoOpFactory[IO]
 
   private val uri = Uri.unsafeFromString("http://localhost:9999")
 

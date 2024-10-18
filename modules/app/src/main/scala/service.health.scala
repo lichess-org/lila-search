@@ -4,9 +4,11 @@ package app
 import cats.effect.*
 import cats.syntax.all.*
 import lila.search.spec.*
-import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
-class HealthServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extends HealthService[IO]:
+class HealthServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends HealthService[IO]:
+
+  given logger: Logger[IO] = summon[LoggerFactory[IO]].getLogger
 
   override def healthCheck(): IO[HealthCheckOutput] =
     esClient.status

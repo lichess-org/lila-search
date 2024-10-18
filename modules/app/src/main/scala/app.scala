@@ -2,12 +2,13 @@ package lila.search
 package app
 
 import cats.effect.*
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.slf4j.{ Slf4jFactory, Slf4jLogger }
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 object App extends IOApp.Simple:
 
-  given Logger[IO] = Slf4jLogger.getLogger[IO]
+  given Logger[IO]        = Slf4jLogger.getLogger[IO]
+  given LoggerFactory[IO] = Slf4jFactory.create[IO]
 
   override def run: IO[Unit] = app.useForever
 
@@ -19,7 +20,7 @@ object App extends IOApp.Simple:
       _      <- SearchApp(res, config).run()
     yield ()
 
-class SearchApp(res: AppResources, config: AppConfig)(using Logger[IO]):
+class SearchApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO]):
   def run(): Resource[IO, Unit] =
     for
       httpApp <- Routes(res, config.server)

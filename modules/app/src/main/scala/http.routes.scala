@@ -6,10 +6,12 @@ import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
 import lila.search.spec.*
 import org.http4s.{ HttpApp, HttpRoutes }
-import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.LoggerFactory
 import smithy4s.http4s.SimpleRestJsonBuilder
 
-def Routes(resources: AppResources, config: HttpServerConfig)(using Logger[IO]): Resource[IO, HttpApp[IO]] =
+def Routes(resources: AppResources, config: HttpServerConfig)(using
+    LoggerFactory[IO]
+): Resource[IO, HttpApp[IO]] =
 
   val healthServiceImpl: HealthService[IO] = HealthServiceImpl(resources.esClient)
 

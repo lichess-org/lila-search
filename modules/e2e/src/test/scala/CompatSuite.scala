@@ -8,8 +8,8 @@ import com.sksamuel.elastic4s.Indexable
 import lila.search.app.{ AppConfig, AppResources, ElasticConfig, HttpServerConfig, SearchApp }
 import lila.search.client.{ SearchClient, SearchError }
 import lila.search.spec.{ CountOutput, Query, SearchOutput, Source }
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.noop.NoOpLogger
+import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import play.api.libs.ws.*
 import play.api.libs.ws.ahc.*
 
@@ -18,7 +18,8 @@ import scala.concurrent.ExecutionContext.Implicits.*
 
 object CompatSuite extends weaver.IOSuite:
 
-  given Logger[IO] = NoOpLogger[IO]
+  given Logger[IO]        = NoOpLogger[IO]
+  given LoggerFactory[IO] = NoOpFactory[IO]
 
   override type Res = SearchClient
 

@@ -9,15 +9,17 @@ import lila.search.game.Game
 import lila.search.spec.*
 import lila.search.study.Study
 import lila.search.team.Team
-import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import smithy4s.Timestamp
 import smithy4s.schema.Schema
 
 import java.time.Instant
 
-class SearchServiceImpl(esClient: ESClient[IO])(using logger: Logger[IO]) extends SearchService[IO]:
+class SearchServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends SearchService[IO]:
 
   import SearchServiceImpl.{ given, * }
+
+  given logger: Logger[IO] = summon[LoggerFactory[IO]].getLogger
 
   override def storeBulkTeam(sources: List[TeamSourceWithId]): IO[Unit] =
     esClient
