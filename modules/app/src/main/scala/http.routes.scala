@@ -7,18 +7,18 @@ import cats.syntax.all.*
 import lila.search.spec.*
 import org.http4s.HttpRoutes
 import org.typelevel.log4cats.LoggerFactory
+import org.typelevel.otel4s.metrics.Meter
 import smithy4s.http4s.SimpleRestJsonBuilder
 
 def Routes(resources: AppResources, config: HttpServerConfig)(using
-    LoggerFactory[IO]
+    LoggerFactory[IO],
+    Meter[IO]
 ): Resource[IO, HttpRoutes[IO]] =
 
   val healthServiceImpl: HealthService[IO] = HealthServiceImpl(resources.esClient)
 
-  val searchServiceImpl: SearchService[IO] = SearchServiceImpl(resources.esClient)
-
   val search: Resource[IO, HttpRoutes[IO]] =
-    SimpleRestJsonBuilder.routes(searchServiceImpl).resource
+    SearchServiceImpl(resources.esClient).toResource.flatMap(SimpleRestJsonBuilder.routes(_).resource)
 
   val health: Resource[IO, HttpRoutes[IO]] =
     SimpleRestJsonBuilder.routes(healthServiceImpl).resource
