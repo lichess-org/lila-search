@@ -4,9 +4,6 @@
     <variable name="ELASTIC4S_LOG_LEVEL" value="${ELASTIC4S_LOG_LEVEL:-WARN}" />
     <variable name="MONGO_DRIVER_LOG_LEVEL" value="${MONGO_DRIVER_LOG_LEVEL:-INFO}" />
 
-    <variable name="LOG_INGESTOR_FILE_NAME" value="${LOG_INGESTOR_FILE_NAME:-lila-search-ingestor.log}"/>
-    <variable name="LOG_DIR" value="${LOG_DIR:-logs}"/>
-
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
       <file>${LOG_DIR}/${LOG_INGESTOR_FILE_NAME}</file>
         <encoder>
