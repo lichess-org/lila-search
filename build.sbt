@@ -91,8 +91,6 @@ lazy val ingestor = (project in file("modules/ingestor"))
       mongo4catsCirce,
       log4Cats,
       logback,
-      otelJavaExporter,
-      otelJavaAutoConfig,
       otel4sMetricts,
       otel4sSdk,
       otel4sPrometheusExporter,
@@ -138,16 +136,13 @@ lazy val app = (project in file("modules/app"))
       cirisHtt4s,
       log4Cats,
       logback,
-      otel4sJava,
-      otelJavaAutoConfig,
       otel4sMetricts,
       otel4sSdk,
       otel4sPrometheusExporter,
       weaver,
       testContainers
     ),
-    Compile / run / fork := true,
-    javaOptions += "-Dotel.java.global-autoconfigure.enabled=true"
+    Compile / run / fork := true
   )
   .enablePlugins(JavaAppPackaging)
   .dependsOn(api, elastic)

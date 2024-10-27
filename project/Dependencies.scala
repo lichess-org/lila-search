@@ -57,12 +57,8 @@ object Dependencies {
   val circe = "io.circe" %% "circe-core" % "0.14.10"
 
   val otel4sCore =  "org.typelevel" %% "otel4s-core" % V.otel4s
-  val otel4sJava =  "org.typelevel" %% "otel4s-oteljava" % V.otel4s
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
   val otel4sSdk = "org.typelevel" %% "otel4s-sdk" % V.otel4s
-  val otelJavaExporter = "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.43.0" % Runtime
-  val otelJavaAutoConfig = "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % "1.43.0" % Runtime
-  val otelJavaRuntimeMetrics =  "io.opentelemetry.instrumentation" % "opentelemetry-runtime-telemetry-java17" % "2.5.0-alpha"
   val otel4sMetricts = "org.typelevel" %% "otel4s-experimental-metrics"    % "0.4.0-4-138383f-SNAPSHOT"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
