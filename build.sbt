@@ -91,10 +91,11 @@ lazy val ingestor = (project in file("modules/ingestor"))
       mongo4catsCirce,
       log4Cats,
       logback,
-      otel4sJava,
       otelJavaExporter,
       otelJavaAutoConfig,
-      otelJavaRuntimeMetrics,
+      otel4sMetricts,
+      otel4sSdk,
+      otel4sPrometheusExporter,
       weaver,
       weaverScalaCheck,
       testContainers
