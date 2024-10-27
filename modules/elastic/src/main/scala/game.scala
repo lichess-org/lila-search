@@ -30,7 +30,55 @@ case class Game(
     blackUser: Option[String] = None,
     clockInit: Option[Int] = None,
     clockInc: Option[Int] = None
-)
+):
+
+  val timeout = 5.seconds
+
+  def searchDef(from: From, size: Size) =
+    search(Game.index)
+      .query(makeQuery)
+      .fetchSource(false)
+      .sortBy(sorting.definition)
+      .start(from.value)
+      .size(size.value)
+      .timeout(timeout)
+
+  def countDef = count(Game.index).query(makeQuery)
+
+  private def makeQuery: Query =
+
+    def usernames = List(user1, user2).flatten
+
+    def hasAiQueries =
+      hasAi.toList.map: a =>
+        a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
+
+    def toQueries(query: Option[String | Int | Boolean], name: String): List[TermQuery] =
+      query.toList.map:
+        case s: String => termQuery(name, s.toLowerCase)
+        case x         => termQuery(name, x)
+
+    List(
+      usernames.map(termQuery(Fields.uids, _)),
+      toQueries(winner, Fields.winner),
+      toQueries(loser, Fields.loser),
+      toQueries(winnerColor, Fields.winnerColor),
+      turns.queries(Fields.turns),
+      averageRating.queries(Fields.averageRating),
+      duration.queries(Fields.duration),
+      clockInit.map(termsQuery(Fields.clockInit, _)).toList,
+      clockInc.map(termsQuery(Fields.clockInc, _)).toList,
+      date.map(SearchDateTime.fromInstant).queries(Fields.date),
+      hasAiQueries,
+      hasAi.getOrElse(true).fold(aiLevel.queries(Fields.ai), Nil),
+      perf.nonEmpty.fold(List(termsQuery(Fields.perf, perf)), Nil),
+      toQueries(source, Fields.source),
+      toQueries(rated, Fields.rated),
+      toQueries(status, Fields.status),
+      toQueries(analysed, Fields.analysed),
+      toQueries(whiteUser, Fields.whiteUser),
+      toQueries(blackUser, Fields.blackUser)
+    ).flatten.compile
 
 object Fields:
   val status        = "s"
@@ -76,58 +124,8 @@ object Mapping:
       keywordField(source).copy(docValues = Some(false))
     )
 
-object GameQuery:
-  given query: Queryable[Game] = new:
-
-    val timeout = 5.seconds
-    val index   = "game"
-
-    def searchDef(query: Game)(from: From, size: Size) =
-      search(index)
-        .query(makeQuery(query))
-        .fetchSource(false)
-        .sortBy(query.sorting.definition)
-        .start(from.value)
-        .size(size.value)
-        .timeout(timeout)
-
-    def countDef(query: Game) = count(index).query(makeQuery(query))
-
-    private def makeQuery(query: Game): Query =
-
-      import query.*
-      def usernames = List(user1, user2).flatten
-
-      def hasAiQueries =
-        hasAi.toList.map: a =>
-          a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
-
-      def toQueries(query: Option[String | Int | Boolean], name: String): List[TermQuery] =
-        query.toList.map:
-          case s: String => termQuery(name, s.toLowerCase)
-          case x         => termQuery(name, x)
-
-      List(
-        usernames.map(termQuery(Fields.uids, _)),
-        toQueries(winner, Fields.winner),
-        toQueries(loser, Fields.loser),
-        toQueries(winnerColor, Fields.winnerColor),
-        turns.queries(Fields.turns),
-        averageRating.queries(Fields.averageRating),
-        duration.queries(Fields.duration),
-        clockInit.map(termsQuery(Fields.clockInit, _)).toList,
-        clockInc.map(termsQuery(Fields.clockInc, _)).toList,
-        date.map(SearchDateTime.fromInstant).queries(Fields.date),
-        hasAiQueries,
-        hasAi.getOrElse(true).fold(aiLevel.queries(Fields.ai), Nil),
-        perf.nonEmpty.fold(List(termsQuery(Fields.perf, perf)), Nil),
-        toQueries(source, Fields.source),
-        toQueries(rated, Fields.rated),
-        toQueries(status, Fields.status),
-        toQueries(analysed, Fields.analysed),
-        toQueries(whiteUser, Fields.whiteUser),
-        toQueries(blackUser, Fields.blackUser)
-      ).flatten.compile
+object Game:
+  val index = "game"
 
 case class Sorting(f: String, order: String):
   import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
@@ -137,6 +135,5 @@ case class Sorting(f: String, order: String):
 
 object Sorting:
 
-  val default = Sorting(Fields.date, "desc")
-
+  val default   = Sorting(Fields.date, "desc")
   val fieldKeys = List(Fields.date, Fields.turns, Fields.averageRating)

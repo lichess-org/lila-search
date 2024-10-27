@@ -4,7 +4,29 @@ package forum
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
-case class Forum(text: String, troll: Boolean)
+case class Forum(text: String, troll: Boolean):
+
+  def searchDef(from: From, size: Size) =
+    search(Forum.index)
+      .query(makeQuery)
+      .fetchSource(false)
+      .sortBy(fieldSort(Fields.date).order(SortOrder.DESC))
+      .start(from.value)
+      .size(size.value)
+
+  def countDef = count(Forum.index).query(makeQuery)
+
+  private def makeQuery =
+    val parsed = QueryParser(text, List("user"))
+    List(
+      parsed.terms.map(term => multiMatchQuery(term).fields(Forum.searchableFields*)),
+      parsed("user").map(termQuery(Fields.author, _)).toList,
+      Option.unless(troll)(termQuery(Fields.troll, false)).toList
+    ).flatten.compile
+
+object Forum:
+  val index                    = "forum"
+  private val searchableFields = List(Fields.body, Fields.topic, Fields.author)
 
 object Fields:
   val body    = "bo"
@@ -25,27 +47,3 @@ object Mapping:
       booleanField(troll).copy(docValues = Some(false)),
       dateField(date)
     )
-
-object ForumQuery:
-  given query: Queryable[Forum] = new:
-    val index = "forum"
-
-    def searchDef(query: Forum)(from: From, size: Size) =
-      search(index)
-        .query(makeQuery(query))
-        .fetchSource(false)
-        .sortBy(fieldSort(Fields.date).order(SortOrder.DESC))
-        .start(from.value)
-        .size(size.value)
-
-    def countDef(query: Forum) = count(index).query(makeQuery(query))
-
-    private def makeQuery(query: Forum) =
-      val parsed = QueryParser(query.text, List("user"))
-      List(
-        parsed.terms.map(term => multiMatchQuery(term).fields(searchableFields*)),
-        parsed("user").map(termQuery(Fields.author, _)).toList,
-        Option.unless(query.troll)(termQuery(Fields.troll, false)).toList
-      ).flatten.compile
-
-  private val searchableFields = List(Fields.body, Fields.topic, Fields.author)
