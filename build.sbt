@@ -47,7 +47,8 @@ lazy val elastic = project
       catsCore,
       catsEffect,
       elastic4sJavaClient,
-      elastic4sCatsEffect
+      elastic4sCatsEffect,
+      otel4sCore
     )
   )
   .dependsOn(core)

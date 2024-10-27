@@ -9,6 +9,7 @@ import com.monovore.decline.effect.*
 import lila.search.ingestor.opts.{ IndexOpts, WatchOpts }
 import org.typelevel.log4cats.slf4j.{ Slf4jFactory, Slf4jLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
+import org.typelevel.otel4s.metrics.Meter
 
 import java.time.Instant
 
@@ -21,6 +22,7 @@ object cli
 
   given Logger[IO]        = Slf4jLogger.getLogger[IO]
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
+  given Meter[IO]         = Meter.noop[IO]
 
   override def main: Opts[IO[ExitCode]] =
     opts.parse.map: opts =>

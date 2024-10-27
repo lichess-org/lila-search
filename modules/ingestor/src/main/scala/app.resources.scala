@@ -7,6 +7,7 @@ import com.mongodb.ReadPreference
 import mongo4cats.client.MongoClient
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.metrics.Meter
 
 class AppResources(
     val lichess: MongoDatabase[IO],
@@ -18,7 +19,7 @@ class AppResources(
 
 object AppResources:
 
-  def instance(conf: AppConfig)(using Logger[IO]): Resource[IO, AppResources] =
+  def instance(conf: AppConfig)(using Logger[IO], Meter[IO]): Resource[IO, AppResources] =
     (
       makeMongoClient(conf.mongo),
       makeStudyMongoClient(conf.mongo),
@@ -27,8 +28,8 @@ object AppResources:
       KVStore.apply().toResource
     ).parMapN(AppResources.apply)
 
-  def makeElasticClient(conf: ElasticConfig) =
-    ESClient.apply(conf.uri)
+  def makeElasticClient(conf: ElasticConfig)(using Meter[IO]) =
+    ESClient(conf.uri)
 
   def makeMongoClient(conf: MongoConfig) =
     MongoClient

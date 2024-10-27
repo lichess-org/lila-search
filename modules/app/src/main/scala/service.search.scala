@@ -2,7 +2,6 @@ package lila.search
 package app
 
 import cats.effect.*
-import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
 import io.github.arainko.ducktape.*
 import lila.search.forum.Forum
@@ -11,22 +10,12 @@ import lila.search.spec.*
 import lila.search.study.Study
 import lila.search.team.Team
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
-import org.typelevel.otel4s.metrics.{ Counter, Histogram, Meter }
-import org.typelevel.otel4s.{ Attribute, AttributeKey }
 import smithy4s.Timestamp
 import smithy4s.schema.Schema
 
 import java.time.Instant
-import java.util.concurrent.TimeUnit
 
-class SearchServiceImpl(
-    esClient: ESClient[IO],
-    countErrorCounter: Counter[IO, Long],
-    countDuration: Histogram[IO, Double],
-    searchErrorCounter: Counter[IO, Long],
-    searchDuration: Histogram[IO, Double]
-)(using LoggerFactory[IO])
-    extends SearchService[IO]:
+class SearchServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends SearchService[IO]:
 
   import SearchServiceImpl.{ given, * }
 
@@ -107,42 +96,23 @@ class SearchServiceImpl(
         logger.error(e)(s"Error in deleteByIds: index=$index, ids=$ids") *>
           IO.raiseError(InternalServerError("Internal server error"))
 
-  val attributeKey = AttributeKey.string("index")
   override def count(query: Query): IO[CountOutput] =
-    countDuration
-      .recordDuration(TimeUnit.MILLISECONDS, Attribute(attributeKey, query.index.value))
-      .surround:
-        esClient
-          .count(query)
-          .map(CountOutput.apply)
-          .handleErrorWith: e =>
-            countErrorCounter.inc(Attribute(attributeKey, query.index.value)) *>
-              logger.error(e)(s"Error in count: query=$query") *>
-              IO.raiseError(InternalServerError("Internal server error"))
+    esClient
+      .count(query)
+      .map(CountOutput.apply)
+      .handleErrorWith: e =>
+        logger.error(e)(s"Error in count: query=$query") *>
+          IO.raiseError(InternalServerError("Internal server error"))
 
   override def search(query: Query, from: From, size: Size): IO[SearchOutput] =
-    searchDuration
-      .recordDuration(TimeUnit.MILLISECONDS, Attribute(attributeKey, query.index.value))
-      .surround:
-        esClient
-          .search(query, from, size)
-          .map(SearchOutput.apply)
-          .handleErrorWith: e =>
-            searchErrorCounter.inc(Attribute(attributeKey, query.index.value)) *>
-              logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
-              IO.raiseError(InternalServerError("Internal server error"))
+    esClient
+      .search(query, from, size)
+      .map(SearchOutput.apply)
+      .handleErrorWith: e =>
+        logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
+          IO.raiseError(InternalServerError("Internal server error"))
 
 object SearchServiceImpl:
-
-  def apply(
-      esClient: ESClient[IO]
-  )(using logger: LoggerFactory[IO], meter: Meter[IO]): IO[SearchService[IO]] =
-    (
-      meter.counter[Long]("count.error").create,
-      meter.histogram[Double]("count.duration").withUnit("ms").create,
-      meter.counter[Long]("search.error").create,
-      meter.histogram[Double]("search.duration").withUnit("ms").create
-    ).mapN(new SearchServiceImpl(esClient, _, _, _, _))
 
   given Transformer.Derived[Timestamp, Instant] =
     Transformer.Derived.FromFunction(_.toInstant)

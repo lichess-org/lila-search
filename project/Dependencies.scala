@@ -54,6 +54,7 @@ object Dependencies {
   val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % V.mongo4cats
   val circe = "io.circe" %% "circe-core" % "0.14.10"
 
+  val otel4sCore =  "org.typelevel" %% "otel4s-core" % "0.10.0"
   val otel4sJava =  "org.typelevel" %% "otel4s-oteljava" % "0.10.0"
   val otelJavaExporter = "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.43.0" % Runtime
   val otelJavaAutoConfig = "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % "1.43.0" % Runtime
