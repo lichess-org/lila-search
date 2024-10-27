@@ -3,7 +3,7 @@ import org.typelevel.scalacoptions.ScalacOptions
 
 inThisBuild(
   Seq(
-    scalaVersion  := "3.5.1",
+    scalaVersion  := "3.5.2",
     versionScheme := Some("early-semver"),
     organization  := "org.lichess.search",
     run / fork    := true,
@@ -23,7 +23,7 @@ val commonSettings = Seq(
     ScalacOptions.release("21"),
     ScalacOptions.other("-Wsafe-init") // fix in: https://github.com/typelevel/scalac-options/pull/136
   ),
-  libraryDependencies += compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.25" cross CrossVersion.full)
+  libraryDependencies += compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.26" cross CrossVersion.full)
 )
 
 lazy val core = project
