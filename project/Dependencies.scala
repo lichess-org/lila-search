@@ -4,6 +4,7 @@ import smithy4s.codegen.BuildInfo.version as smithy4sVersion
 object Dependencies {
 
   val lilaMaven = "lila-maven" at "https://raw.githubusercontent.com/lichess-org/lila-maven/master"
+  val ourResolvers = Resolver.sonatypeOssRepos("snapshots") :+ lilaMaven
 
   object V {
     val catsEffect = "3.5.5"
@@ -15,6 +16,7 @@ object Dependencies {
     val http4s     = "0.23.29"
     val iron       = "2.5.0"
     val mongo4cats = "0.7.11"
+    val otel4s     = "0.11-7d84643-SNAPSHOT"
   }
 
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
@@ -54,11 +56,14 @@ object Dependencies {
   val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % V.mongo4cats
   val circe = "io.circe" %% "circe-core" % "0.14.10"
 
-  val otel4sCore =  "org.typelevel" %% "otel4s-core" % "0.10.0"
-  val otel4sJava =  "org.typelevel" %% "otel4s-oteljava" % "0.10.0"
+  val otel4sCore =  "org.typelevel" %% "otel4s-core" % V.otel4s
+  val otel4sJava =  "org.typelevel" %% "otel4s-oteljava" % V.otel4s
+  val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
+  val otel4sSdk = "org.typelevel" %% "otel4s-sdk" % V.otel4s
   val otelJavaExporter = "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.43.0" % Runtime
   val otelJavaAutoConfig = "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % "1.43.0" % Runtime
   val otelJavaRuntimeMetrics =  "io.opentelemetry.instrumentation" % "opentelemetry-runtime-telemetry-java17" % "2.5.0-alpha"
+  val otel4sMetricts = "org.typelevel" %% "otel4s-experimental-metrics"    % "0.4.0-4-138383f-SNAPSHOT"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.12"

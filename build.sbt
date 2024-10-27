@@ -8,7 +8,8 @@ inThisBuild(
     organization  := "org.lichess.search",
     run / fork    := true,
     run / javaOptions += "-Dconfig.override_with_env_vars=true",
-    semanticdbEnabled       := true, // for scalafix
+    semanticdbEnabled := true, // for scalafix
+    resolvers ++= ourResolvers,
     Compile / doc / sources := Seq.empty,
     publishTo               := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", ""))))
   )
@@ -72,7 +73,6 @@ lazy val ingestor = (project in file("modules/ingestor"))
     commonSettings,
     publish        := {},
     publish / skip := true,
-    resolvers += lilaMaven,
     libraryDependencies ++= Seq(
       chess,
       catsCore,
@@ -138,9 +138,10 @@ lazy val app = (project in file("modules/app"))
       log4Cats,
       logback,
       otel4sJava,
-      otelJavaExporter,
       otelJavaAutoConfig,
-      otelJavaRuntimeMetrics,
+      otel4sMetricts,
+      otel4sSdk,
+      otel4sPrometheusExporter,
       weaver,
       testContainers
     ),
