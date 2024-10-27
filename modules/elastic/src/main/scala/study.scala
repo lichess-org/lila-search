@@ -5,7 +5,48 @@ import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
-case class Study(text: String, userId: Option[String])
+case class Study(text: String, userId: Option[String]):
+
+  def searchDef(from: From, size: Size) =
+    search(Study.index)
+      .query(makeQuery)
+      .fetchSource(false)
+      .sortBy(
+        fieldSort("_score").order(SortOrder.DESC),
+        fieldSort(Fields.likes).order(SortOrder.DESC)
+      )
+      .start(from.value)
+      .size(size.value)
+
+  def countDef = count(Study.index).query(makeQuery)
+
+  private def makeQuery = {
+    val parsed = QueryParser(text, List("owner", "member"))
+    val matcher: Query =
+      if parsed.terms.isEmpty then matchAllQuery()
+      else
+        multiMatchQuery(
+          parsed.terms.mkString(" ")
+        ).fields(Study.searchableFields*).analyzer("english").matchType("most_fields")
+    boolQuery()
+      .must:
+        matcher :: List(
+          parsed("owner").map(termQuery(Fields.owner, _)),
+          parsed("member").map(member =>
+            boolQuery().must(termQuery(Fields.members, member)).not(termQuery(Fields.owner, member))
+          )
+        ).flatten
+      .should(
+        List(
+          Some(selectPublic),
+          userId.map(selectUserId)
+        ).flatten
+      )
+  }.minimumShouldMatch(1)
+
+  private val selectPublic = termQuery(Fields.public, true)
+
+  private def selectUserId(userId: String) = termQuery(Fields.members, userId)
 
 object Fields:
   val name         = "name"
@@ -34,47 +75,8 @@ object Mapping:
       booleanField(public).copy(docValues = Some(false))
     )
 
-object StudyQuery:
-  given query: Queryable[Study] = new:
-    val index = "study"
-
-    def searchDef(query: Study)(from: From, size: Size) =
-      search(index)
-        .query(makeQuery(query))
-        .fetchSource(false)
-        .sortBy(
-          fieldSort("_score").order(SortOrder.DESC),
-          fieldSort(Fields.likes).order(SortOrder.DESC)
-        )
-        .start(from.value)
-        .size(size.value)
-
-    def countDef(query: Study) = count(index).query(makeQuery(query))
-
-    private def makeQuery(query: Study) = {
-      val parsed = QueryParser(query.text, List("owner", "member"))
-      val matcher: Query =
-        if parsed.terms.isEmpty then matchAllQuery()
-        else
-          multiMatchQuery(
-            parsed.terms.mkString(" ")
-          ).fields(searchableFields*).analyzer("english").matchType("most_fields")
-      boolQuery().must {
-        matcher :: List(
-          parsed("owner").map(termQuery(Fields.owner, _)),
-          parsed("member").map(member =>
-            boolQuery().must(termQuery(Fields.members, member)).not(termQuery(Fields.owner, member))
-          )
-        ).flatten
-      } should List(
-        Some(selectPublic),
-        query.userId.map(selectUserId)
-      ).flatten
-    }.minimumShouldMatch(1)
-
-    private val selectPublic = termQuery(Fields.public, true)
-
-    private def selectUserId(userId: String) = termQuery(Fields.members, userId)
+object Study:
+  val index = "study"
 
   private val searchableFields = List(
     Fields.name,

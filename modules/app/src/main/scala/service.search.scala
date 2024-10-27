@@ -123,22 +123,20 @@ object SearchServiceImpl:
   given dateRange: Transformer.Derived[DateRange, Range[Instant]] =
     Transformer.Derived.FromFunction(r => Range(r.a.map(_.to[Instant]), r.b.map(_.to[Instant])))
 
-  extension (game: Query.Game) def transform: Game = game.to[Game]
-
   given Queryable[Query] with
     def searchDef(query: Query)(from: From, size: Size) =
       query match
-        case q: Query.Forum => forum.ForumQuery.query.searchDef(q.to[Forum])(from, size)
-        case q: Query.Game  => game.GameQuery.query.searchDef(q.transform)(from, size)
-        case q: Query.Study => study.StudyQuery.query.searchDef(q.to[Study])(from, size)
-        case q: Query.Team  => team.TeamQuery.query.searchDef(q.to[Team])(from, size)
+        case q: Query.Forum => q.to[Forum].searchDef(from, size)
+        case q: Query.Game  => q.to[Game].searchDef(from, size)
+        case q: Query.Study => q.to[Study].searchDef(from, size)
+        case q: Query.Team  => q.to[Team].searchDef(from, size)
 
     def countDef(query: Query) =
       query match
-        case q: Query.Forum => forum.ForumQuery.query.countDef(q.to[Forum])
-        case q: Query.Game  => game.GameQuery.query.countDef(q.transform)
-        case q: Query.Study => study.StudyQuery.query.countDef(q.to[Study])
-        case q: Query.Team  => team.TeamQuery.query.countDef(q.to[Team])
+        case q: Query.Forum => q.to[Forum].countDef
+        case q: Query.Game  => q.to[Game].countDef
+        case q: Query.Study => q.to[Study].countDef
+        case q: Query.Team  => q.to[Team].countDef
 
   import smithy4s.json.Json.given
   import com.github.plokhotnyuk.jsoniter_scala.core.*
