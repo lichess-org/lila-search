@@ -24,6 +24,7 @@ object App extends IOApp.Simple:
       _               <- Logger[IO].info(s"Starting lila-search ingestor with config: $config").toResource
       res             <- AppResources.instance(config)
       _               <- IngestorApp(res, config).run()
+      _               <- metricExporterServer
     yield ()
 
   def mkMeter = SdkMetrics

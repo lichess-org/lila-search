@@ -87,6 +87,7 @@ lazy val ingestor = (project in file("modules/ingestor"))
       jsoniterCore,
       jsoniterMacro,
       circe,
+      http4sServer,
       mongo4catsCore,
       mongo4catsCirce,
       log4Cats,
