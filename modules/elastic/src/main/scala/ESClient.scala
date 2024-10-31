@@ -17,10 +17,9 @@ import com.sksamuel.elastic4s.{
   Response
 }
 import org.typelevel.otel4s.metrics.{ Histogram, Meter }
-import org.typelevel.otel4s.{ Attribute, AttributeKey }
+import org.typelevel.otel4s.{ Attribute, AttributeKey, Attributes }
 
 import java.util.concurrent.TimeUnit
-import org.typelevel.otel4s.Attributes
 
 trait ESClient[F[_]]:
 
@@ -41,7 +40,7 @@ object ESClient:
       .make(IO(ElasticClient(JavaClient(ElasticProperties(uri)))))(client => IO(client.close()))
       .evalMap: esClient =>
         meter
-          .histogram[Double]("elastic.client.operation.duration")
+          .histogram[Double]("client.duration")
           .withUnit("ms")
           .create
           .map(apply(esClient))
@@ -72,7 +71,7 @@ object ESClient:
 
     val indexAttributeKey = AttributeKey.string("index")
     val sizeAttributeKey  = AttributeKey.long("size")
-    val opAttributeKey    = AttributeKey.string("elastic.operation.name")
+    val opAttributeKey    = AttributeKey.string("name")
 
     def search[A](query: A, from: From, size: Size)(using q: Queryable[A]): F[List[Id]] =
       metric
@@ -114,7 +113,7 @@ object ESClient:
           TimeUnit.MILLISECONDS,
           withErrorType(
             Attributes(
-              Attribute(opAttributeKey, "store"),
+              Attribute(opAttributeKey, "store-one"),
               Attribute(indexAttributeKey, index.value)
             )
           )
