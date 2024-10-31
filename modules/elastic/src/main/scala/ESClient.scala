@@ -16,10 +16,11 @@ import com.sksamuel.elastic4s.{
   Indexable,
   Response
 }
-import org.typelevel.otel4s.metrics.{ Counter, Histogram, Meter }
+import org.typelevel.otel4s.metrics.{ Histogram, Meter }
 import org.typelevel.otel4s.{ Attribute, AttributeKey }
 
 import java.util.concurrent.TimeUnit
+import org.typelevel.otel4s.Attributes
 
 trait ESClient[F[_]]:
 
@@ -39,34 +40,14 @@ object ESClient:
     Resource
       .make(IO(ElasticClient(JavaClient(ElasticProperties(uri)))))(client => IO(client.close()))
       .evalMap: esClient =>
-        (
-          meter.counter[Long]("count.error").create,
-          meter.histogram[Double]("count.duration").withUnit("ms").create,
-          meter.counter[Long]("search.error").create,
-          meter.histogram[Double]("search.duration").withUnit("ms").create,
-          meter.counter[Long]("store.one.error").create,
-          meter.histogram[Double]("store.one.duration").withUnit("ms").create,
-          meter.counter[Long]("store.bulk.error").create,
-          meter.histogram[Double]("store.bulk.duration").withUnit("ms").create,
-          meter.counter[Long]("delete.one.error").create,
-          meter.histogram[Double]("delete.one.duration").withUnit("ms").create,
-          meter.counter[Long]("delete.many.error").create,
-          meter.histogram[Double]("delete.many.duration").withUnit("ms").create
-        ).mapN(apply(esClient))
+        meter
+          .histogram[Double]("elastic.client.operation.duration")
+          .withUnit("ms")
+          .create
+          .map(apply(esClient))
 
   def apply[F[_]: MonadCancelThrow: Functor: Executor](client: ElasticClient)(
-      countErrorCounter: Counter[F, Long],
-      countDuration: Histogram[F, Double],
-      searchErrorCounter: Counter[F, Long],
-      searchDuration: Histogram[F, Double],
-      storeErrorCounter: Counter[F, Long],
-      storeDuration: Histogram[F, Double],
-      storeBulkErrorCounter: Counter[F, Long],
-      storeBulkDuration: Histogram[F, Double],
-      deleteOneErrorCounter: Counter[F, Long],
-      deleteOneDuration: Histogram[F, Double],
-      deleteManyErrorCounter: Counter[F, Long],
-      deleteManyDuration: Histogram[F, Double]
+      metric: Histogram[F, Double]
   ) = new ESClient[F]:
 
     def status: F[String] =
@@ -74,6 +55,14 @@ object ESClient:
         .execute(clusterHealth())
         .flatMap(toResult)
         .map(_.status)
+
+    private def withErrorType(static: Attributes)(ec: Resource.ExitCase) = ec match
+      case Resource.ExitCase.Succeeded =>
+        static
+      case Resource.ExitCase.Errored(e) =>
+        static.added(Attribute("error.type", e.getClass.getName))
+      case Resource.ExitCase.Canceled =>
+        static.added(Attribute("error.type", "canceled"))
 
     private def toResult[A](response: Response[A]): F[A] =
       response.fold(MonadThrow[F].raiseError[A](response.error.asException))(MonadThrow[F].pure)
@@ -83,77 +72,110 @@ object ESClient:
 
     val indexAttributeKey = AttributeKey.string("index")
     val sizeAttributeKey  = AttributeKey.long("size")
+    val opAttributeKey    = AttributeKey.string("elastic.operation.name")
 
     def search[A](query: A, from: From, size: Size)(using q: Queryable[A]): F[List[Id]] =
-      searchDuration
-        .recordDuration(TimeUnit.MILLISECONDS, Attribute(indexAttributeKey, q.index(query).value))
+      metric
+        .recordDuration(
+          TimeUnit.MILLISECONDS,
+          withErrorType(
+            Attributes(
+              Attribute(opAttributeKey, "search"),
+              Attribute(indexAttributeKey, q.index(query).value)
+            )
+          )
+        )
         .surround:
           client
             .execute(q.searchDef(query)(from, size))
             .flatMap(toResult)
             .map(_.hits.hits.toList.map(h => Id(h.id)))
-            .onError(_ => searchErrorCounter.inc(Attribute(indexAttributeKey, q.index(query).value)))
 
     def count[A](query: A)(using q: Queryable[A]): F[Long] =
-      countDuration
-        .recordDuration(TimeUnit.MILLISECONDS, Attribute(indexAttributeKey, q.index(query).value))
+      metric
+        .recordDuration(
+          TimeUnit.MILLISECONDS,
+          withErrorType(
+            Attributes(
+              Attribute(opAttributeKey, "count"),
+              Attribute(indexAttributeKey, q.index(query).value)
+            )
+          )
+        )
         .surround:
           client
             .execute(q.countDef(query))
             .flatMap(toResult)
             .map(_.count)
-            .onError(_ => countErrorCounter.inc(Attribute(indexAttributeKey, q.index(query).value)))
 
     def store[A](index: Index, id: Id, obj: A)(using indexable: Indexable[A]): F[Unit] =
-      storeDuration
-        .recordDuration(TimeUnit.MILLISECONDS, Attribute(indexAttributeKey, index.value))
+      metric
+        .recordDuration(
+          TimeUnit.MILLISECONDS,
+          withErrorType(
+            Attributes(
+              Attribute(opAttributeKey, "store"),
+              Attribute(indexAttributeKey, index.value)
+            )
+          )
+        )
         .surround:
           client
             .execute(indexInto(index.value).source(obj).id(id.value))
             .flatMap(unitOrFail)
-            .onError(_ => storeErrorCounter.inc(Attribute(indexAttributeKey, index.value)))
 
     def storeBulk[A](index: Index, objs: Seq[(String, A)])(using indexable: Indexable[A]): F[Unit] =
       val request  = indexInto(index.value)
       val requests = bulk(objs.map((id, obj) => request.source(obj).id(id)))
-      storeBulkDuration
+      metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
-          Attribute(indexAttributeKey, index.value),
-          Attribute(sizeAttributeKey, objs.size)
+          withErrorType(
+            Attributes(
+              Attribute(opAttributeKey, "store-bulk"),
+              Attribute(indexAttributeKey, index.value),
+              Attribute(sizeAttributeKey, objs.size)
+            )
+          )
         )
         .surround:
           client
             .execute(requests)
             .flatMap(unitOrFail)
-            .onError: _ =>
-              storeBulkErrorCounter
-                .inc(Attribute(indexAttributeKey, index.value), Attribute(sizeAttributeKey, objs.size))
         .whenA(objs.nonEmpty)
 
     def deleteOne(index: Index, id: Id): F[Unit] =
-      deleteOneDuration
-        .recordDuration(TimeUnit.MILLISECONDS, Attribute(indexAttributeKey, index.value))
+      metric
+        .recordDuration(
+          TimeUnit.MILLISECONDS,
+          withErrorType(
+            Attributes(
+              Attribute(opAttributeKey, "delete-one"),
+              Attribute(indexAttributeKey, index.value)
+            )
+          )
+        )
         .surround:
           client
             .execute(deleteById(index.toES, id.value))
             .flatMap(unitOrFail)
-            .onError(_ => deleteOneErrorCounter.inc(Attribute(indexAttributeKey, index.value)))
 
     def deleteMany(index: Index, ids: List[Id]): F[Unit] =
-      deleteManyDuration
+      metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
-          Attribute(indexAttributeKey, index.value),
-          Attribute(sizeAttributeKey, ids.size)
+          withErrorType(
+            Attributes(
+              Attribute(opAttributeKey, "delete-bulk"),
+              Attribute(indexAttributeKey, index.value),
+              Attribute(sizeAttributeKey, ids.size)
+            )
+          )
         )
         .surround:
           client
             .execute(bulk(ids.map(id => deleteById(index.toES, id.value))))
             .flatMap(unitOrFail)
-            .onError: _ =>
-              deleteOneErrorCounter
-                .inc(Attribute(indexAttributeKey, index.value), Attribute(sizeAttributeKey, ids.size))
         .whenA(ids.nonEmpty)
 
     def putMapping(index: Index): F[Unit] =
