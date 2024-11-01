@@ -5,13 +5,13 @@ import cats.data.NonEmptyList
 import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
 import lila.search.spec.*
-import org.http4s.{ HttpApp, HttpRoutes }
+import org.http4s.HttpRoutes
 import org.typelevel.log4cats.LoggerFactory
 import smithy4s.http4s.SimpleRestJsonBuilder
 
 def Routes(resources: AppResources, config: HttpServerConfig)(using
     LoggerFactory[IO]
-): Resource[IO, HttpApp[IO]] =
+): Resource[IO, HttpRoutes[IO]] =
 
   val healthServiceImpl: HealthService[IO] = HealthServiceImpl(resources.esClient)
 
