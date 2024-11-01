@@ -23,7 +23,7 @@ object App extends IOApp.Simple:
 class SearchApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO]):
   def run(): Resource[IO, Unit] =
     for
-      httpApp <- Routes(res, config.server)
-      server  <- MkHttpServer.apply.newEmber(config.server, httpApp)
-      _       <- Logger[IO].info(s"Starting server on ${config.server.host}:${config.server.port}").toResource
+      httpRoutes <- Routes(res, config.server)
+      server     <- MkHttpServer.apply.newEmber(config.server, httpRoutes.orNotFound)
+      _ <- Logger[IO].info(s"Starting server on ${config.server.host}:${config.server.port}").toResource
     yield ()
