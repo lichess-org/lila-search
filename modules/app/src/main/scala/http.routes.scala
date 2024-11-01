@@ -35,4 +35,4 @@ def Routes(resources: AppResources, config: HttpServerConfig)(using
     if config.enableDocs then apiRoutes.map(_ <+> docs)
     else apiRoutes
 
-  allRoutes.map(ApplyMiddleware(config))
+  allRoutes.map(MkMiddleware(config))
