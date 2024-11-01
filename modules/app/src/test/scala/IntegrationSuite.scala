@@ -10,6 +10,8 @@ import org.http4s.Uri
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
+import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
 import smithy4s.Timestamp
 import weaver.*
 
@@ -31,8 +33,9 @@ object IntegrationSuite extends IOSuite:
     for
       elastic <- ElasticSearchContainer.start
       config = testAppConfig(elastic)
-      res <- AppResources.instance(config)
-      _   <- SearchApp(res, config).run()
+      res                           <- AppResources.instance(config)
+      given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
+      _                             <- App.mkServer(res, config)
     yield res
 
   def testAppConfig(elastic: ElasticConfig) = AppConfig(

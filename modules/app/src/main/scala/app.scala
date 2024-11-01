@@ -2,13 +2,15 @@ package lila.search
 package app
 
 import cats.effect.*
+import cats.syntax.all.*
 import org.typelevel.log4cats.slf4j.{ Slf4jFactory, Slf4jLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.experimental.metrics.*
 import org.typelevel.otel4s.metrics.Meter
 import org.typelevel.otel4s.sdk.*
-import org.typelevel.otel4s.sdk.exporter.prometheus.autoconfigure.PrometheusMetricExporterAutoConfigure
+import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
 import org.typelevel.otel4s.sdk.metrics.SdkMetrics
+import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
 
 object App extends IOApp.Simple:
 
@@ -19,22 +21,23 @@ object App extends IOApp.Simple:
 
   def app: Resource[IO, Unit] =
     for
-      config          <- AppConfig.load.toResource
-      _               <- Logger[IO].info(s"Starting lila-search with config: $config").toResource
-      given Meter[IO] <- mkMeter
-      _               <- RuntimeMetrics.register[IO]
-      res             <- AppResources.instance(config)
-      _               <- SearchApp(res, config).run()
+      given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
+      given Meter[IO]               <- mkMeter
+      config                        <- AppConfig.load.toResource
+      _   <- Logger[IO].info(s"Starting lila-search with config: $config").toResource
+      _   <- RuntimeMetrics.register[IO]
+      res <- AppResources.instance(config)
+      _   <- mkServer(res, config)
     yield ()
 
-  def mkMeter = SdkMetrics
-    .autoConfigured[IO](_.addExporterConfigurer(PrometheusMetricExporterAutoConfigure[IO]))
+  def mkMeter(using exporter: MetricExporter.Pull[IO]) = SdkMetrics
+    .autoConfigured[IO](_.addMeterProviderCustomizer((b, _) => b.registerMetricReader(exporter.metricReader)))
     .evalMap(_.meterProvider.get("lila-search"))
 
-class SearchApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO], Meter[IO]):
-  def run(): Resource[IO, Unit] =
+  def mkServer(res: AppResources, config: AppConfig)(using MetricExporter.Pull[IO]): Resource[IO, Unit] =
     for
-      httpRoutes <- Routes(res, config.server)
-      server     <- MkHttpServer.apply.newEmber(config.server, httpRoutes.orNotFound)
-      _ <- Logger[IO].info(s"Starting server on ${config.server.host}:${config.server.port}").toResource
+      apiRoutes <- Routes(res, config.server)
+      httpRoutes = apiRoutes <+> mkPrometheusRoutes
+      server <- MkHttpServer().newEmber(config.server, httpRoutes.orNotFound)
+      _      <- Logger[IO].info(s"Starting server on ${config.server.host}:${config.server.port}").toResource
     yield ()

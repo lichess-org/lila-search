@@ -5,12 +5,14 @@ import akka.actor.ActorSystem
 import cats.effect.{ IO, Resource }
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.Indexable
-import lila.search.app.{ AppConfig, AppResources, ElasticConfig, HttpServerConfig, SearchApp }
+import lila.search.app.{ App, AppConfig, AppResources, ElasticConfig, HttpServerConfig }
 import lila.search.client.{ SearchClient, SearchError }
 import lila.search.spec.{ CountOutput, Query, SearchOutput, Source }
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
+import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
 import play.api.libs.ws.*
 import play.api.libs.ws.ahc.*
 
@@ -27,10 +29,13 @@ object CompatSuite extends weaver.IOSuite:
 
   override def sharedResource: Resource[IO, Res] =
     val res = AppResources(fakeClient)
-    SearchApp(res, testAppConfig)
-      .run()
-      .flatMap(_ => wsClient)
-      .map(SearchClient.play(_, "http://localhost:9999/api"))
+    for
+      given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
+      res <- App
+        .mkServer(res, testAppConfig)
+        .flatMap(_ => wsClient)
+        .map(SearchClient.play(_, "http://localhost:9999/api"))
+    yield res
 
   val from = From(0)
   val size = Size(12)
