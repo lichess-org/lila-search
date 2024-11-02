@@ -4,7 +4,7 @@ import smithy4s.codegen.BuildInfo.version as smithy4sVersion
 object Dependencies {
 
   val lilaMaven = "lila-maven" at "https://raw.githubusercontent.com/lichess-org/lila-maven/master"
-  val ourResolvers = Resolver.sonatypeOssRepos("snapshots") :+ lilaMaven
+  val ourResolvers = Seq(lilaMaven)
 
   object V {
     val catsEffect = "3.5.5"
@@ -16,7 +16,7 @@ object Dependencies {
     val http4s     = "0.23.29"
     val iron       = "2.5.0"
     val mongo4cats = "0.7.11"
-    val otel4s     = "0.11-8e1f500-SNAPSHOT"
+    val otel4s     = "0.11.0"
   }
 
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
@@ -59,7 +59,7 @@ object Dependencies {
   val otel4sCore =  "org.typelevel" %% "otel4s-core" % V.otel4s
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
   val otel4sSdk = "org.typelevel" %% "otel4s-sdk" % V.otel4s
-  val otel4sMetricts = "org.typelevel" %% "otel4s-experimental-metrics"    % "0.4.0-6-8c1230f-SNAPSHOT"
+  val otel4sMetricts = "org.typelevel" %% "otel4s-experimental-metrics" % "0.5.0"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.12"
