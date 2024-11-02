@@ -13,9 +13,8 @@ def Routes(resources: AppResources, config: HttpServerConfig)(using
     LoggerFactory[IO]
 ): Resource[IO, HttpRoutes[IO]] =
 
-  val healthServiceImpl: HealthService[IO] = HealthServiceImpl(resources.esClient)
-
-  val searchServiceImpl: SearchService[IO] = SearchServiceImpl(resources.esClient)
+  val healthServiceImpl = HealthServiceImpl(resources.esClient)
+  val searchServiceImpl = SearchServiceImpl(resources.esClient)
 
   val search: Resource[IO, HttpRoutes[IO]] =
     SimpleRestJsonBuilder.routes(searchServiceImpl).resource

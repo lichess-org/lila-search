@@ -8,7 +8,8 @@ inThisBuild(
     organization  := "org.lichess.search",
     run / fork    := true,
     run / javaOptions += "-Dconfig.override_with_env_vars=true",
-    semanticdbEnabled       := true, // for scalafix
+    semanticdbEnabled := true, // for scalafix
+    resolvers ++= ourResolvers,
     Compile / doc / sources := Seq.empty,
     publishTo               := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", ""))))
   )
@@ -47,7 +48,8 @@ lazy val elastic = project
       catsCore,
       catsEffect,
       elastic4sJavaClient,
-      elastic4sCatsEffect
+      elastic4sCatsEffect,
+      otel4sCore
     )
   )
   .dependsOn(core)
@@ -71,7 +73,6 @@ lazy val ingestor = (project in file("modules/ingestor"))
     commonSettings,
     publish        := {},
     publish / skip := true,
-    resolvers += lilaMaven,
     libraryDependencies ++= Seq(
       chess,
       catsCore,
@@ -86,10 +87,14 @@ lazy val ingestor = (project in file("modules/ingestor"))
       jsoniterCore,
       jsoniterMacro,
       circe,
+      http4sServer,
       mongo4catsCore,
       mongo4catsCirce,
       log4Cats,
       logback,
+      otel4sMetricts,
+      otel4sSdk,
+      otel4sPrometheusExporter,
       weaver,
       weaverScalaCheck,
       testContainers
@@ -132,6 +137,9 @@ lazy val app = (project in file("modules/app"))
       cirisHtt4s,
       log4Cats,
       logback,
+      otel4sMetricts,
+      otel4sSdk,
+      otel4sPrometheusExporter,
       weaver,
       testContainers
     ),

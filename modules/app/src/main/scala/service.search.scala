@@ -138,6 +138,12 @@ object SearchServiceImpl:
         case q: Query.Study => q.to[Study].countDef
         case q: Query.Team  => q.to[Team].countDef
 
+    def index(query: Query) = query match
+      case _: Query.Forum => Index.Forum
+      case _: Query.Game  => Index.Game
+      case _: Query.Study => Index.Study
+      case _: Query.Team  => Index.Team
+
   import smithy4s.json.Json.given
   import com.github.plokhotnyuk.jsoniter_scala.core.*
 

@@ -9,6 +9,8 @@ trait Queryable[A]:
 
   def countDef(query: A): CountRequest
 
+  def index(query: A): Index
+
 case class ParsedQuery(terms: List[String], filters: Map[String, String]):
 
   def apply(fk: String): Option[String] = filters.get(fk)

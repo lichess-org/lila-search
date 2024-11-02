@@ -15,7 +15,7 @@ trait MkHttpServer:
 
 object MkHttpServer:
 
-  def apply(using server: MkHttpServer): MkHttpServer = server
+  def apply()(using server: MkHttpServer): MkHttpServer = server
 
   given forAsyncLogger(using Logger[IO]): MkHttpServer = new:
 
