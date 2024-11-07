@@ -6,6 +6,13 @@ use alloy#simpleRestJson
 use smithy4s.meta#adt
 use smithy.api#default
 use smithy.api#jsonName
+use lila.search.core#Ids
+use lila.search.core#FromInt
+use lila.search.core#SizeInt
+use lila.search.core#PlayerIds
+use lila.search.core#Strings
+use lila.search.core#IndexString
+use lila.search.core#DateTime
 
 @simpleRestJson
 service SearchService {
@@ -387,3 +394,11 @@ union Source {
   study: StudySource
   team: TeamSource
 }
+
+@error("server")
+@httpError(500)
+structure InternalServerError {
+  @required
+  message: String
+}
+

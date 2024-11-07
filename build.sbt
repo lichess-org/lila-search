@@ -29,11 +29,13 @@ val commonSettings = Seq(
 
 lazy val core = project
   .in(file("modules/core"))
+  .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     name := "core",
     commonSettings,
     libraryDependencies ++= Seq(
-      catsCore
+      catsCore,
+      smithy4sCore
     )
   )
 
@@ -54,7 +56,8 @@ lazy val elastic = project
   )
   .dependsOn(core)
 
-lazy val api = (project in file("modules/api"))
+lazy val api = project
+  .in(file("modules/api"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     name := "api",
@@ -67,7 +70,8 @@ lazy val api = (project in file("modules/api"))
   )
   .dependsOn(core)
 
-lazy val ingestor = (project in file("modules/ingestor"))
+lazy val ingestor = project
+  .in(file("modules/ingestor"))
   .settings(
     name := "ingestor",
     commonSettings,
@@ -83,6 +87,7 @@ lazy val ingestor = (project in file("modules/ingestor"))
       declineCatsEffect,
       ducktape,
       cirisCore,
+      smithy4sCore,
       smithy4sJson,
       jsoniterCore,
       jsoniterMacro,
@@ -104,7 +109,8 @@ lazy val ingestor = (project in file("modules/ingestor"))
   .enablePlugins(JavaAppPackaging)
   .dependsOn(elastic, api)
 
-lazy val client = (project in file("modules/client"))
+lazy val client = project
+  .in(file("modules/client"))
   .settings(
     name := "client",
     commonSettings,
@@ -117,7 +123,8 @@ lazy val client = (project in file("modules/client"))
   )
   .dependsOn(api, core)
 
-lazy val app = (project in file("modules/app"))
+lazy val app = project
+  .in(file("modules/app"))
   .settings(
     name := "lila-search",
     commonSettings,
@@ -148,7 +155,8 @@ lazy val app = (project in file("modules/app"))
   .enablePlugins(JavaAppPackaging)
   .dependsOn(api, elastic)
 
-val e2e = (project in file("modules/e2e"))
+val e2e = project
+  .in(file("modules/e2e"))
   .settings(
     publish        := {},
     publish / skip := true,
@@ -163,3 +171,4 @@ lazy val root = project
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
 addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")
+

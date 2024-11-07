@@ -1,22 +1,15 @@
 $version: "2"
 
-namespace lila.search.spec
+namespace lila.search.core
 
 use smithy4s.meta#unwrap
 use smithy4s.meta#refinement
 use alloy#simpleRestJson
 
-@error("server")
-@httpError(500)
-structure InternalServerError {
-  @required
-  message: String
-}
-
 @trait(selector: "string")
 @refinement(
    targetType: "lila.search.Id"
-   providerImport: "lila.search.spec.providers.given"
+   providerImport: "lila.search.core.providers.given"
 )
 structure IdFormat {}
 
@@ -39,7 +32,7 @@ list PlayerIds {
 @trait(selector: "string")
 @refinement(
    targetType: "lila.search.SearchDateTime"
-   providerImport: "lila.search.spec.providers.given"
+   providerImport: "lila.search.core.providers.given"
 )
 structure DateTimeFormat {}
 
@@ -50,7 +43,7 @@ string DateTime
 @trait(selector: "integer")
 @refinement(
    targetType: "lila.search.Size"
-   providerImport: "lila.search.spec.providers.given"
+   providerImport: "lila.search.core.providers.given"
 )
 structure SizeFormat {}
 
@@ -61,7 +54,7 @@ integer SizeInt
 @trait(selector: "integer")
 @refinement(
    targetType: "lila.search.From"
-   providerImport: "lila.search.spec.providers.given"
+   providerImport: "lila.search.core.providers.given"
 )
 structure FromFormat {}
 
@@ -72,7 +65,7 @@ integer FromInt
 @trait(selector: "string")
 @refinement(
    targetType: "lila.search.Index"
-   providerImport: "lila.search.spec.providers.given"
+   providerImport: "lila.search.core.providers.given"
 )
 structure IndexFormat {}
 

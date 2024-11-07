@@ -1,5 +1,5 @@
 package lila.search
-package spec
+package core
 
 import cats.syntax.all.*
 import smithy4s.*
