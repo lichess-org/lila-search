@@ -72,6 +72,7 @@ lazy val api = project
 
 lazy val ingestor = project
   .in(file("modules/ingestor"))
+  .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     name := "ingestor",
     commonSettings,
@@ -107,7 +108,7 @@ lazy val ingestor = project
     Compile / run / fork := true
   )
   .enablePlugins(JavaAppPackaging)
-  .dependsOn(elastic, api)
+  .dependsOn(elastic, core)
 
 lazy val client = project
   .in(file("modules/client"))
