@@ -1,9 +1,10 @@
 $version: "2"
 
-namespace lila.search.spec
+namespace lila.search.ingestor
 
 use smithy.api#default
 use smithy.api#jsonName
+
 use lila.search.core#Ids
 use lila.search.core#FromInt
 use lila.search.core#SizeInt

@@ -8,7 +8,6 @@ import chess.variant.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
 import io.circe.*
-import lila.search.spec.GameSource
 import mongo4cats.circe.*
 import mongo4cats.collection.MongoCollection
 import mongo4cats.database.MongoDatabase
