@@ -1,6 +1,5 @@
 package lila.search
 
-import cats.MonadThrow
 import cats.effect.*
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
@@ -76,10 +75,10 @@ object ESClient:
         .map(_.status)
 
     private def toResult[A](response: Response[A]): F[A] =
-      response.fold(MonadThrow[F].raiseError[A](response.error.asException))(MonadThrow[F].pure)
+      response.fold(response.error.asException.raiseError)(r => r.pure[F])
 
     private def unitOrFail[A](response: Response[A]): F[Unit] =
-      response.fold(MonadThrow[F].raiseError[Unit](response.error.asException))(_ => MonadThrow[F].unit)
+      response.fold(response.error.asException.raiseError)(_ => ().pure[F])
 
     def search[A](query: A, from: From, size: Size)(using q: Queryable[A]): F[List[Id]] =
       metric
