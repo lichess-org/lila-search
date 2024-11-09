@@ -67,7 +67,7 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
         .url(url)
         .post(data)
         .flatMap:
-          case res if res.status == 200 => Future(res.body[R])
+          case res if res.status == 200 => Future.successful(res.body[R])
           case res if res.status == 400 =>
             Future.failed(SearchError.BadRequest(s"$url ${res.status} ${res.body}"))
           case res => Future.failed(SearchError.InternalServerError(s"$url ${res.status} ${res.body}"))
@@ -79,7 +79,7 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
         .url(url)
         .post(data)
         .flatMap:
-          case res if res.status == 200 => Future(())
+          case res if res.status == 200 => Future.successful(())
           case res if res.status == 400 =>
             Future.failed(SearchError.BadRequest(s"$url ${res.status} ${res.body}"))
           case res => Future.failed(SearchError.InternalServerError(s"$url ${res.status} ${res.body}"))
@@ -90,7 +90,7 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
       .url(url)
       .execute("POST")
       .flatMap:
-        case res if res.status == 200 => Future(())
+        case res if res.status == 200 => Future.successful(())
         case res if res.status == 400 =>
           Future.failed(SearchError.BadRequest(s"$url ${res.status} ${res.body}"))
         case res => Future.failed(SearchError.InternalServerError(s"$url ${res.status} ${res.body}"))
