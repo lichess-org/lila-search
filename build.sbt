@@ -147,9 +147,7 @@ lazy val app = project
       logback,
       otel4sMetricts,
       otel4sSdk,
-      otel4sPrometheusExporter,
-      weaver,
-      testContainers
+      otel4sPrometheusExporter
     ),
     Compile / run / fork := true
   )
@@ -161,9 +159,9 @@ val e2e = project
   .settings(
     publish        := {},
     publish / skip := true,
-    libraryDependencies ++= Seq(weaver)
+    libraryDependencies ++= Seq(testContainers, weaver)
   )
-  .dependsOn(client, app)
+  .dependsOn(client, app, ingestor)
 
 lazy val root = project
   .in(file("."))
@@ -172,4 +170,3 @@ lazy val root = project
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
 addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")
-

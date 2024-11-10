@@ -5,6 +5,7 @@ package test
 import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
 import com.comcast.ip4s.*
+import lila.search.ingestor.given
 import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
@@ -51,76 +52,70 @@ object IntegrationSuite extends IOSuite:
         _.healthCheck()
           .map(expect.same(_, HealthCheckOutput(ElasticStatus.green)))
 
-  test("forum"): _ =>
+  test("forum"): res =>
     Clients
       .search(uri)
       .use: service =>
         for
-          _ <- service.mapping(Index.Forum)
-          _ <- service
-            .store(
-              "forum_id",
-              Source.forum(
-                ForumSource(
-                  body = "a forum post",
-                  topic = "chess",
-                  topicId = "chess",
-                  troll = false,
-                  date = Instant.now().toEpochMilli(),
-                  author = "nt9".some
-                )
-              )
+          _ <- res.esClient.putMapping(Index.Forum)
+          _ <- res.esClient.store(
+            Index.Forum,
+            Id("forum_id"),
+            ingestor.ForumSource(
+              body = "a forum post",
+              topic = "chess",
+              topicId = "chess",
+              troll = false,
+              date = Instant.now().toEpochMilli(),
+              author = "nt9".some
             )
-          _ <- service.refresh(Index.Forum)
+          )
+          _ <- res.esClient.refreshIndex(Index.Forum)
           x <- service.search(Query.forum("chess", false), from, size)
           y <- service.search(Query.forum("nt9", false), from, size)
         yield expect(x.hitIds.size == 1 && x == y)
 
-  test("team"): _ =>
+  test("team"): res =>
     Clients
       .search(uri)
       .use: service =>
         for
-          _ <- service.mapping(Index.Team)
-          _ <- service
-            .store(
-              "team_id",
-              Source.team(
-                TeamSource(
-                  name = "team name",
-                  description = "team description",
-                  100
-                )
-              )
+          _ <- res.esClient.putMapping(Index.Team)
+          _ <- res.esClient.store(
+            Index.Team,
+            Id("team_id"),
+            ingestor.TeamSource(
+              name = "team name",
+              description = "team description",
+              100
             )
-          _ <- service.refresh(Index.Team)
+          )
+          _ <- res.esClient.refreshIndex(Index.Team)
           x <- service.search(Query.team("team name"), from, size)
           y <- service.search(Query.team("team description"), from, size)
         yield expect(x.hitIds.size == 1 && x == y)
 
-  test("study"): _ =>
+  test("study"): res =>
     Clients
       .search(uri)
       .use: service =>
         for
-          _ <- service.mapping(Index.Study)
-          _ <- service
-            .store(
-              "study_id",
-              Source.study(
-                StudySource(
-                  name = "study name",
-                  owner = "study owner",
-                  members = List("member1", "member2"),
-                  chapterNames = "names",
-                  chapterTexts = "texts",
-                  likes = 100,
-                  public = true,
-                  topics = List("topic1", "topic2")
-                )
-              )
+          _ <- res.esClient.putMapping(Index.Study)
+          _ <- res.esClient.store(
+            Index.Study,
+            Id("study_id"),
+            ingestor.StudySource(
+              name = "study name",
+              owner = "study owner",
+              members = List("member1", "member2"),
+              chapterNames = "names",
+              chapterTexts = "texts",
+              likes = 100,
+              public = true,
+              topics = List("topic1", "topic2")
             )
-          _ <- service.refresh(Index.Study)
+          )
+          _ <- res.esClient.refreshIndex(Index.Study)
           a <- service.search(Query.study("name"), from, size)
           b <- service.search(Query.study("study description"), from, size)
           c <- service.search(Query.study("topic1"), from, size)
@@ -136,38 +131,36 @@ object IntegrationSuite extends IOSuite:
     duration = defaultIntRange,
     sorting = Sorting("field", "asc")
   )
-  test("game"): _ =>
+  test("game"): res =>
     Clients
       .search(uri)
       .use: service =>
         for
-          _ <- service.mapping(Index.Game)
-          _ <- service
-            .store(
-              "game_id",
-              Source.game(
-                GameSource(
-                  status = 1,
-                  turns = 100,
-                  rated = true,
-                  perf = 1,
-                  winnerColor = 1,
-                  date = SearchDateTime.fromInstant(Timestamp(1999, 10, 20, 12, 20, 20).toInstant),
-                  analysed = false,
-                  uids = List("uid1", "uid2").some,
-                  winner = "uid1".some,
-                  loser = "uid2".some,
-                  averageRating = 150.some,
-                  ai = none,
-                  duration = 100.some,
-                  clockInit = 100.some,
-                  clockInc = 200.some,
-                  whiteUser = "white".some,
-                  blackUser = "black".some
-                )
-              )
+          _ <- res.esClient.putMapping(Index.Game)
+          _ <- res.esClient.store(
+            Index.Game,
+            Id("game_id"),
+            ingestor.GameSource(
+              status = 1,
+              turns = 100,
+              rated = true,
+              perf = 1,
+              winnerColor = 1,
+              date = SearchDateTime.fromInstant(Timestamp(1999, 10, 20, 12, 20, 20).toInstant),
+              analysed = false,
+              uids = List("uid1", "uid2").some,
+              winner = "uid1".some,
+              loser = "uid2".some,
+              averageRating = 150.some,
+              ai = none,
+              duration = 100.some,
+              clockInit = 100.some,
+              clockInc = 200.some,
+              whiteUser = "white".some,
+              blackUser = "black".some
             )
-          _ <- service.refresh(Index.Game)
+          )
+          _ <- res.esClient.refreshIndex(Index.Game)
           a <- service.search(defaultGame.copy(perf = List(1)), from, size)
           b <- service.search(defaultGame.copy(loser = "uid2".some), from, size)
           c <- service.search(defaultGame, from, size)
