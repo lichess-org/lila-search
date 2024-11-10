@@ -5,7 +5,6 @@ import cats.effect.IO
 import cats.syntax.all.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
-import lila.search.spec.ForumSource
 import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument

@@ -3,7 +3,6 @@ package ingestor
 
 import cats.effect.IO
 import cats.syntax.all.*
-import lila.search.spec.StudySource
 import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
 import mongo4cats.operations.{ Filter, Projection }

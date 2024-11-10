@@ -5,7 +5,6 @@ import cats.effect.IO
 import cats.syntax.all.*
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.sksamuel.elastic4s.Indexable
-import lila.search.spec.Source
 import mongo4cats.bson.Document
 import mongo4cats.collection.GenericMongoCollection
 import mongo4cats.models.collection.ChangeStreamDocument
@@ -32,12 +31,6 @@ extension (doc: Document)
     doc.getString(_id)
 
 given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
-given Indexable[Source] =
-  _ match
-    case f: Source.ForumCase => writeToString(f.forum)
-    case g: Source.GameCase  => writeToString(g.game)
-    case s: Source.StudyCase => writeToString(s.study)
-    case t: Source.TeamCase  => writeToString(t.team)
 
 extension (instant: Instant)
   inline def asBsonTimestamp: BsonTimestamp = BsonTimestamp(instant.getEpochSecond.toInt, 1)

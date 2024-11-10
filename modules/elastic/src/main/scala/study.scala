@@ -25,9 +25,10 @@ case class Study(text: String, userId: Option[String]):
     val matcher: Query =
       if parsed.terms.isEmpty then matchAllQuery()
       else
-        multiMatchQuery(
-          parsed.terms.mkString(" ")
-        ).fields(Study.searchableFields*).analyzer("english").matchType("most_fields")
+        multiMatchQuery(parsed.terms.mkString(" "))
+          .fields(Study.searchableFields*)
+          .analyzer("english")
+          .matchType("most_fields")
     boolQuery()
       .must:
         matcher :: List(

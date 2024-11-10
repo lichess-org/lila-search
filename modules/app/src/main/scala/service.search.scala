@@ -17,84 +17,9 @@ import java.time.Instant
 
 class SearchServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends SearchService[IO]:
 
-  import SearchServiceImpl.{ given, * }
+  import SearchServiceImpl.given
 
   given logger: Logger[IO] = summon[LoggerFactory[IO]].getLogger
-
-  override def storeBulkTeam(sources: List[TeamSourceWithId]): IO[Unit] =
-    esClient
-      .storeBulk(
-        Index.Team,
-        sources.map(s => s.id -> s.source)
-      )
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in storeBulkTeam: sources=$sources") *>
-          IO.raiseError(InternalServerError("Internal server error"))
-
-  override def storeBulkStudy(sources: List[StudySourceWithId]): IO[Unit] =
-    esClient
-      .storeBulk(
-        Index.Study,
-        sources.map(s => s.id -> s.source)
-      )
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in storeBulkStudy: sources=$sources") *>
-          IO.raiseError(InternalServerError("Internal server error"))
-
-  override def storeBulkGame(sources: List[GameSourceWithId]): IO[Unit] =
-    esClient
-      .storeBulk(
-        Index.Game,
-        sources.map(s => s.id -> s.source)
-      )
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in storeBulkGame: sources=$sources") *>
-          IO.raiseError(InternalServerError("Internal server error"))
-
-  override def storeBulkForum(sources: List[ForumSourceWithId]): IO[Unit] =
-    esClient
-      .storeBulk(
-        Index.Forum,
-        sources.map(s => s.id -> s.source)
-      )
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in storeBulkForum: sources=$sources") *>
-          IO.raiseError(InternalServerError("Internal server error"))
-
-  override def store(id: String, source: Source): IO[Unit] =
-    esClient
-      .store(source.index, Id(id), source)
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in store: source=$source, id=$id") *>
-          IO.raiseError(InternalServerError("Internal server error"))
-
-  override def refresh(index: Index): IO[Unit] =
-    esClient
-      .refreshIndex(index)
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in refresh: index=$index") *>
-          IO.raiseError(InternalServerError("Internal server error"))
-
-  override def mapping(index: Index): IO[Unit] =
-    esClient
-      .putMapping(index)
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in mapping: index=$index") *>
-          IO.raiseError(InternalServerError("Internal server error"))
-
-  override def deleteById(index: Index, id: String): IO[Unit] =
-    esClient
-      .deleteOne(index, Id(id))
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in deleteById: index=$index, id=$id") *>
-          IO.raiseError(InternalServerError("Internal server error"))
-
-  override def deleteByIds(index: Index, ids: List[Id]): IO[Unit] =
-    esClient
-      .deleteMany(index, ids)
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in deleteByIds: index=$index, ids=$ids") *>
-          IO.raiseError(InternalServerError("Internal server error"))
 
   override def count(query: Query): IO[CountOutput] =
     esClient
@@ -148,16 +73,3 @@ object SearchServiceImpl:
   import com.github.plokhotnyuk.jsoniter_scala.core.*
 
   given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
-  given Indexable[Source] =
-    _ match
-      case f: Source.ForumCase => writeToString(f.forum)
-      case g: Source.GameCase  => writeToString(g.game)
-      case s: Source.StudyCase => writeToString(s.study)
-      case t: Source.TeamCase  => writeToString(t.team)
-
-  extension (source: Source)
-    def index = source match
-      case s: Source.ForumCase => Index.Forum
-      case s: Source.GameCase  => Index.Game
-      case s: Source.StudyCase => Index.Study
-      case s: Source.TeamCase  => Index.Team
