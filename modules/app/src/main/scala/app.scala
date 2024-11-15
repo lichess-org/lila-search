@@ -26,6 +26,7 @@ object App extends IOApp.Simple:
       config                        <- AppConfig.load.toResource
       _   <- Logger[IO].info(s"Starting lila-search with config: $config").toResource
       _   <- RuntimeMetrics.register[IO]
+      _   <- IOMetrics.register[IO]()
       res <- AppResources.instance(config)
       _   <- mkServer(res, config)
     yield ()

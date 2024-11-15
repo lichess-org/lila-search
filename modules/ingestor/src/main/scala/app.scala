@@ -20,6 +20,7 @@ object App extends IOApp.Simple:
     for
       given Meter[IO] <- mkMeter
       _               <- RuntimeMetrics.register[IO]
+      _               <- IOMetrics.register[IO]()
       config          <- AppConfig.load.toResource
       _               <- Logger[IO].info(s"Starting lila-search ingestor with config: $config").toResource
       res             <- AppResources.instance(config)
