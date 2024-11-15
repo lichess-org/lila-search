@@ -45,9 +45,9 @@ object ESClient:
     case Resource.ExitCase.Succeeded =>
       static
     case Resource.ExitCase.Errored(e) =>
-      static.added(errorType(e.getClass.getName))
+      static.added(errorType, e.getClass.getName)
     case Resource.ExitCase.Canceled =>
-      static.added(errorType("canceled"))
+      static.added(errorType, "canceled")
 
   def apply(uri: String)(using meter: Meter[IO]): Resource[IO, ESClient[IO]] =
     Resource
@@ -86,8 +86,8 @@ object ESClient:
           TimeUnit.MILLISECONDS,
           withErrorType(
             baseAttributes
-              .added(dbOperationName("search"))
-              .added(dbCollectionName(q.index(query).value))
+              .added(dbOperationName, "search")
+              .added(dbCollectionName, q.index(query).value)
           )
         )
         .surround:
@@ -102,8 +102,8 @@ object ESClient:
           TimeUnit.MILLISECONDS,
           withErrorType(
             baseAttributes
-              .added(dbOperationName("count"))
-              .added(dbCollectionName(q.index(query).value))
+              .added(dbOperationName, "count")
+              .added(dbCollectionName, q.index(query).value)
           )
         )
         .surround:
@@ -118,8 +118,8 @@ object ESClient:
           TimeUnit.MILLISECONDS,
           withErrorType(
             baseAttributes
-              .added(dbOperationName("store"))
-              .added(dbCollectionName(index.value))
+              .added(dbOperationName, "store")
+              .added(dbCollectionName, index.value)
           )
         )
         .surround:
@@ -135,9 +135,9 @@ object ESClient:
           TimeUnit.MILLISECONDS,
           withErrorType(
             baseAttributes
-              .added(dbOperationName("store-bulk"))
-              .added(dbCollectionName(index.value))
-              .added(dbBatchSize(objs.size))
+              .added(dbOperationName, "store-bulk")
+              .added(dbCollectionName, index.value)
+              .added(dbBatchSize, objs.size)
           )
         )
         .surround:
@@ -152,8 +152,8 @@ object ESClient:
           TimeUnit.MILLISECONDS,
           withErrorType(
             baseAttributes
-              .added(dbOperationName("delete-one"))
-              .added(dbCollectionName(index.value))
+              .added(dbOperationName, "delete-one")
+              .added(dbCollectionName, index.value)
           )
         )
         .surround:
@@ -167,9 +167,9 @@ object ESClient:
           TimeUnit.MILLISECONDS,
           withErrorType(
             baseAttributes
-              .added(dbOperationName("delete-bulk"))
-              .added(dbCollectionName(index.value))
-              .added(dbBatchSize(ids.size))
+              .added(dbOperationName, "delete-bulk")
+              .added(dbCollectionName, index.value)
+              .added(dbBatchSize, ids.size)
           )
         )
         .surround:
