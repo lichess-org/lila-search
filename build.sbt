@@ -49,8 +49,10 @@ lazy val elastic = project
     libraryDependencies ++= Seq(
       catsCore,
       catsEffect,
-      elastic4sJavaClient,
+      http4sClient,
       elastic4sCatsEffect,
+      elastic4sJavaClient,
+      elastic4sHttp4sClient,
       otel4sCore
     )
   )

@@ -50,6 +50,7 @@ object Dependencies {
   val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.10"
 
   val elastic4sJavaClient = "nl.gn0s1s" %% "elastic4s-client-esjava" % V.elastic4s
+  val elastic4sHttp4sClient = "nl.gn0s1s" %% "elastic4s-client-http4s" % V.elastic4s
   val elastic4sCatsEffect = "nl.gn0s1s" %% "elastic4s-effect-cats"   % V.elastic4s
 
   val mongo4catsCore = "io.github.kirill5k" %% "mongo4cats-core" % V.mongo4cats

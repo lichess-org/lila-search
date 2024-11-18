@@ -19,6 +19,7 @@ import org.typelevel.otel4s.metrics.{ Histogram, Meter }
 import org.typelevel.otel4s.{ Attribute, AttributeKey, Attributes }
 
 import java.util.concurrent.TimeUnit
+import org.http4s.client.Client
 
 trait ESClient[F[_]]:
 
@@ -50,6 +51,21 @@ object ESClient:
       static.added(errorType, "canceled")
 
   def apply(uri: String)(using meter: Meter[IO]): Resource[IO, ESClient[IO]] =
+    Resource
+      .make(IO(ElasticClient(JavaClient(ElasticProperties(uri)))))(client => IO(client.close()))
+      .evalMap: esClient =>
+        meter
+          .histogram[Double]("db.client.operation.duration")
+          .withUnit("ms")
+          .create
+          .map(
+            apply(
+              esClient,
+              Attributes(Attribute("db.system", "elasticsearch"), Attribute("server.address", uri))
+            )
+          )
+
+  def apply(client: Client[IO], uri: String)(using meter: Meter[IO]): Resource[IO, ESClient[IO]] =
     Resource
       .make(IO(ElasticClient(JavaClient(ElasticProperties(uri)))))(client => IO(client.close()))
       .evalMap: esClient =>
