@@ -7,7 +7,7 @@ object Dependencies {
   val ourResolvers = Seq(lilaMaven)
 
   object V {
-    val catsEffect = "3.5.5"
+    val catsEffect = "3.5.6"
     val chess      = "16.2.4"
     val ciris      = "3.6.0"
     val decline    = "2.4.1"
