@@ -22,11 +22,12 @@ object Ingestor:
     (
       Forums(lichess, config.forum),
       Studies(study, local, config.study),
-      TeamIngestor(lichess, elastic, store, config.team),
-      GameIngestor(lichess, elastic, store, config.game)
-    ).mapN: (forums, studies, team, game) =>
+      Games(lichess, config.game),
+      TeamIngestor(lichess, elastic, store, config.team)
+    ).mapN: (forums, studies, games, team) =>
       val forum = ForumIngestor(elastic, store, config.forum, forums)
       val study = StudyIngestor(studies, elastic, store, config.study)
+      val game  = GameIngestor(games, elastic, store, config.game)
       new Ingestor:
         def run() =
           fs2

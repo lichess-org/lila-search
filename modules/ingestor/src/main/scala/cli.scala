@@ -37,7 +37,8 @@ object cli
       team    <- TeamIngestor(res.lichess, res.elastic, res.store, config.ingestor.team).toResource
       studies <- Studies(res.study, res.studyLocal, config.ingestor.study).toResource
       study = StudyIngestor(studies, res.elastic, res.store, config.ingestor.study)
-      game <- GameIngestor(res.lichess, res.elastic, res.store, config.ingestor.game).toResource
+      games <- Games(res.lichess, config.ingestor.game).toResource
+      game = GameIngestor(games, res.elastic, res.store, config.ingestor.game)
     yield Executor(forum, study, game, team)
 
   class Executor(
