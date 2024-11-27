@@ -30,10 +30,5 @@ object Ingestor:
       val game  = GameIngestor(games, elastic, store, config.game)
       val team  = TeamIngestor(teams, elastic, store, config.team)
       new Ingestor:
-        def run() =
-          fs2
-            .Stream(forum.watch, team.watch, study.watch, game.watch)
-            .covary[IO]
-            .parJoinUnbounded
-            .compile
-            .drain
+        def run(): IO[Unit] =
+          List(forum.watch, team.watch, study.watch, game.watch).parSequence_

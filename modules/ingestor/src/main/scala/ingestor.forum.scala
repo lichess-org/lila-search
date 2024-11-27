@@ -10,9 +10,9 @@ import java.time.Instant
 
 trait ForumIngestor:
   // watch change events from MongoDB and ingest forum posts into elastic search
-  def watch: fs2.Stream[IO, Unit]
+  def watch: IO[Unit]
   // Fetch posts in [since, until] and ingest into elastic search
-  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
+  def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit]
 
 object ForumIngestor:
 
@@ -24,7 +24,7 @@ object ForumIngestor:
 
     given Logger[IO] = LoggerFactory[IO].getLogger
 
-    def watch: fs2.Stream[IO, Unit] =
+    def watch: IO[Unit] =
       fs2.Stream
         .eval(startAt.flatTap(since => info"Starting forum ingestor from $since"))
         .flatMap: last =>
@@ -34,8 +34,10 @@ object ForumIngestor:
               storeBulk(result.toIndex)
                 *> elastic.deleteMany(index, result.toDelete)
                 *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now()))
+        .compile
+        .drain
 
-    def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit] =
+    def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit] =
       forums
         .fetch(since, until)
         .evalMap: result =>
@@ -44,6 +46,8 @@ object ForumIngestor:
               *> result.toDelete.traverse_(doc => debug"Would delete $doc"),
             storeBulk(result.toIndex) *> elastic.deleteMany(index, result.toDelete)
           )
+        .compile
+        .drain
 
     private def storeBulk(docs: List[(String, ForumSource)]): IO[Unit] =
       info"Received ${docs.size} forum posts to index" *>

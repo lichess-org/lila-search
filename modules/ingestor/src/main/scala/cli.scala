@@ -56,23 +56,23 @@ object cli
     def index(opts: IndexOpts): IO[Unit] =
       opts.index match
         case Index.Forum =>
-          forum.run(opts.since, opts.until, opts.dry).compile.drain
+          forum.run(opts.since, opts.until, opts.dry)
         case Index.Study =>
-          study.run(opts.since, opts.until, opts.dry).compile.drain
+          study.run(opts.since, opts.until, opts.dry)
         case Index.Game =>
-          game.run(opts.since, opts.until, opts.dry).compile.drain
+          game.run(opts.since, opts.until, opts.dry)
         case Index.Team =>
-          team.run(opts.since, opts.until, opts.dry).compile.drain
+          team.run(opts.since, opts.until, opts.dry)
         case _ =>
-          forum.run(opts.since, opts.until, opts.dry).compile.drain *>
-            study.run(opts.since, opts.until, opts.dry).compile.drain *>
-            game.run(opts.since, opts.until, opts.dry).compile.drain *>
-            team.run(opts.since, opts.until, opts.dry).compile.drain
+          forum.run(opts.since, opts.until, opts.dry) *>
+            study.run(opts.since, opts.until, opts.dry) *>
+            game.run(opts.since, opts.until, opts.dry) *>
+            team.run(opts.since, opts.until, opts.dry)
 
     def watch(opts: WatchOpts): IO[Unit] =
       opts.index match
         case Index.Game =>
-          game.watch(opts.since.some, opts.dry).compile.drain
+          game.watch(opts.since.some, opts.dry)
         case _ => IO.println("We only support game watch for now")
 
 object opts:

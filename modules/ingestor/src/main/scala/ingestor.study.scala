@@ -10,8 +10,8 @@ import java.time.Instant
 
 trait StudyIngestor:
   // pull changes from study MongoDB and ingest into elastic search
-  def watch: fs2.Stream[IO, Unit]
-  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
+  def watch: IO[Unit]
+  def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit]
 
 object StudyIngestor:
 
@@ -24,7 +24,7 @@ object StudyIngestor:
       config: IngestorConfig.Study
   )(using LoggerFactory[IO]): StudyIngestor = new:
     given Logger[IO] = LoggerFactory[IO].getLogger
-    def watch: fs2.Stream[IO, Unit] =
+    def watch: IO[Unit] =
       fs2.Stream
         .eval(
           config.startAt.fold(store.get(index.value))(_.some.pure[IO])
@@ -35,8 +35,10 @@ object StudyIngestor:
             .evalMap: result =>
               storeBulk(result.toIndex, false) *> elastic.deleteMany(index, result.toDelete)
                 *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now()))
+        .compile
+        .drain
 
-    def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit] =
+    def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit] =
       studies
         .fetch(since, until)
         .evalMap: result =>
@@ -45,6 +47,8 @@ object StudyIngestor:
               *> result.toDelete.traverse_(doc => debug"Would delete $doc"),
             storeBulk(result.toIndex, dryRun) *> elastic.deleteMany(index, result.toDelete)
           )
+        .compile
+        .drain
 
     def storeBulk(sources: List[(String, StudySource)], dryRun: Boolean = false): IO[Unit] =
       info"Received ${sources.size} studies to index" *>

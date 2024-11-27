@@ -10,11 +10,11 @@ import java.time.Instant
 
 trait GameIngestor:
   // watch change events from game5 collection and ingest games into elastic search
-  def watch: fs2.Stream[IO, Unit]
+  def watch: IO[Unit]
   // Similar to watch but started from a given timestamp
-  def watch(since: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit]
+  def watch(since: Option[Instant], dryRun: Boolean): IO[Unit]
   // Fetch posts in [since, until] and ingest into elastic search
-  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
+  def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit]
 
 object GameIngestor:
 
@@ -25,18 +25,29 @@ object GameIngestor:
   ): GameIngestor = new:
     given Logger[IO] = LoggerFactory[IO].getLogger
 
-    def watch: fs2.Stream[IO, Unit] =
+    def watch: IO[Unit] =
       fs2.Stream
         .eval(startAt.flatTap(since => info"Starting game ingestor from $since"))
         .flatMap(games.watch(_))
         .evalMap(updateElastic(_, false))
+        .compile
+        .drain
 
-    def watch(since: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit] =
+    def watch(since: Option[Instant], dryRun: Boolean): IO[Unit] =
       games
         .watch(since)
         .evalMap(updateElastic(_, dryRun))
+        .compile
+        .drain
 
-    def updateElastic(result: Games.Result, dryRun: Boolean): IO[Unit] =
+    def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit] =
+      games
+        .fetch(since, until)
+        .evalMap(updateElastic(_, dryRun))
+        .compile
+        .drain
+
+    private def updateElastic(result: Games.Result, dryRun: Boolean): IO[Unit] =
       dryRun.fold(
         info"Would index total ${result.toIndex.size} games and delete ${result.toDelete.size} games" *>
           result.toIndex.traverse_(x => debug"Would index $x")
@@ -45,11 +56,6 @@ object GameIngestor:
           *> elastic.deleteMany(index, result.toDelete)
           *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now))
       )
-
-    def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit] =
-      games
-        .fetch(since, until)
-        .evalMap(updateElastic(_, dryRun))
 
     private def storeBulk(sources: List[(String, GameSource)]): IO[Unit] =
       info"Received ${sources.size} ${index.value}s to index" *>

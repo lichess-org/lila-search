@@ -10,9 +10,9 @@ import java.time.Instant
 
 trait TeamIngestor:
   // watch change events from MongoDB and ingest team data into elastic search
-  def watch: fs2.Stream[IO, Unit]
+  def watch: IO[Unit]
   // Fetch teams in [since, until] and ingest into elastic search
-  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
+  def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit]
 
 object TeamIngestor:
 
@@ -32,6 +32,8 @@ object TeamIngestor:
               storeBulk(result.toIndex)
                 *> elastic.deleteMany(index, result.toDelete)
                 *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now))
+        .compile
+        .drain
 
     def run(since: Instant, until: Instant, dryRun: Boolean) =
       teams
@@ -42,6 +44,8 @@ object TeamIngestor:
               *> result.toDelete.traverse_(doc => debug"Would delete $doc"),
             storeBulk(result.toIndex) *> elastic.deleteMany(index, result.toDelete)
           )
+        .compile
+        .drain
 
     private def storeBulk(sources: List[Teams.SourceWithId]): IO[Unit] =
       info"Received ${sources.size} teams to index" *>
