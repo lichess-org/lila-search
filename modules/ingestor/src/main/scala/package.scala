@@ -58,3 +58,9 @@ def storeBulk[A](index: Index, sources: List[(String, A)])(using Schema[A], Logg
     *> Logger[IO].info(s"Indexed ${sources.size} ${index.value}s")
 
 extension (s: String) def dollarPrefix = "$" + s
+
+extension (store: KVStore)
+  def saveLastIndexedTimestamp(index: Index, time: Option[Instant])(using Logger[IO]): IO[Unit] =
+    val savedTime = time.getOrElse(Instant.now())
+    store.put(index.value, savedTime)
+      *> Logger[IO].info(s"Stored last indexed time ${savedTime.getEpochSecond} for $index")

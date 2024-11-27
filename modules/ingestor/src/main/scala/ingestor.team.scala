@@ -25,14 +25,12 @@ object TeamIngestor:
     given Logger[IO] = summon[LoggerFactory[IO]].getLogger
     def watch =
       fs2.Stream
-        .eval(startAt.flatTap(since => info"Starting team ingestor from $since"))
-        .flatMap: last =>
-          teams
-            .watch(last)
-            .evalMap: result =>
-              storeBulk(index, result.toIndex)
-                *> deleteMany(index, result.toDelete)
-                *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now))
+        .eval(startAt)
+        .flatMap(teams.watch)
+        .evalMap: result =>
+          storeBulk(index, result.toIndex)
+            *> deleteMany(index, result.toDelete)
+            *> store.saveLastIndexedTimestamp(index, result.timestamp)
         .compile
         .drain
 
@@ -48,9 +46,7 @@ object TeamIngestor:
         .compile
         .drain
 
-    private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
-      store.put(index.value, time)
-        *> info"Stored last indexed time ${time.getEpochSecond} for $index"
-
     private def startAt: IO[Option[Instant]] =
-      config.startAt.fold(store.get(index.value))(_.some.pure[IO])
+      config.startAt
+        .fold(store.get(index.value))(_.some.pure[IO])
+        .flatTap(since => info"Starting team ingestor from $since")

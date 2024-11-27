@@ -28,9 +28,10 @@ object GameIngestor:
 
     def watch: IO[Unit] =
       fs2.Stream
-        .eval(startAt.flatTap(since => info"Starting game ingestor from $since"))
+        .eval(store.startAt(index, config.startAt).flatTap(since => info"Starting game ingestor from $since"))
         .flatMap(games.watch)
-        .evalMap(updateElastic(_, false))
+        .evalMap: result =>
+          updateElastic(result, false) *> store.saveLastIndexedTimestamp(index, result.timestamp)
         .compile
         .drain
 
@@ -55,12 +56,4 @@ object GameIngestor:
           *> result.toDelete.traverse_(x => debug"Would delete $x"),
         storeBulk(index, result.toIndex)
           *> deleteMany(index, result.toDelete)
-          *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now))
       )
-
-    private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
-      store.put(index.value, time)
-        *> info"Stored last indexed time ${time.getEpochSecond} for $index"
-
-    private def startAt: IO[Option[Instant]] =
-      config.startAt.fold(store.get(index.value))(_.some.pure[IO])

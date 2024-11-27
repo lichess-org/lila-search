@@ -25,15 +25,12 @@ object StudyIngestor:
     given Logger[IO] = LoggerFactory[IO].getLogger
     def watch: IO[Unit] =
       fs2.Stream
-        .eval(
-          config.startAt.fold(store.get(index.value))(_.some.pure[IO])
-        )
-        .flatMap: since =>
-          studies
-            .watch(since)
-            .evalMap: result =>
-              storeBulk(index, result.toIndex) *> deleteMany(index, result.toDelete)
-                *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now()))
+        .eval(startAt)
+        .flatMap(studies.watch)
+        .evalMap: result =>
+          storeBulk(index, result.toIndex)
+            *> deleteMany(index, result.toDelete)
+            *> store.saveLastIndexedTimestamp(index, result.timestamp)
         .compile
         .drain
 
@@ -49,6 +46,7 @@ object StudyIngestor:
         .compile
         .drain
 
-    def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
-      store.put(index.value, time)
-        *> info"Stored last indexed time ${time.getEpochSecond} for $index"
+    private def startAt: IO[Option[Instant]] =
+      config.startAt
+        .fold(store.get(index.value))(_.some.pure[IO])
+        .flatTap(since => info"Starting forum ingestor from $since")
