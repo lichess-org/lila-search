@@ -17,7 +17,7 @@ import scala.concurrent.duration.*
 
 import Repo.{ Result, SourceWithId }
 
-object Forums:
+object ForumRepo:
 
   private val interestedOperations = List(DELETE, INSERT, REPLACE, UPDATE).map(_.getValue)
 

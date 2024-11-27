@@ -22,7 +22,7 @@ import scala.concurrent.duration.*
 
 import Repo.Result
 
-object Games:
+object GameRepo:
 
   private val interestedOperations = List(UPDATE, DELETE).map(_.getValue)
   private val eventFilter          = Filter.in("operationType", interestedOperations)

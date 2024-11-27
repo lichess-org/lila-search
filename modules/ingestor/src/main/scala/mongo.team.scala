@@ -17,7 +17,7 @@ import scala.concurrent.duration.*
 
 import Repo.Result
 
-object Teams:
+object TeamRepo:
 
   private val interestedOperations = List(DELETE, INSERT, UPDATE, REPLACE).map(_.getValue)
   private val eventFilter          = Filter.in("operationType", interestedOperations)

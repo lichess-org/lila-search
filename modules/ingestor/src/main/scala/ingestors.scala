@@ -25,10 +25,10 @@ object Ingestors:
       config: IngestorConfig
   )(using LoggerFactory[IO], ESClient[IO]): IO[Ingestors] =
     (
-      Forums(lichess, config.forum),
-      Studies(study, local, config.study),
-      Games(lichess, config.game),
-      Teams(lichess, config.team)
+      ForumRepo(lichess, config.forum),
+      StudyRepo(study, local, config.study),
+      GameRepo(lichess, config.game),
+      TeamRepo(lichess, config.team)
     ).mapN: (forums, studies, games, teams) =>
       new Ingestors(
         Ingestor(Index.Forum, forums, store, config.forum.startAt),

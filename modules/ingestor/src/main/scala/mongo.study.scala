@@ -13,7 +13,7 @@ import java.time.Instant
 
 import Repo.Result
 
-object Studies:
+object StudyRepo:
 
   private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics, F.likes)
 
