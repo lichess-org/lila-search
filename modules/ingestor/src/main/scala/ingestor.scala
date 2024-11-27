@@ -19,7 +19,7 @@ trait Ingestor:
 
 object Ingestor:
 
-  def apply[A: Schema](index: Index, games: Repo[A], store: KVStore, defaultStartAt: Option[Instant])(using
+  def apply[A: Schema](index: Index, repo: Repo[A], store: KVStore, defaultStartAt: Option[Instant])(using
       LoggerFactory[IO],
       ESClient[IO]
   ): Ingestor = new:
@@ -28,21 +28,21 @@ object Ingestor:
     def watch: IO[Unit] =
       fs2.Stream
         .eval(startAt)
-        .flatMap(games.watch)
+        .flatMap(repo.watch)
         .evalMap: result =>
           updateElastic(result, false) *> store.saveLastIndexedTimestamp(index, result.timestamp)
         .compile
         .drain
 
     def watch(since: Option[Instant], dryRun: Boolean): IO[Unit] =
-      games
+      repo
         .watch(since)
         .evalMap(updateElastic(_, dryRun))
         .compile
         .drain
 
     def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit] =
-      games
+      repo
         .fetch(since, until)
         .evalMap(updateElastic(_, dryRun))
         .compile
