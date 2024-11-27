@@ -28,15 +28,15 @@ object cli
     opts.parse.map: opts =>
       makeIngestor.use(_.execute(opts).as(ExitCode.Success))
 
-  def makeIngestor: Resource[IO, Ingestor] =
+  def makeIngestor: Resource[IO, Ingestors] =
     for
       config <- AppConfig.load.toResource
       res    <- AppResources.instance(config)
       given ESClient[IO] = res.elastic
-      ingestor <- Ingestor(res.lichess, res.study, res.studyLocal, res.store, config.ingestor).toResource
+      ingestor <- Ingestors(res.lichess, res.study, res.studyLocal, res.store, config.ingestor).toResource
     yield ingestor
 
-  extension (ingestor: Ingestor)
+  extension (ingestor: Ingestors)
     def execute(opts: IndexOpts | WatchOpts): IO[Unit] =
       opts match
         case opts: IndexOpts => index(opts)

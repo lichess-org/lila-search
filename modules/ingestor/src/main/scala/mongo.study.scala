@@ -11,16 +11,9 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
 
-import Studies.Result
-
-trait Studies:
-  def watch(since: Option[Instant]): fs2.Stream[IO, Result]
-  def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result]
+import Repo.Result
 
 object Studies:
-
-  private type SourceWithId = (String, StudySource)
-  case class Result(toIndex: List[SourceWithId], toDelete: List[Id], timestamp: Option[Instant])
 
   private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics, F.likes)
 
@@ -31,7 +24,7 @@ object Studies:
       study: MongoDatabase[IO],
       local: MongoDatabase[IO],
       config: IngestorConfig.Study
-  )(using LoggerFactory[IO]): IO[Studies] =
+  )(using LoggerFactory[IO]): IO[Repo[StudySource]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
     (study.getCollection("study"), ChapterRepo(study), local.getCollection("oplog.rs"))
       .mapN(apply(config))
@@ -40,14 +33,14 @@ object Studies:
       studies: MongoCollection,
       chapters: ChapterRepo,
       oplogs: MongoCollection
-  )(using Logger[IO]): Studies = new:
+  )(using Logger[IO]): Repo[StudySource] = new:
 
-    def watch(since: Option[Instant]): fs2.Stream[IO, Result] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[StudySource]] =
       intervalStream(since)
         .meteredStartImmediately(config.interval)
         .flatMap(fetch)
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result] =
+    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
       // fs2.Stream.eval(info"Indexing studies from $since to $until") ++
       //   fs2.Stream.eval(info"deleting studies from $since to $until") ++
       pullAndIndex(since, until)

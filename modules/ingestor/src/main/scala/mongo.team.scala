@@ -15,15 +15,9 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import java.time.Instant
 import scala.concurrent.duration.*
 
-import Teams.Result
-trait Teams:
-  def watch(since: Option[Instant]): fs2.Stream[IO, Result]
-  def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result]
+import Repo.Result
 
 object Teams:
-
-  type SourceWithId = (String, TeamSource)
-  case class Result(toIndex: List[SourceWithId], toDelete: List[Id], timestamp: Option[Instant])
 
   private val interestedOperations = List(DELETE, INSERT, UPDATE, REPLACE).map(_.getValue)
   private val eventFilter          = Filter.in("operationType", interestedOperations)
@@ -39,11 +33,11 @@ object Teams:
 
   def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Team)(using
       LoggerFactory[IO]
-  ): IO[Teams] =
+  ): IO[Repo[TeamSource]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
     mongo.getCollection("team").map(apply(config))
 
-  def apply(config: IngestorConfig.Team)(teams: MongoCollection)(using Logger[IO]): Teams = new:
+  def apply(config: IngestorConfig.Team)(teams: MongoCollection)(using Logger[IO]): Repo[TeamSource] = new:
 
     def watch(since: Option[Instant]) =
       // skip the first event if we're starting from a specific timestamp

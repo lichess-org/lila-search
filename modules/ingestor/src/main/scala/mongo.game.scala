@@ -20,16 +20,9 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import java.time.Instant
 import scala.concurrent.duration.*
 
-import Games.Result
-
-trait Games:
-  def watch(since: Option[Instant]): fs2.Stream[IO, Result]
-  def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result]
+import Repo.Result
 
 object Games:
-
-  private type SourceWithId = (String, GameSource)
-  case class Result(toIndex: List[SourceWithId], toDelete: List[Id], timestamp: Option[Instant])
 
   private val interestedOperations = List(UPDATE, DELETE).map(_.getValue)
   private val eventFilter          = Filter.in("operationType", interestedOperations)
@@ -69,13 +62,17 @@ object Games:
   private val aggregate =
     Aggregate.matchBy(eventFilter.and(changeFilter)).combinedWith(Aggregate.project(eventProjection))
 
-  def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Game)(using LoggerFactory[IO]): IO[Games] =
+  def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Game)(using
+      LoggerFactory[IO]
+  ): IO[Repo[GameSource]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
     mongo.getCollectionWithCodec[DbGame]("game5").map(apply(config))
 
-  def apply(config: IngestorConfig.Game)(games: MongoCollection[IO, DbGame])(using Logger[IO]): Games = new:
+  def apply(config: IngestorConfig.Game)(games: MongoCollection[IO, DbGame])(using
+      Logger[IO]
+  ): Repo[GameSource] = new:
 
-    def watch(since: Option[Instant]): fs2.Stream[IO, Result] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[GameSource]] =
       changes(since)
         .map: events =>
           val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
@@ -86,7 +83,7 @@ object Games:
             lastEventTimestamp
           )
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result] =
+    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
       games

@@ -3,36 +3,61 @@ package ingestor
 
 import cats.effect.*
 import cats.syntax.all.*
-import mongo4cats.database.MongoDatabase
-import org.typelevel.log4cats.LoggerFactory
+import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
+import smithy4s.schema.Schema
 
-class Ingestor(
-    val forum: ForumIngestor,
-    val study: StudyIngestor,
-    val game: GameIngestor,
-    val team: TeamIngestor
-):
-  def run(): IO[Unit] =
-    List(forum.watch, team.watch, study.watch, game.watch).parSequence_
+import java.time.Instant
+
+trait Ingestor:
+  // watch change events from database and ingest documents into elastic search
+  def watch: IO[Unit]
+  // Similar to watch but started from a given timestamp
+  def watch(since: Option[Instant], dryRun: Boolean): IO[Unit]
+  // Fetch documents in [since, until] and ingest into elastic search
+  def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit]
 
 object Ingestor:
 
-  def apply(
-      lichess: MongoDatabase[IO],
-      study: MongoDatabase[IO],
-      local: MongoDatabase[IO],
-      store: KVStore,
-      config: IngestorConfig
-  )(using LoggerFactory[IO], ESClient[IO]): IO[Ingestor] =
-    (
-      Forums(lichess, config.forum),
-      Studies(study, local, config.study),
-      Games(lichess, config.game),
-      Teams(lichess, config.team)
-    ).mapN: (forums, studies, games, teams) =>
-      new Ingestor(
-        ForumIngestor(forums, store, config.forum),
-        StudyIngestor(studies, store, config.study),
-        GameIngestor(games, store, config.game),
-        TeamIngestor(teams, store, config.team)
+  def apply[A: Schema](index: Index, games: Repo[A], store: KVStore, defaultStartAt: Option[Instant])(using
+      LoggerFactory[IO],
+      ESClient[IO]
+  ): Ingestor = new:
+    given Logger[IO] = LoggerFactory[IO].getLogger
+
+    def watch: IO[Unit] =
+      fs2.Stream
+        .eval(startAt)
+        .flatMap(games.watch)
+        .evalMap: result =>
+          updateElastic(result, false) *> store.saveLastIndexedTimestamp(index, result.timestamp)
+        .compile
+        .drain
+
+    def watch(since: Option[Instant], dryRun: Boolean): IO[Unit] =
+      games
+        .watch(since)
+        .evalMap(updateElastic(_, dryRun))
+        .compile
+        .drain
+
+    def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit] =
+      games
+        .fetch(since, until)
+        .evalMap(updateElastic(_, dryRun))
+        .compile
+        .drain
+
+    private def updateElastic(result: Repo.Result[A], dryRun: Boolean): IO[Unit] =
+      dryRun.fold(
+        info"Would index total ${result.toIndex.size} games and delete ${result.toDelete.size} games" *>
+          result.toIndex.traverse_(x => debug"Would index $x")
+          *> result.toDelete.traverse_(x => debug"Would delete $x"),
+        storeBulk(index, result.toIndex)
+          *> deleteMany(index, result.toDelete)
       )
+
+    private def startAt: IO[Option[Instant]] =
+      defaultStartAt
+        .fold(store.get(index.value))(_.some.pure[IO])
+        .flatTap(since => info"Starting ${index.value} ingestor from $since")

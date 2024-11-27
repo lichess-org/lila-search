@@ -15,16 +15,9 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import java.time.Instant
 import scala.concurrent.duration.*
 
-import Forums.Result
-
-trait Forums:
-  def watch(since: Option[Instant]): fs2.Stream[IO, Result]
-  def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result]
+import Repo.{ Result, SourceWithId }
 
 object Forums:
-
-  private type SourceWithId = (String, ForumSource)
-  case class Result(toIndex: List[(String, ForumSource)], toDelete: List[Id], timestamp: Option[Instant])
 
   private val interestedOperations = List(DELETE, INSERT, REPLACE, UPDATE).map(_.getValue)
 
@@ -46,14 +39,14 @@ object Forums:
 
   def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Forum)(using
       LoggerFactory[IO]
-  ): IO[Forums] =
+  ): IO[Repo[ForumSource]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
     (mongo.getCollection("f_topic"), mongo.getCollection("f_post")).mapN(apply(config))
 
   def apply(config: IngestorConfig.Forum)(
       topics: MongoCollection,
       posts: MongoCollection
-  )(using Logger[IO]): Forums = new:
+  )(using Logger[IO]): Repo[ForumSource] = new:
 
     def fetch(since: Instant, until: Instant) =
       val filter = range(F.createdAt)(since, until.some)
@@ -73,7 +66,7 @@ object Forums:
             .map: sources =>
               Result(sources, toDelete.flatten(_.id.map(Id.apply)), none)
 
-    def watch(since: Option[Instant]): fs2.Stream[IO, Result] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[ForumSource]] =
       val builder = posts.watch(aggregate(config.maxPostLength))
       // skip the first event if we're starting from a specific timestamp
       // since the event at that timestamp is already indexed
@@ -105,7 +98,7 @@ object Forums:
         .map(_.map(doc => (doc.id, doc.getString(Topic.name)).mapN(_ -> _)).flatten.toMap)
 
     extension (events: List[Document])
-      private def toSources: IO[List[SourceWithId]] =
+      private def toSources: IO[List[SourceWithId[ForumSource]]] =
         val topicIds = events.flatMap(_.topicId).distinct
         topicIds.isEmpty.fold(
           info"no topics found for posts: $events".as(Nil),
@@ -118,7 +111,7 @@ object Forums:
 
     extension (doc: Document)
 
-      private def toSource(topicMap: Map[String, String]): IO[Option[SourceWithId]] =
+      private def toSource(topicMap: Map[String, String]): IO[Option[SourceWithId[ForumSource]]] =
         (doc.id, doc.topicId)
           .flatMapN: (id, topicId) =>
             doc.toSource(topicMap.get(topicId), topicId).map(id -> _)
