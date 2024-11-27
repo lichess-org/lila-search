@@ -32,8 +32,14 @@ object cli
     for
       config <- AppConfig.load.toResource
       res    <- AppResources.instance(config)
-      given ESClient[IO] = res.elastic
-      ingestor <- Ingestors(res.lichess, res.study, res.studyLocal, res.store, config.ingestor).toResource
+      ingestor <- Ingestors(
+        res.lichess,
+        res.study,
+        res.studyLocal,
+        res.store,
+        res.elastic,
+        config.ingestor
+      ).toResource
     yield ingestor
 
   extension (ingestor: Ingestors)

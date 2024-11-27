@@ -22,8 +22,9 @@ object Ingestors:
       study: MongoDatabase[IO],
       local: MongoDatabase[IO],
       store: KVStore,
+      elastic: ESClient[IO],
       config: IngestorConfig
-  )(using LoggerFactory[IO], ESClient[IO]): IO[Ingestors] =
+  )(using LoggerFactory[IO]): IO[Ingestors] =
     (
       ForumRepo(lichess, config.forum),
       StudyRepo(study, local, config.study),
@@ -31,8 +32,8 @@ object Ingestors:
       TeamRepo(lichess, config.team)
     ).mapN: (forums, studies, games, teams) =>
       new Ingestors(
-        Ingestor(Index.Forum, forums, store, config.forum.startAt),
-        Ingestor(Index.Study, studies, store, config.study.startAt),
-        Ingestor(Index.Game, games, store, config.game.startAt),
-        Ingestor(Index.Team, teams, store, config.team.startAt)
+        Ingestor(Index.Forum, forums, store, elastic, config.forum.startAt),
+        Ingestor(Index.Study, studies, store, elastic, config.study.startAt),
+        Ingestor(Index.Game, games, store, elastic, config.game.startAt),
+        Ingestor(Index.Team, teams, store, elastic, config.team.startAt)
       )
