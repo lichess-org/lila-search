@@ -18,7 +18,7 @@ object ForumIngestor:
 
   private val index = Index.Forum
 
-  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum, forums: Forums)(using
+  def apply(forums: Forums, elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum)(using
       LoggerFactory[IO]
   ): ForumIngestor = new:
 

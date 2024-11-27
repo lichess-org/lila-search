@@ -33,12 +33,13 @@ object cli
       config <- AppConfig.load.toResource
       res    <- AppResources.instance(config)
       forums <- Forums(res.lichess, config.ingestor.forum).toResource
-      forum = ForumIngestor(res.elastic, res.store, config.ingestor.forum, forums)
-      team    <- TeamIngestor(res.lichess, res.elastic, res.store, config.ingestor.team).toResource
+      forum = ForumIngestor(forums, res.elastic, res.store, config.ingestor.forum)
       studies <- Studies(res.study, res.studyLocal, config.ingestor.study).toResource
       study = StudyIngestor(studies, res.elastic, res.store, config.ingestor.study)
       games <- Games(res.lichess, config.ingestor.game).toResource
       game = GameIngestor(games, res.elastic, res.store, config.ingestor.game)
+      teams <- Teams(res.lichess, config.ingestor.team).toResource
+      team = TeamIngestor(teams, res.elastic, res.store, config.ingestor.team)
     yield Executor(forum, study, game, team)
 
   class Executor(
