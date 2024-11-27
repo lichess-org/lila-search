@@ -22,7 +22,7 @@ object TeamIngestor:
       LoggerFactory[IO],
       ESClient[IO]
   ): TeamIngestor = new:
-    given Logger[IO] = summon[LoggerFactory[IO]].getLogger
+    given Logger[IO] = LoggerFactory[IO].getLogger
     def watch =
       fs2.Stream
         .eval(startAt)

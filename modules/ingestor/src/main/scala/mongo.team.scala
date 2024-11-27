@@ -40,7 +40,7 @@ object Teams:
   def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Team)(using
       LoggerFactory[IO]
   ): IO[Teams] =
-    given Logger[IO] = summon[LoggerFactory[IO]].getLogger
+    given Logger[IO] = LoggerFactory[IO].getLogger
     mongo.getCollection("team").map(apply(config))
 
   def apply(config: IngestorConfig.Team)(teams: MongoCollection)(using Logger[IO]): Teams = new:

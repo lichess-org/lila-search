@@ -2,7 +2,6 @@ package lila.search
 package app
 
 import cats.effect.*
-import com.sksamuel.elastic4s.Indexable
 import io.github.arainko.ducktape.*
 import lila.search.forum.Forum
 import lila.search.game.Game
@@ -11,7 +10,6 @@ import lila.search.study.Study
 import lila.search.team.Team
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import smithy4s.Timestamp
-import smithy4s.schema.Schema
 
 import java.time.Instant
 
@@ -19,7 +17,7 @@ class SearchServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends
 
   import SearchServiceImpl.given
 
-  given logger: Logger[IO] = summon[LoggerFactory[IO]].getLogger
+  given logger: Logger[IO] = LoggerFactory[IO].getLogger
 
   override def count(query: Query): IO[CountOutput] =
     esClient
@@ -68,8 +66,3 @@ object SearchServiceImpl:
       case _: Query.Game  => Index.Game
       case _: Query.Study => Index.Study
       case _: Query.Team  => Index.Team
-
-  import smithy4s.json.Json.given
-  import com.github.plokhotnyuk.jsoniter_scala.core.*
-
-  given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)

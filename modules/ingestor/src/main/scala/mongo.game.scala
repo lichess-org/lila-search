@@ -70,7 +70,7 @@ object Games:
     Aggregate.matchBy(eventFilter.and(changeFilter)).combinedWith(Aggregate.project(eventProjection))
 
   def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Game)(using LoggerFactory[IO]): IO[Games] =
-    given Logger[IO] = summon[LoggerFactory[IO]].getLogger
+    given Logger[IO] = LoggerFactory[IO].getLogger
     mongo.getCollectionWithCodec[DbGame]("game5").map(apply(config))
 
   def apply(config: IngestorConfig.Game)(games: MongoCollection[IO, DbGame])(using Logger[IO]): Games = new:

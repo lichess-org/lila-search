@@ -8,7 +8,7 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 class HealthServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends HealthService[IO]:
 
-  given logger: Logger[IO] = summon[LoggerFactory[IO]].getLogger
+  given logger: Logger[IO] = LoggerFactory[IO].getLogger
 
   override def healthCheck(): IO[HealthCheckOutput] =
     esClient.status

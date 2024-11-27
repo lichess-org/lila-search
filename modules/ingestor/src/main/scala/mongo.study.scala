@@ -32,7 +32,7 @@ object Studies:
       local: MongoDatabase[IO],
       config: IngestorConfig.Study
   )(using LoggerFactory[IO]): IO[Studies] =
-    given Logger[IO] = summon[LoggerFactory[IO]].getLogger
+    given Logger[IO] = LoggerFactory[IO].getLogger
     (study.getCollection("study"), ChapterRepo(study), local.getCollection("oplog.rs"))
       .mapN(apply(config))
 
