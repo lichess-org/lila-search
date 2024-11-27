@@ -21,11 +21,12 @@ object Ingestor:
   )(using LoggerFactory[IO]): IO[Ingestor] =
     (
       Forums(lichess, config.forum),
+      Studies(study, local, config.study),
       TeamIngestor(lichess, elastic, store, config.team),
-      StudyIngestor(study, local, elastic, store, config.study),
       GameIngestor(lichess, elastic, store, config.game)
-    ).mapN: (forums, team, study, game) =>
+    ).mapN: (forums, studies, team, game) =>
       val forum = ForumIngestor(elastic, store, config.forum, forums)
+      val study = StudyIngestor(studies, elastic, store, config.study)
       new Ingestor:
         def run() =
           fs2

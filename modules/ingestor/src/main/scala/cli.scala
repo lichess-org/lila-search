@@ -34,14 +34,9 @@ object cli
       res    <- AppResources.instance(config)
       forums <- Forums(res.lichess, config.ingestor.forum).toResource
       forum = ForumIngestor(res.elastic, res.store, config.ingestor.forum, forums)
-      team <- TeamIngestor(res.lichess, res.elastic, res.store, config.ingestor.team).toResource
-      study <- StudyIngestor(
-        res.study,
-        res.studyLocal,
-        res.elastic,
-        res.store,
-        config.ingestor.study
-      ).toResource
+      team    <- TeamIngestor(res.lichess, res.elastic, res.store, config.ingestor.team).toResource
+      studies <- Studies(res.study, res.studyLocal, config.ingestor.study).toResource
+      study = StudyIngestor(studies, res.elastic, res.store, config.ingestor.study)
       game <- GameIngestor(res.lichess, res.elastic, res.store, config.ingestor.game).toResource
     yield Executor(forum, study, game, team)
 
