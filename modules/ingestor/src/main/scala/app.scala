@@ -33,7 +33,8 @@ object App extends IOApp.Simple:
 
 class IngestorApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO]):
   def run(): Resource[IO, Unit] =
-    Ingestor(res.lichess, res.study, res.studyLocal, res.elastic, res.store, config.ingestor)
+    given ESClient[IO] = res.elastic
+    Ingestor(res.lichess, res.study, res.studyLocal, res.store, config.ingestor)
       .flatMap(_.run())
       .toResource
       .evalTap(_ => Logger[IO].info("Ingestor started"))
