@@ -3,8 +3,11 @@ package ingestor
 
 import cats.effect.*
 import cats.syntax.all.*
+import com.github.plokhotnyuk.jsoniter_scala.core.*
+import com.sksamuel.elastic4s.Indexable
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
+import smithy4s.json.Json.given
 import smithy4s.schema.Schema
 
 import java.time.Instant
@@ -18,6 +21,8 @@ trait Ingestor:
   def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit]
 
 object Ingestor:
+
+  given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
 
   def apply[A: Schema](
       index: Index,

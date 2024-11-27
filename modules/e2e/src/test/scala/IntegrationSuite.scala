@@ -5,7 +5,7 @@ package test
 import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
 import com.comcast.ip4s.*
-import lila.search.ingestor.given
+import lila.search.ingestor.Ingestor.given
 import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }

@@ -15,7 +15,7 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import java.time.Instant
 import scala.concurrent.duration.*
 
-import Repo.{ Result, SourceWithId }
+import Repo.{ *, given }
 
 object ForumRepo:
 

@@ -11,7 +11,7 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
 
-import Repo.Result
+import Repo.*
 
 object StudyRepo:
 
