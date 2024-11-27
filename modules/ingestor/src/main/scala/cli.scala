@@ -62,11 +62,21 @@ object cli
       opts.index match
         case Index.Game =>
           ingestor.game.watch(opts.since.some, opts.dry)
-        case _ => IO.println("We only support game watch for now")
+        case Index.Forum =>
+          ingestor.forum.watch(opts.since.some, opts.dry)
+        case Index.Team =>
+          ingestor.team.watch(opts.since.some, opts.dry)
+        case Index.Study =>
+          ingestor.study.watch(opts.since.some, opts.dry)
+        case _ =>
+          ingestor.forum.watch(opts.since.some, opts.dry) *>
+            ingestor.team.watch(opts.since.some, opts.dry) *>
+            ingestor.study.watch(opts.since.some, opts.dry) *>
+            ingestor.game.watch(opts.since.some, opts.dry)
 
 object opts:
   case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, dry: Boolean)
-  case class WatchOpts(index: Index, since: Instant, dry: Boolean)
+  case class WatchOpts(index: Index | Unit, since: Instant, dry: Boolean)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
     Opts.subcommand("watch", "watch change events and index documents")(watchOpt)
@@ -115,12 +125,7 @@ object opts:
     )
 
   val watchOpt = (
-    Opts.option[Index](
-      long = "index",
-      help = "Target index (only `game` for now)",
-      short = "i",
-      metavar = "forum|team|study|game"
-    ),
+    singleIndexOpt orElse allIndexOpt,
     Opts
       .option[Instant](
         long = "since",

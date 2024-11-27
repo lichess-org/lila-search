@@ -41,7 +41,7 @@ object IntegrationSuite extends IOSuite:
 
   def testAppConfig(elastic: ElasticConfig) = AppConfig(
     server =
-      HttpServerConfig(ip"0.0.0.0", port"9999", apiLogger = false, shutdownTimeout = 30, enableDocs = false),
+      HttpServerConfig(ip"0.0.0.0", port"9999", apiLogger = false, shutdownTimeout = 1, enableDocs = false),
     elastic = elastic
   )
 
