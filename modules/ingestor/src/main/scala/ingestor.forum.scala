@@ -18,8 +18,9 @@ object ForumIngestor:
 
   private val index = Index.Forum
 
-  def apply(forums: Forums, elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum)(using
-      LoggerFactory[IO]
+  def apply(forums: Forums, store: KVStore, config: IngestorConfig.Forum)(using
+      LoggerFactory[IO],
+      ESClient[IO]
   ): ForumIngestor = new:
 
     given Logger[IO] = LoggerFactory[IO].getLogger
@@ -31,8 +32,8 @@ object ForumIngestor:
           forums
             .watch(last)
             .evalMap: result =>
-              storeBulk(result.toIndex)
-                *> elastic.deleteMany(index, result.toDelete)
+              storeBulk(index, result.toIndex)
+                *> deleteMany(index, result.toDelete)
                 *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now()))
         .compile
         .drain
@@ -44,17 +45,10 @@ object ForumIngestor:
           dryRun.fold(
             result.toIndex.traverse_(doc => debug"Would index $doc")
               *> result.toDelete.traverse_(doc => debug"Would delete $doc"),
-            storeBulk(result.toIndex) *> elastic.deleteMany(index, result.toDelete)
+            storeBulk(index, result.toIndex) *> deleteMany(index, result.toDelete)
           )
         .compile
         .drain
-
-    private def storeBulk(docs: List[(String, ForumSource)]): IO[Unit] =
-      info"Received ${docs.size} forum posts to index" *>
-        elastic.storeBulk(index, docs) *> info"Indexed ${docs.size} forum posts"
-          .handleErrorWith: e =>
-            Logger[IO].error(e)(s"Failed to index forum posts: ${docs.map(_._1).mkString(", ")}")
-          .whenA(docs.nonEmpty)
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)

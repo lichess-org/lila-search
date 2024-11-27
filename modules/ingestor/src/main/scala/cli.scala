@@ -7,7 +7,7 @@ import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
 import lila.search.ingestor.opts.{ IndexOpts, WatchOpts }
-import org.typelevel.log4cats.slf4j.{ Slf4jFactory }
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.Meter
 
@@ -32,14 +32,15 @@ object cli
     for
       config <- AppConfig.load.toResource
       res    <- AppResources.instance(config)
+      given ESClient[IO] = res.elastic
       forums <- Forums(res.lichess, config.ingestor.forum).toResource
-      forum = ForumIngestor(forums, res.elastic, res.store, config.ingestor.forum)
+      forum = ForumIngestor(forums, res.store, config.ingestor.forum)
       studies <- Studies(res.study, res.studyLocal, config.ingestor.study).toResource
-      study = StudyIngestor(studies, res.elastic, res.store, config.ingestor.study)
+      study = StudyIngestor(studies, res.store, config.ingestor.study)
       games <- Games(res.lichess, config.ingestor.game).toResource
-      game = GameIngestor(games, res.elastic, res.store, config.ingestor.game)
+      game = GameIngestor(games, res.store, config.ingestor.game)
       teams <- Teams(res.lichess, config.ingestor.team).toResource
-      team = TeamIngestor(teams, res.elastic, res.store, config.ingestor.team)
+      team = TeamIngestor(teams, res.store, config.ingestor.team)
     yield Executor(forum, study, game, team)
 
   class Executor(

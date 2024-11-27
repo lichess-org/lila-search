@@ -11,7 +11,6 @@ import mongo4cats.models.collection.ChangeStreamDocument
 import mongo4cats.operations.Filter
 import org.bson.BsonTimestamp
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.syntax.*
 import smithy4s.json.Json.given
 import smithy4s.schema.Schema
 
@@ -39,24 +38,23 @@ def range(field: String)(since: Instant, until: Option[Instant]): Filter =
   inline def gtes = Filter.gte(field, since)
   until.fold(gtes)(until => gtes.and(Filter.lt(field, until)))
 
-extension (elastic: ESClient[IO])
+def deleteMany(index: Index, ids: List[Id])(using Logger[IO])(using elastic: ESClient[IO]): IO[Unit] =
+  elastic
+    .deleteMany(index, ids)
+    .flatTap(_ => Logger[IO].info(s"Deleted ${ids.size} ${index.value}s"))
+    .handleErrorWith: e =>
+      Logger[IO].error(e)(s"Failed to delete ${index.value}: ${ids.map(_.value).mkString(", ")}")
+    .whenA(ids.nonEmpty)
 
-  def deleteMany_(index: Index, ids: List[Id])(using Logger[IO]): IO[Unit] =
+def storeBulk[A](index: Index, sources: List[(String, A)])(using Schema[A], Logger[IO])(using
+    elastic: ESClient[IO]
+): IO[Unit] =
+  Logger[IO].info(s"Received ${sources.size} docs to ${index.value}") *>
     elastic
-      .deleteMany(index, ids)
-      .flatTap(_ => Logger[IO].info(s"Deleted ${ids.size} ${index.value}s"))
+      .storeBulk(index, sources)
       .handleErrorWith: e =>
-        Logger[IO].error(e)(s"Failed to delete ${index.value}: ${ids.map(_.value).mkString(", ")}")
-      .whenA(ids.nonEmpty)
-
-  @scala.annotation.targetName("deleteManyWithDocs")
-  def deleteMany(index: Index, events: List[Document])(using Logger[IO]): IO[Unit] =
-    info"Received ${events.size} ${index.value} to delete" *>
-      deleteMany_(index, events.flatMap(_.id).map(Id.apply)).whenA(events.nonEmpty)
-
-  @scala.annotation.targetName("deleteManyWithChanges")
-  def deleteMany[A](index: Index, events: List[ChangeStreamDocument[A]])(using Logger[IO]): IO[Unit] =
-    info"Received ${events.size} ${index.value} to delete" *>
-      deleteMany_(index, events.flatMap(_.docId).map(Id.apply)).whenA(events.nonEmpty)
+        Logger[IO].error(e)(s"Failed to ${index.value} index: ${sources.map(_._1).mkString(", ")}")
+      .whenA(sources.nonEmpty)
+    *> Logger[IO].info(s"Indexed ${sources.size} ${index.value}s")
 
 extension (s: String) def dollarPrefix = "$" + s

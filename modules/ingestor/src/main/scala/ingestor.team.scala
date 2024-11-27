@@ -18,8 +18,9 @@ object TeamIngestor:
 
   private val index = Index.Team
 
-  def apply(teams: Teams, elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Team)(using
-      LoggerFactory[IO]
+  def apply(teams: Teams, store: KVStore, config: IngestorConfig.Team)(using
+      LoggerFactory[IO],
+      ESClient[IO]
   ): TeamIngestor = new:
     given Logger[IO] = summon[LoggerFactory[IO]].getLogger
     def watch =
@@ -29,8 +30,8 @@ object TeamIngestor:
           teams
             .watch(last)
             .evalMap: result =>
-              storeBulk(result.toIndex)
-                *> elastic.deleteMany(index, result.toDelete)
+              storeBulk(index, result.toIndex)
+                *> deleteMany(index, result.toDelete)
                 *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now))
         .compile
         .drain
@@ -42,19 +43,10 @@ object TeamIngestor:
           dryRun.fold(
             result.toIndex.traverse_(doc => debug"Would index $doc")
               *> result.toDelete.traverse_(doc => debug"Would delete $doc"),
-            storeBulk(result.toIndex) *> elastic.deleteMany(index, result.toDelete)
+            storeBulk(index, result.toIndex) *> deleteMany(index, result.toDelete)
           )
         .compile
         .drain
-
-    private def storeBulk(sources: List[Teams.SourceWithId]): IO[Unit] =
-      info"Received ${sources.size} teams to index" *>
-        elastic
-          .storeBulk(index, sources)
-          .handleErrorWith: e =>
-            Logger[IO].error(e)(s"Failed to index teams: ${sources.map(_._1).mkString(", ")}")
-          .whenA(sources.nonEmpty)
-        *> info"Indexed ${sources.size} teams"
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)

@@ -25,10 +25,11 @@ object Ingestor:
       Games(lichess, config.game),
       Teams(lichess, config.team)
     ).mapN: (forums, studies, games, teams) =>
-      val forum = ForumIngestor(forums, elastic, store, config.forum)
-      val study = StudyIngestor(studies, elastic, store, config.study)
-      val game  = GameIngestor(games, elastic, store, config.game)
-      val team  = TeamIngestor(teams, elastic, store, config.team)
+      given ESClient[IO] = elastic
+      val forum          = ForumIngestor(forums, store, config.forum)
+      val study          = StudyIngestor(studies, store, config.study)
+      val game           = GameIngestor(games, store, config.game)
+      val team           = TeamIngestor(teams, store, config.team)
       new Ingestor:
         def run(): IO[Unit] =
           List(forum.watch, team.watch, study.watch, game.watch).parSequence_

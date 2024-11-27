@@ -20,15 +20,16 @@ object GameIngestor:
 
   private val index = Index.Game
 
-  def apply(games: Games, elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Game)(using
-      LoggerFactory[IO]
+  def apply(games: Games, store: KVStore, config: IngestorConfig.Game)(using
+      LoggerFactory[IO],
+      ESClient[IO]
   ): GameIngestor = new:
     given Logger[IO] = LoggerFactory[IO].getLogger
 
     def watch: IO[Unit] =
       fs2.Stream
         .eval(startAt.flatTap(since => info"Starting game ingestor from $since"))
-        .flatMap(games.watch(_))
+        .flatMap(games.watch)
         .evalMap(updateElastic(_, false))
         .compile
         .drain
@@ -52,19 +53,10 @@ object GameIngestor:
         info"Would index total ${result.toIndex.size} games and delete ${result.toDelete.size} games" *>
           result.toIndex.traverse_(x => debug"Would index $x")
           *> result.toDelete.traverse_(x => debug"Would delete $x"),
-        storeBulk(result.toIndex)
-          *> elastic.deleteMany(index, result.toDelete)
+        storeBulk(index, result.toIndex)
+          *> deleteMany(index, result.toDelete)
           *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now))
       )
-
-    private def storeBulk(sources: List[(String, GameSource)]): IO[Unit] =
-      info"Received ${sources.size} ${index.value}s to index" *>
-        elastic
-          .storeBulk(index, sources)
-          .handleErrorWith: e =>
-            Logger[IO].error(e)(s"Failed to index ${index.value}s: ${sources.map(_._1).mkString(", ")}")
-          .whenA(sources.nonEmpty)
-        *> info"Indexed ${sources.size} ${index.value}s"
 
     private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)

@@ -19,10 +19,9 @@ object StudyIngestor:
 
   def apply(
       studies: Studies,
-      elastic: ESClient[IO],
       store: KVStore,
       config: IngestorConfig.Study
-  )(using LoggerFactory[IO]): StudyIngestor = new:
+  )(using LoggerFactory[IO], ESClient[IO]): StudyIngestor = new:
     given Logger[IO] = LoggerFactory[IO].getLogger
     def watch: IO[Unit] =
       fs2.Stream
@@ -33,7 +32,7 @@ object StudyIngestor:
           studies
             .watch(since)
             .evalMap: result =>
-              storeBulk(result.toIndex, false) *> elastic.deleteMany(index, result.toDelete)
+              storeBulk(index, result.toIndex) *> deleteMany(index, result.toDelete)
                 *> saveLastIndexedTimestamp(result.timestamp.getOrElse(Instant.now()))
         .compile
         .drain
@@ -45,20 +44,10 @@ object StudyIngestor:
           dryRun.fold(
             result.toIndex.traverse_(doc => debug"Would index $doc")
               *> result.toDelete.traverse_(doc => debug"Would delete $doc"),
-            storeBulk(result.toIndex, dryRun) *> elastic.deleteMany(index, result.toDelete)
+            storeBulk(index, result.toIndex) *> deleteMany(index, result.toDelete)
           )
         .compile
         .drain
-
-    def storeBulk(sources: List[(String, StudySource)], dryRun: Boolean = false): IO[Unit] =
-      info"Received ${sources.size} studies to index" *>
-        dryRun.fold(
-          sources.traverse_(source => debug"Would index $source"),
-          elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} studies"
-            .handleErrorWith: e =>
-              Logger[IO].error(e)(s"Failed to index studies: ${sources.map(_._1).mkString(", ")}")
-            .whenA(sources.nonEmpty)
-        )
 
     def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
       store.put(index.value, time)
