@@ -32,8 +32,9 @@ object cli
     for
       config <- AppConfig.load.toResource
       res    <- AppResources.instance(config)
-      forum  <- ForumIngestor(res.lichess, res.elastic, res.store, config.ingestor.forum).toResource
-      team   <- TeamIngestor(res.lichess, res.elastic, res.store, config.ingestor.team).toResource
+      forums <- Forums(res.lichess, config.ingestor.forum).toResource
+      forum = ForumIngestor(res.elastic, res.store, config.ingestor.forum, forums)
+      team <- TeamIngestor(res.lichess, res.elastic, res.store, config.ingestor.team).toResource
       study <- StudyIngestor(
         res.study,
         res.studyLocal,
