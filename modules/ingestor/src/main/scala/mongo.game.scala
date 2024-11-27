@@ -86,14 +86,15 @@ object GameRepo:
     def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
-      games
-        .find(filter.and(gameFilter))
-        // .projection(postProjection)
-        .boundedStream(config.batchSize)
-        .chunkN(config.batchSize)
-        .map(_.toList)
-        .metered(1.second) // to avoid overloading the elasticsearch
-        .map(ds => Result(ds.map(_.toSource), Nil, none))
+      fs2.Stream.eval(info"Fetching teams from $since to $until") *>
+        games
+          .find(filter.and(gameFilter))
+          // .projection(postProjection)
+          .boundedStream(config.batchSize)
+          .chunkN(config.batchSize)
+          .map(_.toList)
+          .metered(1.second) // to avoid overloading the elasticsearch
+          .map(ds => Result(ds.map(_.toSource), Nil, none))
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =
       val builder = games.watch(aggregate)

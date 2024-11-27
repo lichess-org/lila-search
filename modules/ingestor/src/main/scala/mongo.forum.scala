@@ -52,19 +52,20 @@ object ForumRepo:
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
         .or(range(F.erasedAt)(since, until.some))
-      posts
-        .find(filter)
-        .projection(postProjection)
-        .boundedStream(config.batchSize)
-        .filter(_.validText)
-        .chunkN(config.batchSize)
-        .map(_.toList)
-        .metered(1.second)
-        .evalMap: events =>
-          val (toDelete, toIndex) = events.partition(_.isErased)
-          toIndex.toSources
-            .map: sources =>
-              Result(sources, toDelete.flatten(_.id.map(Id.apply)), none)
+      fs2.Stream.eval(info"Fetching teams from $since to $until") *>
+        posts
+          .find(filter)
+          .projection(postProjection)
+          .boundedStream(config.batchSize)
+          .filter(_.validText)
+          .chunkN(config.batchSize)
+          .map(_.toList)
+          .metered(1.second)
+          .evalMap: events =>
+            val (toDelete, toIndex) = events.partition(_.isErased)
+            toIndex.toSources
+              .map: sources =>
+                Result(sources, toDelete.flatten(_.id.map(Id.apply)), none)
 
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[ForumSource]] =
       val builder = posts.watch(aggregate(config.maxPostLength))

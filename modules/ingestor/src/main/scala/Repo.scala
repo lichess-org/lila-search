@@ -1,16 +1,13 @@
 package lila.search
 package ingestor
 
-import cats.effect.*
-import cats.syntax.all.*
+import cats.effect.IO
 
 import java.time.Instant
 
-import Repo.Result
-
 trait Repo[A]:
-  def watch(since: Option[Instant]): fs2.Stream[IO, Result[A]]
-  def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[A]]
+  def watch(since: Option[Instant]): fs2.Stream[IO, Repo.Result[A]]
+  def fetch(since: Instant, until: Instant): fs2.Stream[IO, Repo.Result[A]]
 
 object Repo:
   type SourceWithId[A] = (String, A)

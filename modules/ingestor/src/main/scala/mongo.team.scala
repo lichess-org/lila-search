@@ -66,20 +66,21 @@ object TeamRepo:
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
         .or(range(F.erasedAt)(since, until.some))
-      teams
-        .find(filter)
-        .projection(postProjection)
-        .boundedStream(config.batchSize)
-        .chunkN(config.batchSize)
-        .map(_.toList)
-        .metered(1.second) // to avoid overloading the elasticsearch
-        .map: docs =>
-          val (toDelete, toIndex) = docs.partition(!_.isEnabled)
-          Result(
-            toIndex.toSources,
-            toDelete.flatten(_.id.map(Id.apply)),
-            none
-          )
+      fs2.Stream.eval(info"Fetching teams from $since to $until") *>
+        teams
+          .find(filter)
+          .projection(postProjection)
+          .boundedStream(config.batchSize)
+          .chunkN(config.batchSize)
+          .map(_.toList)
+          .metered(1.second) // to avoid overloading the elasticsearch
+          .map: docs =>
+            val (toDelete, toIndex) = docs.partition(!_.isEnabled)
+            Result(
+              toIndex.toSources,
+              toDelete.flatten(_.id.map(Id.apply)),
+              none
+            )
 
     extension (docs: List[Document])
       private def toSources: List[(String, TeamSource)] =

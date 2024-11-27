@@ -41,11 +41,10 @@ object StudyRepo:
         .flatMap(fetch)
 
     def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
-      // fs2.Stream.eval(info"Indexing studies from $since to $until") ++
-      //   fs2.Stream.eval(info"deleting studies from $since to $until") ++
-      pullAndIndex(since, until)
-        .zip(pullAndDelete(since, until))
-        .map((toIndex, toDelete) => Result(toIndex, toDelete, until.some))
+      fs2.Stream.eval(info"Fetching studies from $since to $until") *>
+        pullAndIndex(since, until)
+          .zip(pullAndDelete(since, until))
+          .map((toIndex, toDelete) => Result(toIndex, toDelete, until.some))
 
     def pullAndIndex(since: Instant, until: Instant) =
       val filter = range(F.createdAt)(since, until.some)
