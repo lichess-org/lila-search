@@ -9,11 +9,14 @@ import lila.search.spec.*
 import lila.search.study.Study
 import lila.search.team.Team
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
+import org.typelevel.otel4s.metrics.{ Histogram, Meter }
 import smithy4s.Timestamp
 
 import java.time.Instant
 
-class SearchServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends SearchService[IO]:
+class SearchServiceImpl(esClient: ESClient[IO], metric: Histogram[IO, Double])(using
+    LoggerFactory[IO]
+) extends SearchService[IO]:
 
   import SearchServiceImpl.given
 
@@ -66,3 +69,10 @@ object SearchServiceImpl:
       case _: Query.Game  => Index.Game
       case _: Query.Study => Index.Study
       case _: Query.Team  => Index.Team
+
+  def apply(elastic: ESClient[IO])(using Meter[IO], LoggerFactory[IO]): IO[SearchService[IO]] =
+    Meter[IO]
+      .histogram[Double]("http.request.operation.duration")
+      .withUnit("ms")
+      .create
+      .map(new SearchServiceImpl(elastic, _))
