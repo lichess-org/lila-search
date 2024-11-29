@@ -35,7 +35,10 @@ object App extends IOApp.Simple:
     .autoConfigured[IO](_.addMeterProviderCustomizer((b, _) => b.registerMetricReader(exporter.metricReader)))
     .evalMap(_.meterProvider.get("lila-search"))
 
-  def mkServer(res: AppResources, config: AppConfig)(using MetricExporter.Pull[IO]): Resource[IO, Unit] =
+  def mkServer(res: AppResources, config: AppConfig)(using
+      Meter[IO],
+      MetricExporter.Pull[IO]
+  ): Resource[IO, Unit] =
     for
       apiRoutes <- Routes(res, config.server)
       httpRoutes = apiRoutes <+> mkPrometheusRoutes

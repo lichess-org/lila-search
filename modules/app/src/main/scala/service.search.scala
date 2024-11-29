@@ -9,31 +9,62 @@ import lila.search.spec.*
 import lila.search.study.Study
 import lila.search.team.Team
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
+import org.typelevel.otel4s.metrics.{ Histogram, Meter }
+import org.typelevel.otel4s.{ Attribute, AttributeKey, Attributes }
 import smithy4s.Timestamp
 
 import java.time.Instant
+import java.util.concurrent.TimeUnit
 
-class SearchServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends SearchService[IO]:
+class SearchServiceImpl(esClient: ESClient[IO], metric: Histogram[IO, Double])(using
+    LoggerFactory[IO]
+) extends SearchService[IO]:
 
-  import SearchServiceImpl.given
+  import SearchServiceImpl.{ *, given }
 
   given logger: Logger[IO] = LoggerFactory[IO].getLogger
 
+  private val baseAttributes = Attributes(Attribute("http.request.method", "POST"))
+  private val countMetric =
+    metric
+      .recordDuration(
+        TimeUnit.MILLISECONDS,
+        withErrorType(
+          baseAttributes
+            .added(MetricKeys.httpRoute, s"/api/count/")
+        )
+      )
+
+  private val searchMetric =
+    metric
+      .recordDuration(
+        TimeUnit.MILLISECONDS,
+        withErrorType(
+          baseAttributes
+            .added(MetricKeys.httpRoute, s"/api/count/")
+        )
+      )
+
+  private def countRecord[A](f: IO[A])  = countMetric.surround(f)
+  private def searchRecord[A](f: IO[A]) = searchMetric.surround(f)
+
   override def count(query: Query): IO[CountOutput] =
-    esClient
-      .count(query)
-      .map(CountOutput.apply)
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in count: query=$query") *>
-          IO.raiseError(InternalServerError("Internal server error"))
+    countRecord:
+      esClient
+        .count(query)
+        .map(CountOutput.apply)
+        .handleErrorWith: e =>
+          logger.error(e)(s"Error in count: query=$query") *>
+            IO.raiseError(InternalServerError("Internal server error"))
 
   override def search(query: Query, from: From, size: Size): IO[SearchOutput] =
-    esClient
-      .search(query, from, size)
-      .map(SearchOutput.apply)
-      .handleErrorWith: e =>
-        logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
-          IO.raiseError(InternalServerError("Internal server error"))
+    searchRecord:
+      esClient
+        .search(query, from, size)
+        .map(SearchOutput.apply)
+        .handleErrorWith: e =>
+          logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
+            IO.raiseError(InternalServerError("Internal server error"))
 
 object SearchServiceImpl:
 
@@ -66,3 +97,23 @@ object SearchServiceImpl:
       case _: Query.Game  => Index.Game
       case _: Query.Study => Index.Study
       case _: Query.Team  => Index.Team
+
+  def apply(elastic: ESClient[IO])(using Meter[IO], LoggerFactory[IO]): IO[SearchService[IO]] =
+    Meter[IO]
+      .histogram[Double]("http.server.request.duration")
+      .withUnit("ms")
+      .create
+      .map(new SearchServiceImpl(elastic, _))
+
+  object MetricKeys:
+    val httpRoute = AttributeKey.string("http.route")
+    val errorType = AttributeKey.string("error.type")
+
+  import lila.search.ESClient.MetricKeys.*
+  def withErrorType(static: Attributes)(ec: Resource.ExitCase): Attributes = ec match
+    case Resource.ExitCase.Succeeded =>
+      static
+    case Resource.ExitCase.Errored(e) =>
+      static.added(errorType, e.getClass.getName)
+    case Resource.ExitCase.Canceled =>
+      static.added(errorType, "canceled")
