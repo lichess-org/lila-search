@@ -41,7 +41,7 @@ class SearchServiceImpl(esClient: ESClient[IO], metric: Histogram[IO, Double])(u
         TimeUnit.MILLISECONDS,
         withErrorType(
           baseAttributes
-            .added(MetricKeys.httpRoute, s"/api/count/")
+            .added(MetricKeys.httpRoute, s"/api/search/")
         )
       )
 
