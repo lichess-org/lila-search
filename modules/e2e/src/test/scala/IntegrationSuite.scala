@@ -5,7 +5,7 @@ package test
 import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
 import com.comcast.ip4s.*
-import lila.search.ingestor.given
+import lila.search.ingestor.Ingestor.given
 import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
@@ -41,7 +41,7 @@ object IntegrationSuite extends IOSuite:
 
   def testAppConfig(elastic: ElasticConfig) = AppConfig(
     server =
-      HttpServerConfig(ip"0.0.0.0", port"9999", apiLogger = false, shutdownTimeout = 30, enableDocs = false),
+      HttpServerConfig(ip"0.0.0.0", port"9999", apiLogger = false, shutdownTimeout = 1, enableDocs = false),
     elastic = elastic
   )
 

@@ -3,7 +3,7 @@ package app
 
 import cats.effect.*
 import cats.syntax.all.*
-import org.typelevel.log4cats.slf4j.{ Slf4jFactory, Slf4jLogger }
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.experimental.metrics.*
 import org.typelevel.otel4s.metrics.Meter
@@ -14,8 +14,8 @@ import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
 
 object App extends IOApp.Simple:
 
-  given Logger[IO]        = Slf4jLogger.getLogger[IO]
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
+  given Logger[IO]        = LoggerFactory[IO].getLogger
 
   override def run: IO[Unit] = app.useForever
 

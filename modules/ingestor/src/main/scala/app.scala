@@ -2,7 +2,7 @@ package lila.search
 package ingestor
 
 import cats.effect.*
-import org.typelevel.log4cats.slf4j.{ Slf4jFactory, Slf4jLogger }
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.experimental.metrics.*
 import org.typelevel.otel4s.metrics.Meter
@@ -11,8 +11,8 @@ import org.typelevel.otel4s.sdk.metrics.SdkMetrics
 
 object App extends IOApp.Simple:
 
-  given Logger[IO]        = Slf4jLogger.getLogger[IO]
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
+  given Logger[IO]        = LoggerFactory[IO].getLogger
 
   override def run: IO[Unit] = app.useForever
 
@@ -33,7 +33,7 @@ object App extends IOApp.Simple:
 
 class IngestorApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO]):
   def run(): Resource[IO, Unit] =
-    Ingestor(res.lichess, res.study, res.studyLocal, res.elastic, res.store, config.ingestor)
+    Ingestors(res.lichess, res.study, res.studyLocal, res.store, res.elastic, config.ingestor)
       .flatMap(_.run())
       .toResource
       .evalTap(_ => Logger[IO].info("Ingestor started"))

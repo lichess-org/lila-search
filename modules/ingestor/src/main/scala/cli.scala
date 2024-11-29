@@ -7,7 +7,7 @@ import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
 import lila.search.ingestor.opts.{ IndexOpts, WatchOpts }
-import org.typelevel.log4cats.slf4j.{ Slf4jFactory, Slf4jLogger }
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.Meter
 
@@ -20,36 +20,29 @@ object cli
       version = "3.0.0"
     ):
 
-  given Logger[IO]        = Slf4jLogger.getLogger[IO]
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
+  given Logger[IO]        = LoggerFactory[IO].getLogger
   given Meter[IO]         = Meter.noop[IO]
 
   override def main: Opts[IO[ExitCode]] =
     opts.parse.map: opts =>
-      makeExecutor.use(_.execute(opts).as(ExitCode.Success))
+      makeIngestor.use(_.execute(opts).as(ExitCode.Success))
 
-  def makeExecutor: Resource[IO, Executor] =
+  def makeIngestor: Resource[IO, Ingestors] =
     for
       config <- AppConfig.load.toResource
       res    <- AppResources.instance(config)
-      forum  <- ForumIngestor(res.lichess, res.elastic, res.store, config.ingestor.forum).toResource
-      team   <- TeamIngestor(res.lichess, res.elastic, res.store, config.ingestor.team).toResource
-      study <- StudyIngestor(
+      ingestor <- Ingestors(
+        res.lichess,
         res.study,
         res.studyLocal,
-        res.elastic,
         res.store,
-        config.ingestor.study
+        res.elastic,
+        config.ingestor
       ).toResource
-      game <- GameIngestor(res.lichess, res.elastic, res.store, config.ingestor.game).toResource
-    yield Executor(forum, study, game, team)
+    yield ingestor
 
-  class Executor(
-      val forum: ForumIngestor,
-      val study: StudyIngestor,
-      val game: GameIngestor,
-      val team: TeamIngestor
-  ):
+  extension (ingestor: Ingestors)
     def execute(opts: IndexOpts | WatchOpts): IO[Unit] =
       opts match
         case opts: IndexOpts => index(opts)
@@ -58,28 +51,38 @@ object cli
     def index(opts: IndexOpts): IO[Unit] =
       opts.index match
         case Index.Forum =>
-          forum.run(opts.since, opts.until, opts.dry).compile.drain
+          ingestor.forum.run(opts.since, opts.until, opts.dry)
         case Index.Study =>
-          study.run(opts.since, opts.until, opts.dry).compile.drain
+          ingestor.study.run(opts.since, opts.until, opts.dry)
         case Index.Game =>
-          game.run(opts.since, opts.until, opts.dry).compile.drain
+          ingestor.game.run(opts.since, opts.until, opts.dry)
         case Index.Team =>
-          team.run(opts.since, opts.until, opts.dry).compile.drain
+          ingestor.team.run(opts.since, opts.until, opts.dry)
         case _ =>
-          forum.run(opts.since, opts.until, opts.dry).compile.drain *>
-            study.run(opts.since, opts.until, opts.dry).compile.drain *>
-            game.run(opts.since, opts.until, opts.dry).compile.drain *>
-            team.run(opts.since, opts.until, opts.dry).compile.drain
+          ingestor.forum.run(opts.since, opts.until, opts.dry) *>
+            ingestor.study.run(opts.since, opts.until, opts.dry) *>
+            ingestor.game.run(opts.since, opts.until, opts.dry) *>
+            ingestor.team.run(opts.since, opts.until, opts.dry)
 
     def watch(opts: WatchOpts): IO[Unit] =
       opts.index match
         case Index.Game =>
-          game.watch(opts.since.some, opts.dry).compile.drain
-        case _ => IO.println("We only support game watch for now")
+          ingestor.game.watch(opts.since.some, opts.dry)
+        case Index.Forum =>
+          ingestor.forum.watch(opts.since.some, opts.dry)
+        case Index.Team =>
+          ingestor.team.watch(opts.since.some, opts.dry)
+        case Index.Study =>
+          ingestor.study.watch(opts.since.some, opts.dry)
+        case _ =>
+          ingestor.forum.watch(opts.since.some, opts.dry) *>
+            ingestor.team.watch(opts.since.some, opts.dry) *>
+            ingestor.study.watch(opts.since.some, opts.dry) *>
+            ingestor.game.watch(opts.since.some, opts.dry)
 
 object opts:
   case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, dry: Boolean)
-  case class WatchOpts(index: Index, since: Instant, dry: Boolean)
+  case class WatchOpts(index: Index | Unit, since: Instant, dry: Boolean)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
     Opts.subcommand("watch", "watch change events and index documents")(watchOpt)
@@ -128,12 +131,7 @@ object opts:
     )
 
   val watchOpt = (
-    Opts.option[Index](
-      long = "index",
-      help = "Target index (only `game` for now)",
-      short = "i",
-      metavar = "forum|team|study|game"
-    ),
+    singleIndexOpt orElse allIndexOpt,
     Opts
       .option[Instant](
         long = "since",

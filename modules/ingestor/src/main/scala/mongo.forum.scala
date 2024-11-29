@@ -15,15 +15,9 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import java.time.Instant
 import scala.concurrent.duration.*
 
-trait ForumIngestor:
-  // watch change events from MongoDB and ingest forum posts into elastic search
-  def watch: fs2.Stream[IO, Unit]
-  // Fetch posts in [since, until] and ingest into elastic search
-  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
+import Repo.{ *, given }
 
-object ForumIngestor:
-
-  private val index = Index.Forum
+object ForumRepo:
 
   private val interestedOperations = List(DELETE, INSERT, REPLACE, UPDATE).map(_.getValue)
 
@@ -43,74 +37,37 @@ object ForumIngestor:
   private def aggregate(maxPostLength: Int) =
     Aggregate.matchBy(eventFilter(maxPostLength)).combinedWith(Aggregate.project(eventProjection))
 
-  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum)(
-      using LoggerFactory[IO]
-  ): IO[ForumIngestor] =
-    given Logger[IO] = summon[LoggerFactory[IO]].getLogger
-    (mongo.getCollection("f_topic"), mongo.getCollection("f_post")).mapN(apply(elastic, store, config))
+  def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Forum)(using
+      LoggerFactory[IO]
+  ): IO[Repo[ForumSource]] =
+    given Logger[IO] = LoggerFactory[IO].getLogger
+    (mongo.getCollection("f_topic"), mongo.getCollection("f_post")).mapN(apply(config))
 
-  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Forum)(
+  def apply(config: IngestorConfig.Forum)(
       topics: MongoCollection,
       posts: MongoCollection
-  )(using Logger[IO]): ForumIngestor = new:
+  )(using Logger[IO]): Repo[ForumSource] = new:
 
-    def watch: fs2.Stream[IO, Unit] =
-      fs2.Stream
-        .eval(startAt.flatTap(since => info"Starting forum ingestor from $since"))
-        .flatMap: last =>
-          changes(last)
-            .evalMap: events =>
-              val lastEventTimestamp  = events.flatten(_.clusterTime.flatMap(_.asInstant)).maxOption
-              val (toDelete, toIndex) = events.partition(_.isDelete)
-              storeBulk(toIndex.flatten(_.fullDocument))
-                *> elastic.deleteMany(index, toDelete)
-                *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now()))
-
-    def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit] =
+    def fetch(since: Instant, until: Instant) =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
         .or(range(F.erasedAt)(since, until.some))
-      posts
-        .find(filter)
-        .projection(postProjection)
-        .boundedStream(config.batchSize)
-        .filter(_.validText)
-        .chunkN(config.batchSize)
-        .map(_.toList)
-        .metered(1.second) // to avoid overloading the elasticsearch
-        .evalMap: docs =>
-          val (toDelete, toIndex) = docs.partition(_.isErased)
-          dryRun.fold(
-            toIndex.traverse_(doc => debug"Would index $doc")
-              *> toDelete.traverse_(doc => debug"Would delete $doc"),
-            storeBulk(toIndex) *> elastic.deleteMany(index, toDelete)
-          )
+      fs2.Stream.eval(info"Fetching teams from $since to $until") *>
+        posts
+          .find(filter)
+          .projection(postProjection)
+          .boundedStream(config.batchSize)
+          .filter(_.validText)
+          .chunkN(config.batchSize)
+          .map(_.toList)
+          .metered(1.second)
+          .evalMap: events =>
+            val (toDelete, toIndex) = events.partition(_.isErased)
+            toIndex.toSources
+              .map: sources =>
+                Result(sources, toDelete.flatten(_.id.map(Id.apply)), none)
 
-    private def storeBulk(docs: List[Document]): IO[Unit] =
-      info"Received ${docs.size} forum posts to index" *>
-        docs.toSources
-          .flatMap: sources =>
-            elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} forum posts"
-          .handleErrorWith: e =>
-            Logger[IO].error(e)(s"Failed to index forum posts: ${docs.map(_.id).mkString(", ")}")
-          .whenA(docs.nonEmpty)
-
-    private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
-      store.put(index.value, time)
-        *> info"Stored last indexed time ${time.getEpochSecond} for $index"
-
-    private def startAt: IO[Option[Instant]] =
-      config.startAt.fold(store.get(index.value))(_.some.pure[IO])
-
-    // Fetches topic names by their ids
-    private def topicByIds(ids: Seq[String]): IO[Map[String, String]] =
-      topics
-        .find(Filter.in(_id, ids))
-        .projection(Projection.include(List(_id, Topic.name)))
-        .all
-        .map(_.map(doc => (doc.id, doc.getString(Topic.name)).mapN(_ -> _)).flatten.toMap)
-
-    private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[Document]]] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[ForumSource]] =
       val builder = posts.watch(aggregate(config.maxPostLength))
       // skip the first event if we're starting from a specific timestamp
       // since the event at that timestamp is already indexed
@@ -124,11 +81,25 @@ object ForumIngestor:
         .groupWithin(config.batchSize, config.timeWindows.second)
         .evalTap(_.traverse_(x => debug"received $x"))
         .map(_.toList.distincByDocId)
+        .evalMap: events =>
+          val lastEventTimestamp  = events.flatten(_.clusterTime.flatMap(_.asInstant)).maxOption
+          val (toDelete, toIndex) = events.partition(_.isDelete)
+          toIndex
+            .flatten(_.fullDocument)
+            .toSources
+            .map: sources =>
+              Result(sources, toDelete.flatten(_.docId.map(Id.apply)), lastEventTimestamp)
 
-    private type SourceWithId = (String, ForumSource)
+    // Fetches topic names by their ids
+    private def topicByIds(ids: Seq[String]): IO[Map[String, String]] =
+      topics
+        .find(Filter.in(_id, ids))
+        .projection(Projection.include(List(_id, Topic.name)))
+        .all
+        .map(_.map(doc => (doc.id, doc.getString(Topic.name)).mapN(_ -> _)).flatten.toMap)
 
     extension (events: List[Document])
-      private def toSources: IO[List[SourceWithId]] =
+      private def toSources: IO[List[SourceWithId[ForumSource]]] =
         val topicIds = events.flatMap(_.topicId).distinct
         topicIds.isEmpty.fold(
           info"no topics found for posts: $events".as(Nil),
@@ -141,7 +112,7 @@ object ForumIngestor:
 
     extension (doc: Document)
 
-      private def toSource(topicMap: Map[String, String]): IO[Option[SourceWithId]] =
+      private def toSource(topicMap: Map[String, String]): IO[Option[SourceWithId[ForumSource]]] =
         (doc.id, doc.topicId)
           .flatMapN: (id, topicId) =>
             doc.toSource(topicMap.get(topicId), topicId).map(id -> _)

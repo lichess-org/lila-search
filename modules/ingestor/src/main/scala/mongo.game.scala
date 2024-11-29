@@ -20,17 +20,9 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import java.time.Instant
 import scala.concurrent.duration.*
 
-trait GameIngestor:
-  // watch change events from game5 collection and ingest games into elastic search
-  def watch: fs2.Stream[IO, Unit]
-  // Similar to watch but started from a given timestamp
-  def watch(since: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit]
-  // Fetch posts in [since, until] and ingest into elastic search
-  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
+import Repo.{ *, given }
 
-object GameIngestor:
-
-  private val index = Index.Game
+object GameRepo:
 
   private val interestedOperations = List(UPDATE, DELETE).map(_.getValue)
   private val eventFilter          = Filter.in("operationType", interestedOperations)
@@ -70,63 +62,39 @@ object GameIngestor:
   private val aggregate =
     Aggregate.matchBy(eventFilter.and(changeFilter)).combinedWith(Aggregate.project(eventProjection))
 
-  def apply(mongo: MongoDatabase[IO], elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Game)(
-      using LoggerFactory[IO]
-  ): IO[GameIngestor] =
-    given Logger[IO] = summon[LoggerFactory[IO]].getLogger
-    mongo.getCollectionWithCodec[DbGame]("game5").map(apply(elastic, store, config))
+  def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Game)(using
+      LoggerFactory[IO]
+  ): IO[Repo[GameSource]] =
+    given Logger[IO] = LoggerFactory[IO].getLogger
+    mongo.getCollectionWithCodec[DbGame]("game5").map(apply(config))
 
-  def apply(
-      elastic: ESClient[IO],
-      store: KVStore,
-      config: IngestorConfig.Game
-  )(games: MongoCollection[IO, DbGame])(using Logger[IO]): GameIngestor = new:
+  def apply(config: IngestorConfig.Game)(games: MongoCollection[IO, DbGame])(using
+      Logger[IO]
+  ): Repo[GameSource] = new:
 
-    def watch: fs2.Stream[IO, Unit] =
-      fs2.Stream
-        .eval(startAt.flatTap(since => info"Starting game ingestor from $since"))
-        .flatMap(watch(_, dryRun = false))
-
-    def watch(since: Option[Instant], dryRun: Boolean): fs2.Stream[IO, Unit] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[GameSource]] =
       changes(since)
-        .evalMap: events =>
+        .map: events =>
           val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
           val (toDelete, toIndex) = events.partition(_.operationType == DELETE)
-          dryRun.fold(
-            info"Would index total ${toIndex.size} games and delete ${toDelete.size} games" *>
-              toIndex.flatMap(_.fullDocument).traverse_(x => debug"Would index ${x.debug}")
-              *> toDelete.traverse_(x => debug"Would delete ${x.docId}"),
-            storeBulk(toIndex.flatten(_.fullDocument))
-              *> elastic.deleteMany(index, toDelete)
-              *> saveLastIndexedTimestamp(lastEventTimestamp.getOrElse(Instant.now))
+          Result(
+            toIndex.flatten(_.fullDocument.map(_.toSource)),
+            toDelete.flatten(_.docId.map(Id.apply)),
+            lastEventTimestamp
           )
 
-    def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit] =
+    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
-      games
-        .find(filter.and(gameFilter))
-        // .projection(postProjection)
-        .boundedStream(config.batchSize)
-        .chunkN(config.batchSize)
-        .map(_.toList)
-        .metered(1.second) // to avoid overloading the elasticsearch
-        .evalMap: docs =>
-          dryRun.fold(
-            info"Would index total ${docs.size} games" *>
-              docs.traverse_(doc => debug"Would index $doc"),
-            storeBulk(docs)
-          )
-
-    private def storeBulk(docs: List[DbGame]): IO[Unit] =
-      val sources = docs.map(_.toSource)
-      info"Received ${docs.size} ${index.value}s to index" *>
-        elastic
-          .storeBulk(index, sources)
-          .handleErrorWith: e =>
-            Logger[IO].error(e)(s"Failed to index ${index.value}s: ${docs.map(_.id).mkString(", ")}")
-          .whenA(sources.nonEmpty)
-        *> info"Indexed ${sources.size} ${index.value}s"
+      fs2.Stream.eval(info"Fetching teams from $since to $until") *>
+        games
+          .find(filter.and(gameFilter))
+          // .projection(postProjection)
+          .boundedStream(config.batchSize)
+          .chunkN(config.batchSize)
+          .map(_.toList)
+          .metered(1.second) // to avoid overloading the elasticsearch
+          .map(ds => Result(ds.map(_.toSource), Nil, none))
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =
       val builder = games.watch(aggregate)
@@ -143,13 +111,6 @@ object GameIngestor:
         )
         .map(_.toList.distincByDocId)
         .evalTap(_.traverse_(x => x.fullDocument.traverse_(x => debug"${x.debug}")))
-
-    private def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
-      store.put(index.value, time)
-        *> info"Stored last indexed time ${time.getEpochSecond} for $index"
-
-    private def startAt: IO[Option[Instant]] =
-      config.startAt.fold(store.get(index.value))(_.some.pure[IO])
 
   object F:
     val createdAt = "ca"

@@ -11,14 +11,9 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
 
-trait StudyIngestor:
-  // pull changes from study MongoDB and ingest into elastic search
-  def watch: fs2.Stream[IO, Unit]
-  def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit]
+import Repo.*
 
-object StudyIngestor:
-
-  private val index = Index.Study
+object StudyRepo:
 
   private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics, F.likes)
 
@@ -28,33 +23,30 @@ object StudyIngestor:
   def apply(
       study: MongoDatabase[IO],
       local: MongoDatabase[IO],
-      elastic: ESClient[IO],
-      store: KVStore,
       config: IngestorConfig.Study
-  )(using LoggerFactory[IO]): IO[StudyIngestor] =
-    given Logger[IO] = summon[LoggerFactory[IO]].getLogger
+  )(using LoggerFactory[IO]): IO[Repo[StudySource]] =
+    given Logger[IO] = LoggerFactory[IO].getLogger
     (study.getCollection("study"), ChapterRepo(study), local.getCollection("oplog.rs"))
-      .mapN(apply(elastic, store, config))
+      .mapN(apply(config))
 
-  def apply(elastic: ESClient[IO], store: KVStore, config: IngestorConfig.Study)(
+  def apply(config: IngestorConfig.Study)(
       studies: MongoCollection,
       chapters: ChapterRepo,
       oplogs: MongoCollection
-  )(using Logger[IO]): StudyIngestor = new:
-    def watch: fs2.Stream[IO, Unit] =
-      intervalStream
+  )(using Logger[IO]): Repo[StudySource] = new:
+
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[StudySource]] =
+      intervalStream(since)
         .meteredStartImmediately(config.interval)
-        .flatMap: (since, until) =>
-          run(since, until, dryRun = false)
+        .flatMap(fetch)
 
-    def run(since: Instant, until: Instant, dryRun: Boolean): fs2.Stream[IO, Unit] =
-      fs2.Stream.eval(info"Indexing studies from $since to $until") ++
-        pullAndIndex(since, until, dryRun) ++
-        fs2.Stream.eval(info"deleting studies from $since to $until") ++
-        pullAndDelete(since, until, dryRun)
-        ++ fs2.Stream.eval(saveLastIndexedTimestamp(until))
+    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
+      fs2.Stream.eval(info"Fetching studies from $since to $until") *>
+        pullAndIndex(since, until)
+          .zip(pullAndDelete(since, until))
+          .map((toIndex, toDelete) => Result(toIndex, toDelete, until.some))
 
-    def pullAndIndex(since: Instant, until: Instant, dryRun: Boolean = false): fs2.Stream[IO, Unit] =
+    def pullAndIndex(since: Instant, until: Instant) =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
       studies
@@ -64,9 +56,9 @@ object StudyIngestor:
         .chunkN(config.batchSize)
         .map(_.toList)
         .evalTap(_.traverse_(x => debug"received $x"))
-        .evalMap(storeBulk(_, dryRun))
+        .evalMap(_.toSources)
 
-    def pullAndDelete(since: Instant, until: Instant, dryRun: Boolean = false): fs2.Stream[IO, Unit] =
+    def pullAndDelete(since: Instant, until: Instant) =
       val filter =
         Filter
           .gte("ts", since.asBsonTimestamp)
@@ -80,40 +72,17 @@ object StudyIngestor:
         .chunkN(config.batchSize)
         .map(_.toList.flatMap(extractId))
         .evalTap(xs => info"Deleting $xs")
-        .evalMap:
-          dryRun.fold(
-            xs => xs.traverse_(x => debug"Would delete $x"),
-            elastic.deleteMany(index, _)
-          )
-
-    def storeBulk(docs: List[Document], dryRun: Boolean = false): IO[Unit] =
-      info"Received ${docs.size} studies to index" *>
-        docs.toSources.flatMap: sources =>
-          dryRun.fold(
-            sources.traverse_(source => debug"Would index $source"),
-            elastic.storeBulk(index, sources) *> info"Indexed ${sources.size} studies"
-              .handleErrorWith: e =>
-                Logger[IO].error(e)(s"Failed to index studies: ${docs.map(_.id).mkString(", ")}")
-              .whenA(docs.nonEmpty)
-          )
-
-    def saveLastIndexedTimestamp(time: Instant): IO[Unit] =
-      store.put(index.value, time)
-        *> info"Stored last indexed time ${time.getEpochSecond} for $index"
 
     def extractId(doc: Document): Option[Id] =
       doc.getNestedAs[String](F.oplogId).map(Id.apply)
 
-    def intervalStream: fs2.Stream[IO, (Instant, Instant)] =
-      fs2.Stream
-        .eval:
-          config.startAt.fold(store.get(index.value))(_.some.pure[IO])
-        .flatMap: startAt =>
-          startAt.fold(fs2.Stream.empty)(since => fs2.Stream(since))
-            ++ fs2.Stream
-              .eval(IO.realTimeInstant)
-              .flatMap(now => fs2.Stream.unfold(now)(s => (s, s.plusSeconds(config.interval.toSeconds)).some))
-        .zipWithNext
+    def intervalStream(startAt: Option[Instant]): fs2.Stream[IO, (Instant, Instant)] =
+      (startAt.fold(fs2.Stream.empty)(since => fs2.Stream(since))
+        ++ fs2.Stream
+          .eval(IO.realTimeInstant)
+          .flatMap(now =>
+            fs2.Stream.unfold(now)(s => (s, s.plusSeconds(config.interval.toSeconds)).some)
+          )).zipWithNext
         .map((since, until) => since -> until.get)
 
     extension (docs: List[Document])
