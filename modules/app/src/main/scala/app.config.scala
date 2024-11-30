@@ -6,6 +6,7 @@ import cats.syntax.all.*
 import ciris.*
 import ciris.http4s.*
 import com.comcast.ip4s.*
+import org.http4s.implicits.*
 
 object AppConfig:
 
@@ -38,8 +39,9 @@ object HttpServerConfig:
   private def enableDocs = env("HTTP_ENABLE_DOCS").or(prop("http.enable.docs")).as[Boolean].default(false)
   def config             = (host, port, logger, shutdownTimeout, enableDocs).parMapN(HttpServerConfig.apply)
 
-case class ElasticConfig(uri: String)
+case class ElasticConfig(uri: org.http4s.Uri)
 
 object ElasticConfig:
-  private def uri = env("ELASTIC_URI").or(prop("elastic.uri")).as[String].default("http://127.0.0.1:9200")
-  def config      = uri.map(ElasticConfig.apply)
+  private def uri =
+    env("ELASTIC_URI").or(prop("elastic.uri")).as[org.http4s.Uri].default(uri"http://127.0.0.1:9200")
+  def config = uri.map(ElasticConfig.apply)

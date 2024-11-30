@@ -5,12 +5,10 @@ import cats.effect.unsafe.IORuntime
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.cats.effect.instances.*
-import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.http4s.Http4sClient
 import com.sksamuel.elastic4s.{
   ElasticClient,
   ElasticDsl,
-  ElasticProperties,
   Executor,
   Functor,
   Index as ESIndex,
@@ -53,30 +51,14 @@ object ESClient:
     case Resource.ExitCase.Canceled =>
       static.added(errorType, "canceled")
 
-  def apply(uri: String)(using meter: Meter[IO]): Resource[IO, ESClient[IO]] =
-    Resource
-      .make(IO(ElasticClient(JavaClient(ElasticProperties(uri)))))(client => IO(client.close()))
-      .evalMap: esClient =>
-        meter
-          .histogram[Double]("db.client.operation.duration")
-          .withUnit("ms")
-          .create
-          .map(
-            apply(
-              esClient,
-              Attributes(Attribute("db.system", "elasticsearch"), Attribute("server.address", uri))
-            )
-          )
-
   def apply(client: Client[IO], uri: Uri)(using Meter[IO], IORuntime): IO[ESClient[IO]] =
-    val elasticClient = ElasticClient(Http4sClient.usingIO(client, uri))
     Meter[IO]
       .histogram[Double]("db.client.operation.duration")
       .withUnit("ms")
       .create
       .map(
         apply(
-          elasticClient,
+          ElasticClient(Http4sClient.usingIO(client, uri)),
           Attributes(Attribute("db.system", "elasticsearch"), Attribute("server.address", uri.toString()))
         )
       )

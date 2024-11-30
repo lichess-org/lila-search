@@ -3,6 +3,7 @@ package ingestor
 
 import cats.data.Validated
 import cats.effect.*
+import cats.effect.unsafe.IORuntime
 import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
@@ -23,6 +24,7 @@ object cli
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
   given Logger[IO]        = LoggerFactory[IO].getLogger
   given Meter[IO]         = Meter.noop[IO]
+  given IORuntime         = runtime
 
   override def main: Opts[IO[ExitCode]] =
     opts.parse.map: opts =>
