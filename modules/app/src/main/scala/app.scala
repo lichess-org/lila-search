@@ -2,6 +2,7 @@ package lila.search
 package app
 
 import cats.effect.*
+import cats.effect.unsafe.IORuntime
 import cats.syntax.all.*
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
@@ -16,6 +17,7 @@ object App extends IOApp.Simple:
 
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
   given Logger[IO]        = LoggerFactory[IO].getLogger
+  given IORuntime         = runtime
 
   override def run: IO[Unit] = app.useForever
 

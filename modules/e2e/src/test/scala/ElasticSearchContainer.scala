@@ -28,7 +28,7 @@ object ElasticSearchContainer:
     Resource.make(start)(cont => IO(cont.stop()))
 
   def parseConfig(container: GenericContainer): ElasticConfig =
-    ElasticConfig(s"http://${container.host}:${container.mappedPort(PORT)}")
+    ElasticConfig(org.http4s.Uri.unsafeFromString(s"http://${container.host}:${container.mappedPort(PORT)}"))
 
   def start: Resource[IO, ElasticConfig] =
     container.map(parseConfig)

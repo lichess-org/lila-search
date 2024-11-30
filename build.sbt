@@ -49,8 +49,9 @@ lazy val elastic = project
     libraryDependencies ++= Seq(
       catsCore,
       catsEffect,
-      elastic4sJavaClient,
+      http4sClient,
       elastic4sCatsEffect,
+      elastic4sHttp4sClient,
       otel4sCore
     )
   )
@@ -88,12 +89,14 @@ lazy val ingestor = project
       declineCatsEffect,
       ducktape,
       cirisCore,
+      cirisHtt4s,
       smithy4sCore,
       smithy4sJson,
       jsoniterCore,
       jsoniterMacro,
       circe,
       http4sServer,
+      http4sEmberClient,
       mongo4catsCore,
       mongo4catsCirce,
       log4Cats,

@@ -4,6 +4,9 @@ package ingestor
 import cats.effect.IO
 import cats.syntax.all.*
 import ciris.*
+import ciris.http4s.*
+import org.http4s.Uri
+import org.http4s.implicits.*
 
 import java.time.Instant
 import scala.concurrent.duration.*
@@ -39,11 +42,12 @@ object MongoConfig:
 
   def config = (uri, name, studyUri, studyDatabase).parMapN(MongoConfig.apply)
 
-case class ElasticConfig(uri: String)
+case class ElasticConfig(uri: Uri)
 
 object ElasticConfig:
-  private def uri = env("ELASTIC_URI").or(prop("elastic.uri")).as[String].default("http://127.0.0.1:9200")
-  def config      = uri.map(ElasticConfig.apply)
+  private def uri =
+    env("ELASTIC_URI").or(prop("elastic.uri")).as[Uri].default(uri"http://127.0.0.1:9200")
+  def config = uri.map(ElasticConfig.apply)
 
 case class IngestorConfig(
     forum: IngestorConfig.Forum,

@@ -8,6 +8,7 @@ import com.sksamuel.elastic4s.Indexable
 import lila.search.app.{ App, AppConfig, AppResources, ElasticConfig, HttpServerConfig }
 import lila.search.client.{ SearchClient, SearchError }
 import lila.search.spec.{ CountOutput, Query, SearchOutput }
+import org.http4s.implicits.*
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.Meter
@@ -62,7 +63,7 @@ object CompatSuite extends weaver.IOSuite:
 
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", false, shutdownTimeout = 1, false),
-    elastic = ElasticConfig("http://0.0.0.0:9200")
+    elastic = ElasticConfig(uri"http://0.0.0.0:9200")
   )
 
   def fakeClient: ESClient[IO] = new:
