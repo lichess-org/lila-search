@@ -2,6 +2,7 @@ package lila.search
 package app
 
 import cats.effect.*
+import cats.effect.unsafe.IORuntime
 import cats.syntax.all.*
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
@@ -23,12 +24,13 @@ object App extends IOApp.Simple:
     for
       given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
       given Meter[IO]               <- mkMeter
-      config                        <- AppConfig.load.toResource
-      _   <- Logger[IO].info(s"Starting lila-search with config: $config").toResource
-      _   <- RuntimeMetrics.register[IO]
-      _   <- IOMetrics.register[IO]()
-      res <- AppResources.instance(config)
-      _   <- mkServer(res, config)
+      given IORuntime = runtime
+      config <- AppConfig.load.toResource
+      _      <- Logger[IO].info(s"Starting lila-search with config: $config").toResource
+      _      <- RuntimeMetrics.register[IO]
+      _      <- IOMetrics.register[IO]()
+      res    <- AppResources.instance(config)
+      _      <- mkServer(res, config)
     yield ()
 
   def mkMeter(using exporter: MetricExporter.Pull[IO]) = SdkMetrics
