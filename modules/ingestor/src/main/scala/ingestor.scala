@@ -38,7 +38,7 @@ object Ingestor:
         .eval(startAt)
         .flatMap(repo.watch)
         .evalMap: result =>
-          updateElastic(result, false) *> saveLastIndexedTimestamp(index, result.timestamp)
+          updateElastic(result, false) *> saveLastIndexedTimestamp(result.timestamp)
         .compile
         .drain
 
@@ -87,7 +87,8 @@ object Ingestor:
           .whenA(sources.nonEmpty)
         *> Logger[IO].info(s"Indexed ${sources.size} ${index.value}s")
 
-    private def saveLastIndexedTimestamp(index: Index, time: Option[Instant]): IO[Unit] =
-      val savedTime = time.getOrElse(Instant.now())
-      store.put(index.value, savedTime)
-        *> Logger[IO].info(s"Stored last indexed time ${savedTime.getEpochSecond} for $index")
+    private val saveLastIndexedTimestamp: Option[Instant] => IO[Unit] =
+      _.traverse_(time =>
+        store.put(index.value, time)
+          *> Logger[IO].info(s"Stored last indexed time ${time.getEpochSecond} for $index")
+      )

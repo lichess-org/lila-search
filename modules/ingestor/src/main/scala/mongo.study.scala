@@ -44,6 +44,7 @@ object StudyRepo:
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
         pullForIndex(since, until)
           .merge(pullForDelete(since, until))
+        ++ fs2.Stream(Result(Nil, Nil, until.some))
 
     def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
       val filter = range(F.createdAt)(since, until.some)
@@ -56,7 +57,7 @@ object StudyRepo:
         .map(_.toList)
         // .evalTap(_.traverse_(x => debug"received $x"))
         .evalMap(_.toSources)
-        .map(Result(_, Nil, until.some))
+        .map(Result(_, Nil, none))
 
     def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
       val filter =
@@ -72,7 +73,7 @@ object StudyRepo:
         .chunkN(config.batchSize)
         .map(_.toList.flatMap(extractId))
         .evalTap(xs => info"Deleting $xs")
-        .map(Result(Nil, _, until.some))
+        .map(Result(Nil, _, none))
 
     def extractId(doc: Document): Option[Id] =
       doc.getNestedAs[String](F.oplogId).map(Id.apply)
