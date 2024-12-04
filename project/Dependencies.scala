@@ -9,14 +9,14 @@ object Dependencies {
   object V {
     val catsEffect = "3.5.7"
     val chess      = "16.2.4"
-    val ciris      = "3.6.0"
+    val ciris      = "3.7.0"
     val decline    = "2.4.1"
     val elastic4s  = "8.16.0"
     val fs2        = "3.11.0"
     val http4s     = "0.23.29"
     val iron       = "2.5.0"
     val mongo4cats = "0.7.11"
-    val otel4s     = "0.11.1"
+    val otel4s     = "0.11.2"
   }
 
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
