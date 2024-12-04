@@ -110,6 +110,9 @@ object ChapterRepo:
     def byStudyIds(ids: List[String]): IO[Map[String, StudyData]] =
       coll
         .aggregateWithCodec[StudyData](Query.aggregate(ids))
-        .all
         // .flatTap(docs => Logger[IO].debug(s"Received $docs chapters"))
+        .stream
+        .compile
+        .toList
+        .flatTap(docs => Logger[IO].debug(s"Received $docs chapters"))
         .map(_.map(x => x._id -> x).toMap)
