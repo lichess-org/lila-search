@@ -42,11 +42,11 @@ object StudyRepo:
 
     def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
-        pullAndIndex(since, until)
-          .zip(pullAndDelete(since, until))
-          .map((toIndex, toDelete) => Result(toIndex, toDelete, until.some))
+        pullForIndex(since, until)
+          .merge(pullForDelete(since, until))
+        ++ fs2.Stream(Result(Nil, Nil, until.some))
 
-    def pullAndIndex(since: Instant, until: Instant) =
+    def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
       studies
@@ -55,10 +55,11 @@ object StudyRepo:
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
         .map(_.toList)
-        .evalTap(_.traverse_(x => debug"received $x"))
+        // .evalTap(_.traverse_(x => debug"received $x"))
         .evalMap(_.toSources)
+        .map(Result(_, Nil, none))
 
-    def pullAndDelete(since: Instant, until: Instant) =
+    def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
       val filter =
         Filter
           .gte("ts", since.asBsonTimestamp)
@@ -72,6 +73,7 @@ object StudyRepo:
         .chunkN(config.batchSize)
         .map(_.toList.flatMap(extractId))
         .evalTap(xs => info"Deleting $xs")
+        .map(Result(Nil, _, none))
 
     def extractId(doc: Document): Option[Id] =
       doc.getNestedAs[String](F.oplogId).map(Id.apply)
@@ -91,8 +93,7 @@ object StudyRepo:
         chapters
           .byStudyIds(studyIds)
           .flatMap: chapters =>
-            docs
-              .traverseFilter(_.toSource(chapters))
+            docs.traverseFilter(_.toSource(chapters))
 
     type StudySourceWithId = (String, StudySource)
     extension (doc: Document)

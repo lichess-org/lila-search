@@ -111,5 +111,5 @@ object ChapterRepo:
       coll
         .aggregateWithCodec[StudyData](Query.aggregate(ids))
         .all
-        .flatTap(docs => Logger[IO].debug(s"Received $docs chapters"))
+        // .flatTap(docs => Logger[IO].debug(s"Received $docs chapters"))
         .map(_.map(x => x._id -> x).toMap)
