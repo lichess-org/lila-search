@@ -22,7 +22,7 @@ trait Ingestor:
 
 object Ingestor:
 
-  given [A: Schema]: Indexable[A] = (a: A) => writeToString(a)
+  given [A] => Schema[A] => Indexable[A] = a => writeToString(a)
 
   def apply[A: Schema](
       index: Index,
