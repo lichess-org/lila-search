@@ -77,7 +77,7 @@ object SearchServiceImpl:
   given dateRange: Transformer.Derived[DateRange, Range[Instant]] =
     Transformer.Derived.FromFunction(r => Range(r.a.map(_.to[Instant]), r.b.map(_.to[Instant])))
 
-  given Queryable[Query] with
+  given Queryable[Query]:
     def searchDef(query: Query)(from: From, size: Size) =
       query match
         case q: Query.Forum => q.to[Forum].searchDef(from, size)
