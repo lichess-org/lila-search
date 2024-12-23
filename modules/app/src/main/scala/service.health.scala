@@ -8,14 +8,14 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 class HealthServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends HealthService[IO]:
 
-  given logger: Logger[IO] = LoggerFactory[IO].getLogger
+  given Logger[IO] = LoggerFactory[IO].getLogger
 
   override def healthCheck(): IO[HealthCheckOutput] =
     esClient.status
       .flatMap(transform)
       .map(HealthCheckOutput(_))
       .handleErrorWith: e =>
-        logger.error(e)("Error in health check") *>
+        Logger[IO].error(e)("Error in health check") *>
           IO.raiseError(InternalServerError(s"Internal server error $e"))
 
   private def transform(status: String): IO[ElasticStatus] =

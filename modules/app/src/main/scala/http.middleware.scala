@@ -14,7 +14,7 @@ def MkMiddleware(config: HttpServerConfig)(using LoggerFactory[IO]): Middleware 
   def verboseLogger =
     RequestLogger.httpRoutes[IO](true, true).andThen(ResponseLogger.httpRoutes[IO, Request[IO]](true, true))
 
-  val logger =
+  def logger =
     if config.apiLogger then verboseLogger
     else ApiErrorLogger.instance(using LoggerFactory[IO].getLogger)
 

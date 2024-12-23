@@ -22,7 +22,7 @@ class SearchServiceImpl(esClient: ESClient[IO], metric: Histogram[IO, Double])(u
 
   import SearchServiceImpl.{ *, given }
 
-  given logger: Logger[IO] = LoggerFactory[IO].getLogger
+  private val logger: Logger[IO] = LoggerFactory[IO].getLogger
 
   private val baseAttributes = Attributes(Attribute("http.request.method", "POST"))
   private val countMetric =
