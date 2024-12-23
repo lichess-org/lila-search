@@ -8,7 +8,6 @@
 
 Copy default settings
 ```sh
-cp .env.example .env
 cp .sbtops.example .sbtopts
 ```
 
