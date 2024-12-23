@@ -31,7 +31,7 @@ object Ingestor:
       elastic: ESClient[IO],
       defaultStartAt: Option[Instant]
   )(using LoggerFactory[IO]): Ingestor = new:
-    given Logger[IO] = LoggerFactory[IO].getLogger
+    given Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
 
     def watch: IO[Unit] =
       fs2.Stream
