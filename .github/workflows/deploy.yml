@@ -67,5 +67,5 @@ jobs:
       - name: Deploy via SSH
 
       # ssh $REMOTE "chown -R lila-search:lila-search /home/lila-search && systemctl restart lila-search"
-        run: cat lila-engine | ssh deploy-host "cat - > /home/lichess-search"
-      # run: cat lila-engine | ssh deploy-host "cat - > /home/lila-search && chown -R lila-search:lila-search && systemctl restart lila-search"
+        run: cat lila-search | ssh deploy-host "cat - > /home/lichess-search"
+      # run: cat lila-search | ssh deploy-host "cat - > /home/lila-search && chown -R lila-search:lila-search && systemctl restart lila-search"
