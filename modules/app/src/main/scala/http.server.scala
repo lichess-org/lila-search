@@ -17,7 +17,7 @@ object MkHttpServer:
 
   def apply()(using server: MkHttpServer): MkHttpServer = server
 
-  given forAsyncLogger(using Logger[IO]): MkHttpServer = new:
+  given Logger[IO] => MkHttpServer = new:
 
     def newEmber(cfg: HttpServerConfig, httpApp: HttpApp[IO]): Resource[IO, Server] = EmberServerBuilder
       .default[IO]

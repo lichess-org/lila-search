@@ -11,7 +11,7 @@ import weaver.scalacheck.*
 object HasDocIdTest extends SimpleIOSuite with Checkers:
 
   case class Change(value: Int, docId: Option[String])
-  given HasDocId[Change] with
+  given HasDocId[Change]:
     extension (a: Change) def docId: Option[String] = a.docId
 
   given Show[Change] = Show.fromToString

@@ -57,10 +57,10 @@ object implicits:
     Query.schema.required[SearchInput]("query", _.query)
   )(SearchInput.apply)
 
-  given [A](using JsonCodec[A]): BodyWritable[A] =
+  given [A] => JsonCodec[A] => BodyWritable[A] =
     BodyWritable(a => InMemoryBody(ByteString.fromArrayUnsafe(writeToArray(a))), "application/json")
 
-  given [A](using JsonCodec[A]): BodyReadable[A] =
+  given [A] => JsonCodec[A] => BodyReadable[A] =
     BodyReadable(res => readFromArray(res.bodyAsBytes.toArray))
 
   def apply(client: StandaloneWSClient, url: String)(using ExecutionContext): SearchService[Future] =
