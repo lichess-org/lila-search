@@ -26,7 +26,7 @@ object Repo:
 
   type MongoCollection = GenericMongoCollection[IO, Document, [A] =>> fs2.Stream[IO, A]]
 
-  given [A] => HasDocId[ChangeStreamDocument[A]] :
+  given [A] => HasDocId[ChangeStreamDocument[A]]:
     extension (change: ChangeStreamDocument[A])
       def docId: Option[String] =
         change.documentKey.flatMap(_.id)
