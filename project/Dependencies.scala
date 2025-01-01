@@ -64,7 +64,7 @@ object Dependencies {
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.15"
 
-  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.6"
+  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.7"
 
   val declineCore = "com.monovore" %% "decline" % V.decline
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
