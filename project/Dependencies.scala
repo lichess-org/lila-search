@@ -10,7 +10,7 @@ object Dependencies {
     val catsEffect = "3.5.7"
     val chess      = "16.2.4"
     val ciris      = "3.7.0"
-    val decline    = "2.4.1"
+    val decline    = "2.5.0"
     val elastic4s  = "8.16.0"
     val fs2        = "3.11.0"
     val http4s     = "0.23.30"
@@ -62,7 +62,7 @@ object Dependencies {
   val otel4sMetricts = "org.typelevel" %% "otel4s-experimental-metrics" % "0.5.0"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
-  val logback = "ch.qos.logback" % "logback-classic" % "1.5.15"
+  val logback = "ch.qos.logback" % "logback-classic" % "1.5.16"
 
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.6"
 
