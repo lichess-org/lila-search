@@ -52,7 +52,7 @@ object ForumRepo:
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
         .or(range(F.erasedAt)(since, until.some))
-      fs2.Stream.eval(info"Fetching teams from $since to $until") *>
+      fs2.Stream.eval(info"Fetching forum posts from $since to $until") *>
         posts
           .find(filter)
           .projection(postProjection)

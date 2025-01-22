@@ -86,7 +86,7 @@ object GameRepo:
     def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
-      fs2.Stream.eval(info"Fetching teams from $since to $until") *>
+      fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
           .find(filter.and(gameFilter))
           // .projection(postProjection)
