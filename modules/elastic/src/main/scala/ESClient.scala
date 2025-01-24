@@ -63,7 +63,7 @@ object ESClient:
         )
       )
 
-  def apply[F[_]: { MonadCancelThrow, Functor, Executor }](client: ElasticClient, baseAttributes: Attributes)(
+  def apply[F[_]: {MonadCancelThrow, Functor, Executor}](client: ElasticClient, baseAttributes: Attributes)(
       metric: Histogram[F, Double]
   ) = new ESClient[F]:
 
