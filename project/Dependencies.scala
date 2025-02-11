@@ -15,7 +15,7 @@ object Dependencies {
     val fs2        = "3.11.0"
     val http4s     = "0.23.30"
     val iron       = "2.5.0"
-    val mongo4cats = "0.7.11"
+    val mongo4cats = "0.7.12"
     val otel4s     = "0.11.2"
   }
 
