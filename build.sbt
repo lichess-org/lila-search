@@ -26,6 +26,14 @@ val commonSettings = Seq(
   )
 )
 
+val buildInfoSettings = Seq(
+  buildInfoKeys := Seq[BuildInfoKey](
+    version,
+    BuildInfoKey.map(git.gitHeadCommit) { case (k, v) => k -> v.getOrElse("unknown").take(7) }
+  ),
+  buildInfoPackage := "lila.search"
+)
+
 lazy val core = project
   .in(file("modules/core"))
   .enablePlugins(Smithy4sCodegenPlugin)
@@ -72,10 +80,11 @@ lazy val api = project
 
 lazy val ingestor = project
   .in(file("modules/ingestor"))
-  .enablePlugins(Smithy4sCodegenPlugin)
+  .enablePlugins(JavaAppPackaging, Smithy4sCodegenPlugin, BuildInfoPlugin)
   .settings(
     name := "ingestor",
     commonSettings,
+    buildInfoSettings,
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -109,7 +118,6 @@ lazy val ingestor = project
     ),
     Compile / run / fork := true
   )
-  .enablePlugins(JavaAppPackaging)
   .dependsOn(elastic, core)
 
 lazy val client = project
@@ -127,10 +135,12 @@ lazy val client = project
   .dependsOn(api, core)
 
 lazy val app = project
+  .enablePlugins(JavaAppPackaging, BuildInfoPlugin)
   .in(file("modules/app"))
   .settings(
     name := "lila-search",
     commonSettings,
+    buildInfoSettings,
     publish        := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -153,7 +163,6 @@ lazy val app = project
     ),
     Compile / run / fork := true
   )
-  .enablePlugins(JavaAppPackaging)
   .dependsOn(api, elastic)
 
 val e2e = project
