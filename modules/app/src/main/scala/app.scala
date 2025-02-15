@@ -45,5 +45,5 @@ object App extends IOApp.Simple:
       apiRoutes <- Routes(res, config.server)
       httpRoutes = apiRoutes <+> mkPrometheusRoutes
       server <- MkHttpServer().newEmber(config.server, httpRoutes.orNotFound)
-      _      <- Logger[IO].info(s"Starting server on ${config.server.host}:${config.server.port}").toResource
+      _      <- Logger[IO].info(s"BuildInfo: ${BuildInfo}").toResource
     yield ()

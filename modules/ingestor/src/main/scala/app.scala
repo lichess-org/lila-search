@@ -24,9 +24,12 @@ object App extends IOApp.Simple:
       _               <- RuntimeMetrics.register[IO]
       _               <- IOMetrics.register[IO]()
       config          <- AppConfig.load.toResource
-      _               <- Logger[IO].info(s"Starting lila-search ingestor with config: $config").toResource
-      res             <- AppResources.instance(config)
-      _               <- IngestorApp(res, config).run()
+      gitCommit = BuildInfo.gitHeadCommit.take(7)
+      version   = BuildInfo.version
+      _   <- Logger[IO].info(s"Starting lila-search ingestor with config: $config").toResource
+      _   <- Logger[IO].info(s"BuildInfo: ${BuildInfo}").toResource
+      res <- AppResources.instance(config)
+      _   <- IngestorApp(res, config).run()
     yield ()
 
   def mkMeter = SdkMetrics
