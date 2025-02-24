@@ -15,7 +15,7 @@ object Dependencies {
     val fs2        = "3.11.0"
     val http4s     = "0.23.30"
     val iron       = "2.5.0"
-    val mongo4cats = "0.7.11"
+    val mongo4cats = "0.7.12"
     val otel4s     = "0.11.2"
   }
 
@@ -44,10 +44,10 @@ object Dependencies {
   lazy val smithy4sHttp4sSwagger = smithy4s("http4s-swagger")
   lazy val smithy4sJson          = smithy4s("json")
 
-  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.33.1"
-  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.33.1"
+  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.33.2"
+  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.33.2"
 
-  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.10"
+  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.11"
 
   val elastic4sHttp4sClient = "nl.gn0s1s" %% "elastic4s-client-http4s" % V.elastic4s
   val elastic4sCatsEffect = "nl.gn0s1s" %% "elastic4s-effect-cats"   % V.elastic4s
