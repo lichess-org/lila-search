@@ -33,11 +33,10 @@ object App extends IOApp.Simple:
 
   def mkMeter(using exporter: MetricExporter.Pull[IO]) = SdkMetrics
     .autoConfigured[IO](_.addMeterProviderCustomizer((b, _) => b.registerMetricReader(exporter.metricReader)))
-    .flatTap: x =>
-      given MeterProvider[IO] = x.meterProvider
-      IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default)
-    .evalMap: meter =>
-      meter.meterProvider.get("lila-search")
+    .flatMap: sdk =>
+      given meterProvider: MeterProvider[IO] = sdk.meterProvider
+      IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default) *>
+        meterProvider.get("lila-search").toResource
 
   def mkServer(res: AppResources, config: AppConfig)(using
       Meter[IO],
