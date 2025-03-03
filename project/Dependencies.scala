@@ -7,16 +7,16 @@ object Dependencies {
   val ourResolvers = Seq(lilaMaven)
 
   object V {
-    val catsEffect = "3.5.7"
+    val catsEffect = "3.6.0-RC2"
     val chess      = "16.2.4"
     val ciris      = "3.7.0"
     val decline    = "2.5.0"
     val elastic4s  = "8.16.0"
-    val fs2        = "3.11.0"
+    val fs2        = "3.12.0-RC1"
     val http4s     = "0.23.30"
     val iron       = "2.5.0"
     val mongo4cats = "0.7.12"
-    val otel4s     = "0.11.2"
+    val otel4s     = "0.12.0-RC3"
   }
 
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
@@ -59,7 +59,8 @@ object Dependencies {
   val otel4sCore =  "org.typelevel" %% "otel4s-core" % V.otel4s
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
   val otel4sSdk = "org.typelevel" %% "otel4s-sdk" % V.otel4s
-  val otel4sMetricts = "org.typelevel" %% "otel4s-experimental-metrics" % "0.5.0"
+  val otel4sInstrumentationMetrics =   "org.typelevel" %% "otel4s-instrumentation-metrics" % V.otel4s
+  // val otel4sMetricts = "org.typelevel" %% "otel4s-experimental-metrics" % "0.5.0"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.17"

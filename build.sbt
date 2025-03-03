@@ -109,9 +109,9 @@ lazy val ingestor = project
       mongo4catsCirce,
       log4Cats,
       logback,
-      otel4sMetricts,
       otel4sSdk,
       otel4sPrometheusExporter,
+      otel4sInstrumentationMetrics,
       weaver,
       weaverScalaCheck,
       testContainers
@@ -157,9 +157,9 @@ lazy val app = project
       cirisHtt4s,
       log4Cats,
       logback,
-      otel4sMetricts,
       otel4sSdk,
-      otel4sPrometheusExporter
+      otel4sPrometheusExporter,
+      otel4sInstrumentationMetrics
     ),
     Compile / run / fork := true
   )
