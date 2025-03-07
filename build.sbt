@@ -117,7 +117,7 @@ lazy val ingestor = project
       testContainers
     ),
     Compile / doc / sources := Seq.empty,
-    Compile / run / fork := true
+    Compile / run / fork    := true
   )
   .dependsOn(elastic, core)
 
@@ -163,7 +163,7 @@ lazy val app = project
       otel4sPrometheusExporter
     ),
     Compile / doc / sources := Seq.empty,
-    Compile / run / fork := true
+    Compile / run / fork    := true
   )
   .dependsOn(api, elastic)
 
