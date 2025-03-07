@@ -6,6 +6,7 @@ import cats.effect.unsafe.IORuntime
 import cats.syntax.all.*
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
+import org.typelevel.otel4s.experimental.metrics.*
 import org.typelevel.otel4s.instrumentation.ce.IORuntimeMetrics
 import org.typelevel.otel4s.metrics.{ Meter, MeterProvider }
 import org.typelevel.otel4s.sdk.exporter.prometheus.autoconfigure.PrometheusMetricExporterAutoConfigure
@@ -22,6 +23,7 @@ object App extends IOApp.Simple:
   def app: Resource[IO, Unit] =
     for
       given Meter[IO] <- mkMeter
+      _               <- RuntimeMetrics.register[IO]
       config          <- AppConfig.load.toResource
       _               <- Logger[IO].info(s"Starting lila-search ingestor with config: $config").toResource
       _               <- Logger[IO].info(s"BuildInfo: ${BuildInfo}").toResource

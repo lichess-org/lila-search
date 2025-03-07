@@ -110,6 +110,7 @@ lazy val ingestor = project
       log4Cats,
       logback,
       otel4sSdk,
+      otel4sMetrics,
       otel4sPrometheusExporter,
       otel4sInstrumentationMetrics,
       weaver,
@@ -159,6 +160,7 @@ lazy val app = project
       log4Cats,
       logback,
       otel4sSdk,
+      otel4sMetrics,
       otel4sPrometheusExporter,
       otel4sInstrumentationMetrics
     ),

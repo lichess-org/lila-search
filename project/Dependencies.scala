@@ -60,7 +60,7 @@ object Dependencies {
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
   val otel4sSdk = "org.typelevel" %% "otel4s-sdk" % V.otel4s
   val otel4sInstrumentationMetrics =   "org.typelevel" %% "otel4s-instrumentation-metrics" % V.otel4s
-  // val otel4sMetricts = "org.typelevel" %% "otel4s-experimental-metrics" % "0.5.0"
+  val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.6.0-RC1"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.17"
