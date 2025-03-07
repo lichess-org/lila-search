@@ -116,6 +116,7 @@ lazy val ingestor = project
       weaverScalaCheck,
       testContainers
     ),
+    Compile / doc / sources := Seq.empty,
     Compile / run / fork := true
   )
   .dependsOn(elastic, core)
@@ -161,6 +162,7 @@ lazy val app = project
       otel4sSdk,
       otel4sPrometheusExporter
     ),
+    Compile / doc / sources := Seq.empty,
     Compile / run / fork := true
   )
   .dependsOn(api, elastic)
