@@ -7,7 +7,8 @@ import cats.syntax.all.*
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.experimental.metrics.*
-import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.instrumentation.ce.IORuntimeMetrics
+import org.typelevel.otel4s.metrics.{ Meter, MeterProvider }
 import org.typelevel.otel4s.sdk.*
 import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
 import org.typelevel.otel4s.sdk.metrics.SdkMetrics
@@ -25,17 +26,19 @@ object App extends IOApp.Simple:
     for
       given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
       given Meter[IO]               <- mkMeter
+      _                             <- RuntimeMetrics.register[IO]
       config                        <- AppConfig.load.toResource
       _   <- Logger[IO].info(s"Starting lila-search with config: $config").toResource
-      _   <- RuntimeMetrics.register[IO]
-      _   <- IOMetrics.register[IO]()
       res <- AppResources.instance(config)
       _   <- mkServer(res, config)
     yield ()
 
   def mkMeter(using exporter: MetricExporter.Pull[IO]) = SdkMetrics
     .autoConfigured[IO](_.addMeterProviderCustomizer((b, _) => b.registerMetricReader(exporter.metricReader)))
-    .evalMap(_.meterProvider.get("lila-search"))
+    .flatMap: sdk =>
+      given meterProvider: MeterProvider[IO] = sdk.meterProvider
+      IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default) *>
+        meterProvider.get("lila-search").toResource
 
   def mkServer(res: AppResources, config: AppConfig)(using
       Meter[IO],
