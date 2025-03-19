@@ -12,7 +12,7 @@ object Dependencies {
     val ciris      = "3.7.0"
     val decline    = "2.5.0"
     val elastic4s  = "8.17.1"
-    val fs2        = "3.12.0-RC1"
+    val fs2        = "3.12.0-RC2"
     val http4s     = "0.23.30"
     val iron       = "2.5.0"
     val mongo4cats = "0.7.12"
