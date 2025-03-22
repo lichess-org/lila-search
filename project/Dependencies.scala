@@ -12,7 +12,7 @@ object Dependencies {
     val ciris      = "3.7.0"
     val decline    = "2.5.0"
     val elastic4s  = "8.17.1"
-    val fs2        = "3.12.0-RC1"
+    val fs2        = "3.12.0-RC2"
     val http4s     = "0.23.30"
     val iron       = "2.5.0"
     val mongo4cats = "0.7.12"
@@ -44,8 +44,8 @@ object Dependencies {
   lazy val smithy4sHttp4sSwagger = smithy4s("http4s-swagger")
   lazy val smithy4sJson          = smithy4s("json")
 
-  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.33.2"
-  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.33.2"
+  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.33.3"
+  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.33.3"
 
   val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.11"
 
@@ -63,9 +63,9 @@ object Dependencies {
   val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.6.0-RC1"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
-  val logback = "ch.qos.logback" % "logback-classic" % "1.5.17"
+  val logback = "ch.qos.logback" % "logback-classic" % "1.5.18"
 
-  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.7"
+  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.8"
 
   val declineCore = "com.monovore" %% "decline" % V.decline
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
