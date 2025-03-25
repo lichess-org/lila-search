@@ -7,12 +7,12 @@ object Dependencies {
   val ourResolvers = Seq(lilaMaven)
 
   object V {
-    val catsEffect = "3.6.0-RC2"
+    val catsEffect = "3.6.0"
     val chess      = "16.2.4"
     val ciris      = "3.7.0"
     val decline    = "2.5.0"
     val elastic4s  = "8.17.1"
-    val fs2        = "3.12.0-RC2"
+    val fs2        = "3.12.0"
     val http4s     = "0.23.30"
     val iron       = "2.5.0"
     val mongo4cats = "0.7.12"
