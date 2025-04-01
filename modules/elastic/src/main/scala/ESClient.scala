@@ -65,39 +65,39 @@ object ESClient:
         .flatMap(_.toResult)
         .map(_.status)
 
-    def search[A](query: A, from: From, size: Size)(using q: Queryable[A]): F[List[Id]] =
+    def search[A](query: A, from: From, size: Size)(using Queryable[A]): F[List[Id]] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
           withErrorType(
             baseAttributes
               .added(dbOperationName, "search")
-              .added(dbCollectionName, q.index(query).value)
+              .added(dbCollectionName, query.index.value)
           )
         )
         .surround:
           client
-            .execute(q.searchDef(query)(from, size))
+            .execute(query.searchDef(from, size))
             .flatMap(_.toResult)
             .map(_.hits.hits.toList.map(h => Id(h.id)))
 
-    def count[A](query: A)(using q: Queryable[A]): F[Long] =
+    def count[A](query: A)(using Queryable[A]): F[Long] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
           withErrorType(
             baseAttributes
               .added(dbOperationName, "count")
-              .added(dbCollectionName, q.index(query).value)
+              .added(dbCollectionName, query.index.value)
           )
         )
         .surround:
           client
-            .execute(q.countDef(query))
+            .execute(query.countDef)
             .flatMap(_.toResult)
             .map(_.count)
 
-    def store[A](index: Index, id: Id, obj: A)(using indexable: Indexable[A]): F[Unit] =
+    def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): F[Unit] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
@@ -112,7 +112,7 @@ object ESClient:
             .execute(indexInto(index.value).source(obj).id(id.value))
             .flatMap(_.unitOrFail)
 
-    def storeBulk[A](index: Index, objs: Seq[(String, A)])(using indexable: Indexable[A]): F[Unit] =
+    def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): F[Unit] =
       val request  = indexInto(index.value)
       val requests = bulk(objs.map((id, obj) => request.source(obj).id(id)))
       metric
