@@ -1,8 +1,10 @@
 package lila.search
 
+import cats.MonadThrow
+import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
-import com.sksamuel.elastic4s.Index as ESIndex
 import com.sksamuel.elastic4s.requests.searches.queries.Query
+import com.sksamuel.elastic4s.{ Index as ESIndex, Response }
 
 extension (self: Boolean) def fold[A](t: => A, f: => A): A = if self then t else f
 
@@ -25,3 +27,9 @@ extension (index: Index)
     index match
       case Index.Study => "10s"
       case _           => "300s"
+
+extension [F[_]: MonadThrow, A](response: Response[A])
+  def toResult: F[A] =
+    response.fold(response.error.asException.raiseError)(r => r.pure[F])
+  def unitOrFail: F[Unit] =
+    response.fold(response.error.asException.raiseError)(_ => ().pure[F])

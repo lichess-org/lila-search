@@ -6,15 +6,7 @@ import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.cats.effect.instances.*
 import com.sksamuel.elastic4s.http4s.Http4sClient
-import com.sksamuel.elastic4s.{
-  ElasticClient,
-  ElasticDsl,
-  Executor,
-  Functor,
-  Index as ESIndex,
-  Indexable,
-  Response
-}
+import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Executor, Functor, Index as ESIndex, Indexable }
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.typelevel.otel4s.metrics.{ Histogram, Meter }
@@ -70,48 +62,42 @@ object ESClient:
     def status: F[String] =
       client
         .execute(clusterHealth())
-        .flatMap(toResult)
+        .flatMap(_.toResult)
         .map(_.status)
 
-    private def toResult[A](response: Response[A]): F[A] =
-      response.fold(response.error.asException.raiseError)(r => r.pure[F])
-
-    private def unitOrFail[A](response: Response[A]): F[Unit] =
-      response.fold(response.error.asException.raiseError)(_ => ().pure[F])
-
-    def search[A](query: A, from: From, size: Size)(using q: Queryable[A]): F[List[Id]] =
+    def search[A](query: A, from: From, size: Size)(using Queryable[A]): F[List[Id]] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
           withErrorType(
             baseAttributes
               .added(dbOperationName, "search")
-              .added(dbCollectionName, q.index(query).value)
+              .added(dbCollectionName, query.index.value)
           )
         )
         .surround:
           client
-            .execute(q.searchDef(query)(from, size))
-            .flatMap(toResult)
+            .execute(query.searchDef(from, size))
+            .flatMap(_.toResult)
             .map(_.hits.hits.toList.map(h => Id(h.id)))
 
-    def count[A](query: A)(using q: Queryable[A]): F[Long] =
+    def count[A](query: A)(using Queryable[A]): F[Long] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
           withErrorType(
             baseAttributes
               .added(dbOperationName, "count")
-              .added(dbCollectionName, q.index(query).value)
+              .added(dbCollectionName, query.index.value)
           )
         )
         .surround:
           client
-            .execute(q.countDef(query))
-            .flatMap(toResult)
+            .execute(query.countDef)
+            .flatMap(_.toResult)
             .map(_.count)
 
-    def store[A](index: Index, id: Id, obj: A)(using indexable: Indexable[A]): F[Unit] =
+    def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): F[Unit] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
@@ -124,9 +110,9 @@ object ESClient:
         .surround:
           client
             .execute(indexInto(index.value).source(obj).id(id.value))
-            .flatMap(unitOrFail)
+            .flatMap(_.unitOrFail)
 
-    def storeBulk[A](index: Index, objs: Seq[(String, A)])(using indexable: Indexable[A]): F[Unit] =
+    def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): F[Unit] =
       val request  = indexInto(index.value)
       val requests = bulk(objs.map((id, obj) => request.source(obj).id(id)))
       metric
@@ -142,7 +128,7 @@ object ESClient:
         .surround:
           client
             .execute(requests)
-            .flatMap(unitOrFail)
+            .flatMap(_.unitOrFail)
         .whenA(objs.nonEmpty)
 
     def deleteOne(index: Index, id: Id): F[Unit] =
@@ -158,7 +144,7 @@ object ESClient:
         .surround:
           client
             .execute(deleteById(index.toES, id.value))
-            .flatMap(unitOrFail)
+            .flatMap(_.unitOrFail)
 
     def deleteMany(index: Index, ids: List[Id]): F[Unit] =
       metric
@@ -174,7 +160,7 @@ object ESClient:
         .surround:
           client
             .execute(bulk(ids.map(id => deleteById(index.toES, id.value))))
-            .flatMap(unitOrFail)
+            .flatMap(_.unitOrFail)
         .whenA(ids.nonEmpty)
 
     def putMapping(index: Index): F[Unit] =
@@ -185,12 +171,12 @@ object ESClient:
             .shards(5)
             .replicas(0)
             .refreshInterval(index.refreshInterval)
-        .flatMap(unitOrFail)
+        .flatMap(_.unitOrFail)
 
     def refreshIndex(index: Index): F[Unit] =
       client
         .execute(ElasticDsl.refreshIndex(index.value))
-        .flatMap(unitOrFail)
+        .flatMap(_.unitOrFail)
 
     private def dropIndex(index: Index) =
       client.execute(deleteIndex(index.value))
