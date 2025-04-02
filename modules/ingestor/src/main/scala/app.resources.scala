@@ -31,10 +31,7 @@ object AppResources:
     ).parMapN(AppResources.apply)
 
   private def makeElasticClient(conf: ElasticConfig)(using Meter[IO], IORuntime): Resource[IO, ESClient[IO]] =
-    EmberClientBuilder
-      .default[IO]
-      .build
-      .evalMap(ESClient(_, conf.uri))
+    EmberClientBuilder.default[IO].build.evalMap(ESClient(conf.uri))
 
   private def makeMongoClient(conf: MongoConfig) =
     MongoClient

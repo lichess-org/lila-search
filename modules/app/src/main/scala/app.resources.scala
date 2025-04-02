@@ -14,5 +14,5 @@ object AppResources:
     EmberClientBuilder
       .default[IO]
       .build
-      .evalMap(ESClient(_, conf.elastic.uri))
+      .evalMap(ESClient(conf.elastic.uri))
       .map(AppResources.apply)

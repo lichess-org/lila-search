@@ -7,6 +7,7 @@ import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.cats.effect.instances.*
 import com.sksamuel.elastic4s.http4s.Http4sClient
 import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Executor, Functor, Index as ESIndex, Indexable }
+import lila.search.ESClient.MetricKeys.*
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.typelevel.otel4s.metrics.{ Histogram, Meter }
@@ -28,22 +29,7 @@ trait ESClient[F[_]]:
 
 object ESClient:
 
-  object MetricKeys:
-    val dbCollectionName = AttributeKey.string("db.collection.name")
-    val dbBatchSize      = AttributeKey.long("db.operation.batch.size")
-    val dbOperationName  = AttributeKey.string("db.operation.name")
-    val errorType        = AttributeKey.string("error.type")
-
-  import lila.search.ESClient.MetricKeys.*
-  private def withErrorType(static: Attributes)(ec: Resource.ExitCase): Attributes = ec match
-    case Resource.ExitCase.Succeeded =>
-      static
-    case Resource.ExitCase.Errored(e) =>
-      static.added(errorType, e.getClass.getName)
-    case Resource.ExitCase.Canceled =>
-      static.added(errorType, "canceled")
-
-  def apply(client: Client[IO], uri: Uri)(using Meter[IO], IORuntime): IO[ESClient[IO]] =
+  def apply(uri: Uri)(client: Client[IO])(using Meter[IO], IORuntime): IO[ESClient[IO]] =
     Meter[IO]
       .histogram[Double]("db.client.operation.duration")
       .withUnit("ms")
@@ -164,7 +150,7 @@ object ESClient:
         .whenA(ids.nonEmpty)
 
     def putMapping(index: Index): F[Unit] =
-      dropIndex(index) >> client
+      dropIndex(index) *> client
         .execute:
           createIndex(index.value)
             .mapping(properties(index.mapping).source(false)) // all false
@@ -180,3 +166,17 @@ object ESClient:
 
     private def dropIndex(index: Index) =
       client.execute(deleteIndex(index.value))
+
+  object MetricKeys:
+    val dbCollectionName = AttributeKey.string("db.collection.name")
+    val dbBatchSize      = AttributeKey.long("db.operation.batch.size")
+    val dbOperationName  = AttributeKey.string("db.operation.name")
+    val errorType        = AttributeKey.string("error.type")
+
+  private def withErrorType(static: Attributes)(ec: Resource.ExitCase): Attributes = ec match
+    case Resource.ExitCase.Succeeded =>
+      static
+    case Resource.ExitCase.Errored(e) =>
+      static.added(errorType, e.getClass.getName)
+    case Resource.ExitCase.Canceled =>
+      static.added(errorType, "canceled")
