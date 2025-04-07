@@ -114,8 +114,7 @@ lazy val ingestor = project
       otel4sPrometheusExporter,
       otel4sInstrumentationMetrics,
       weaver,
-      weaverScalaCheck,
-      testContainers
+      weaverScalaCheck
     ),
     Compile / doc / sources := Seq.empty,
     Compile / run / fork    := true
