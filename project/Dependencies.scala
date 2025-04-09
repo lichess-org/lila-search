@@ -7,7 +7,7 @@ object Dependencies {
   val ourResolvers = Seq(lilaMaven)
 
   object V {
-    val catsEffect = "3.6.0"
+    val catsEffect = "3.6.1"
     val chess      = "17.3.0"
     val ciris      = "3.8.0"
     val decline    = "2.5.0"
@@ -44,8 +44,8 @@ object Dependencies {
   lazy val smithy4sHttp4sSwagger = smithy4s("http4s-swagger")
   lazy val smithy4sJson          = smithy4s("json")
 
-  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.33.3"
-  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.33.3"
+  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.34.0"
+  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.34.0"
 
   val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.11"
 
