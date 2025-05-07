@@ -16,6 +16,7 @@ import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
 import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
 import play.api.libs.ws.ahc.*
 
+import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext.Implicits.*
 
 object CompatSuite extends weaver.IOSuite:
@@ -67,8 +68,10 @@ object CompatSuite extends weaver.IOSuite:
 
   def fakeClient: ESClient[IO] = new:
 
+    @nowarn("msg=unused implicit")
     override def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): IO[Unit] = IO.unit
 
+    @nowarn("msg=unused implicit")
     override def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): IO[Unit] = IO.unit
 
     override def putMapping(index: Index): IO[Unit] = IO.unit
@@ -79,9 +82,11 @@ object CompatSuite extends weaver.IOSuite:
 
     override def deleteMany(index: Index, ids: List[Id]): IO[Unit] = IO.unit
 
+    @nowarn("msg=unused implicit")
     override def count[A](query: A)(using Queryable[A]) =
       IO.pure(0)
 
+    @nowarn("msg=unused implicit")
     override def search[A](query: A, from: From, size: Size)(using Queryable[A]) =
       IO.pure(Nil)
 
