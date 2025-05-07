@@ -3,7 +3,7 @@ import org.typelevel.scalacoptions.ScalacOptions
 
 inThisBuild(
   Seq(
-    scalaVersion  := "3.6.4",
+    scalaVersion  := "3.7.0",
     versionScheme := Some("early-semver"),
     organization  := "org.lichess.search",
     run / fork    := true,
@@ -17,7 +17,6 @@ inThisBuild(
 
 val commonSettings = Seq(
   tpolecatScalacOptions ++= Set(
-    ScalacOptions.sourceFuture,
     ScalacOptions.other("-rewrite"),
     ScalacOptions.other("-indent"),
     ScalacOptions.explain,
