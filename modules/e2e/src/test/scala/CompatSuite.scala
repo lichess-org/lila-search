@@ -14,7 +14,6 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.Meter
 import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
 import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
-import play.api.libs.ws.*
 import play.api.libs.ws.ahc.*
 
 import scala.concurrent.ExecutionContext.Implicits.*

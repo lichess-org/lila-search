@@ -9,7 +9,6 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.experimental.metrics.*
 import org.typelevel.otel4s.instrumentation.ce.IORuntimeMetrics
 import org.typelevel.otel4s.metrics.{ Meter, MeterProvider }
-import org.typelevel.otel4s.sdk.*
 import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
 import org.typelevel.otel4s.sdk.metrics.SdkMetrics
 import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
