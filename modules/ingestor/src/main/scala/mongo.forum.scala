@@ -65,7 +65,7 @@ object ForumRepo:
             val (toDelete, toIndex) = events.partition(_.isErased)
             toIndex.toSources
               .map: sources =>
-                Result(sources, toDelete.flatten(_.id.map(Id.apply)), none)
+                Result(sources, toDelete.flatten(using _.id.map(Id.apply)), none)
 
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[ForumSource]] =
       val builder = posts.watch(aggregate(config.maxPostLength))
@@ -82,13 +82,13 @@ object ForumRepo:
         .evalTap(_.traverse_(x => debug"received $x"))
         .map(_.toList.distincByDocId)
         .evalMap: events =>
-          val lastEventTimestamp  = events.flatten(_.clusterTime.flatMap(_.asInstant)).maxOption
+          val lastEventTimestamp  = events.flatten(using _.clusterTime.flatMap(_.asInstant)).maxOption
           val (toDelete, toIndex) = events.partition(_.isDelete)
           toIndex
-            .flatten(_.fullDocument)
+            .flatten(using _.fullDocument)
             .toSources
             .map: sources =>
-              Result(sources, toDelete.flatten(_.docId.map(Id.apply)), lastEventTimestamp)
+              Result(sources, toDelete.flatten(using _.docId.map(Id.apply)), lastEventTimestamp)
 
     // Fetches topic names by their ids
     private def topicByIds(ids: Seq[String]): IO[Map[String, String]] =

@@ -3,6 +3,7 @@ package ingestor
 
 import cats.effect.*
 import cats.syntax.all.*
+import chess.Clock.Config
 import chess.Speed
 import chess.variant.*
 import com.mongodb.client.model.changestream.FullDocument
@@ -13,7 +14,6 @@ import mongo4cats.collection.MongoCollection
 import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument
 import mongo4cats.operations.{ Aggregate, Filter, Projection }
-import org.bson.BsonTimestamp
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
@@ -78,8 +78,8 @@ object GameRepo:
           val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
           val (toDelete, toIndex) = events.partition(_.operationType == DELETE)
           Result(
-            toIndex.flatten(_.fullDocument.map(_.toSource)),
-            toDelete.flatten(_.docId.map(Id.apply)),
+            toIndex.flatten(using _.fullDocument.map(_.toSource)),
+            toDelete.flatten(using _.docId.map(Id.apply)),
             lastEventTimestamp
           )
 
@@ -140,15 +140,15 @@ case class DbGame(
     source: Option[Int],                    // so
     winnerColor: Option[Boolean]            // w
 ):
-  def clockConfig      = encodedClock.flatMap(ClockDecoder.read).map(_.white)
-  def clockInit        = clockConfig.map(_.limitSeconds.value)
-  def clockInc         = clockConfig.map(_.incrementSeconds.value)
-  def whiteId          = players.headOption
-  def blackId          = players.lift(1)
-  def variantOrDefault = Variant.idOrDefault(variant.map(Variant.Id.apply))
-  def speed            = Speed(clockConfig)
-  def loser            = players.find(_.some != winnerId)
-  def aiLevel          = whitePlayer.flatMap(_.aiLevel).orElse(blackPlayer.flatMap(_.aiLevel))
+  def clockConfig: Option[Config] = encodedClock.flatMap(ClockDecoder.read)
+  def clockInit: Option[Int]      = clockConfig.map(_.limitSeconds.value)
+  def clockInc: Option[Int]       = clockConfig.map(_.incrementSeconds.value)
+  def whiteId: Option[PlayerId]   = players.headOption
+  def blackId: Option[PlayerId]   = players.lift(1)
+  def variantOrDefault: Variant   = Variant.idOrDefault(variant.map(Variant.Id.apply))
+  def speed: Speed                = Speed(clockConfig)
+  def loser: Option[PlayerId]     = players.find(_.some != winnerId)
+  def aiLevel: Option[Int]        = whitePlayer.flatMap(_.aiLevel).orElse(blackPlayer.flatMap(_.aiLevel))
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/core/src/main/game/Game.scala#L261
   private def averageUsersRating =
@@ -162,7 +162,7 @@ case class DbGame(
     val seconds = (movedAt.toEpochMilli / 1000 - createdAt.toEpochMilli / 1000)
     Option.when(seconds < 60 * 60 * 12)(seconds.toInt)
 
-  def toSource =
+  def toSource: (String, GameSource) =
     id ->
       GameSource(
         status = status,
@@ -244,8 +244,7 @@ object ClockDecoder:
 
   private inline def toInt(inline b: Byte): Int = b & 0xff
 
-  def read(ba: Array[Byte]): Option[ByColor[Clock.Config]] =
-    ByColor: color =>
-      ba.take(2).map(toInt) match
-        case Array(b1, b2) => Clock.Config(readClockLimit(b1), Clock.IncrementSeconds(b2)).some
-        case _             => None
+  def read(ba: Array[Byte]): Option[Clock.Config] =
+    ba.take(2).map(toInt) match
+      case Array(b1, b2) => Clock.Config(readClockLimit(b1), Clock.IncrementSeconds(b2)).some
+      case _             => None

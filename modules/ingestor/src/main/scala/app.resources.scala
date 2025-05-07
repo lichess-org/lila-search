@@ -8,7 +8,6 @@ import com.mongodb.ReadPreference
 import mongo4cats.client.MongoClient
 import mongo4cats.database.MongoDatabase
 import org.http4s.ember.client.EmberClientBuilder
-import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.metrics.Meter
 
 class AppResources(
@@ -21,7 +20,7 @@ class AppResources(
 
 object AppResources:
 
-  def instance(conf: AppConfig)(using Logger[IO], Meter[IO], IORuntime): Resource[IO, AppResources] =
+  def instance(conf: AppConfig)(using Meter[IO], IORuntime): Resource[IO, AppResources] =
     (
       makeMongoClient(conf.mongo),
       makeStudyMongoClient(conf.mongo),
