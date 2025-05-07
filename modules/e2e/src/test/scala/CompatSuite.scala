@@ -67,13 +67,9 @@ object CompatSuite extends weaver.IOSuite:
 
   def fakeClient: ESClient[IO] = new:
 
-    override def store[A](index: Index, id: Id, obj: A)(implicit
-        indexable: Indexable[A]
-    ): IO[Unit] = IO.unit
+    override def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): IO[Unit] = IO.unit
 
-    override def storeBulk[A](index: Index, objs: Seq[(String, A)])(implicit
-        indexable: Indexable[A]
-    ): IO[Unit] = IO.unit
+    override def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): IO[Unit] = IO.unit
 
     override def putMapping(index: Index): IO[Unit] = IO.unit
 
@@ -83,10 +79,10 @@ object CompatSuite extends weaver.IOSuite:
 
     override def deleteMany(index: Index, ids: List[Id]): IO[Unit] = IO.unit
 
-    override def count[A](query: A)(implicit q: Queryable[A]) =
+    override def count[A](query: A)(using Queryable[A]) =
       IO.pure(0)
 
-    override def search[A](query: A, from: From, size: Size)(implicit q: Queryable[A]) =
+    override def search[A](query: A, from: From, size: Size)(using Queryable[A]) =
       IO.pure(Nil)
 
     override def status: IO[String] = IO.pure("yellow")
