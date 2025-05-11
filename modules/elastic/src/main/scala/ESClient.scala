@@ -1,12 +1,10 @@
 package lila.search
 
 import cats.effect.*
-import cats.effect.unsafe.IORuntime
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
-import com.sksamuel.elastic4s.cats.effect.instances.*
 import com.sksamuel.elastic4s.http4s.Http4sClient
-import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Executor, Functor, Index as ESIndex, Indexable }
+import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index as ESIndex, Indexable }
 import lila.search.ESClient.MetricKeys.*
 import org.http4s.Uri
 import org.http4s.client.Client
@@ -29,19 +27,19 @@ trait ESClient[F[_]]:
 
 object ESClient:
 
-  def apply(uri: Uri)(client: Client[IO])(using Meter[IO], IORuntime): IO[ESClient[IO]] =
+  def apply(uri: Uri)(client: Client[IO])(using Meter[IO]): IO[ESClient[IO]] =
     Meter[IO]
       .histogram[Double]("db.client.operation.duration")
       .withUnit("ms")
       .create
       .map(
         apply(
-          ElasticClient(Http4sClient.usingIO(client, uri)),
+          ElasticClient(new Http4sClient(client, uri)),
           Attributes(Attribute("db.system", "elasticsearch"), Attribute("server.address", uri.toString()))
         )
       )
 
-  def apply[F[_]: {MonadCancelThrow, Functor, Executor}](client: ElasticClient, baseAttributes: Attributes)(
+  def apply[F[_]: MonadCancelThrow](client: ElasticClient[F], baseAttributes: Attributes)(
       metric: Histogram[F, Double]
   ) = new ESClient[F]:
 

@@ -1,8 +1,6 @@
 package lila.search
 package app
 package test
-
-import cats.effect.unsafe.implicits.global
 import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
 import com.comcast.ip4s.*

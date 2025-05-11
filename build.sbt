@@ -56,7 +56,6 @@ lazy val elastic = project
       catsCore,
       catsEffect,
       http4sClient,
-      elastic4sCatsEffect,
       elastic4sHttp4sClient,
       otel4sCore
     )
