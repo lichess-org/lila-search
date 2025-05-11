@@ -11,7 +11,7 @@ object Dependencies {
     val chess      = "17.3.0"
     val ciris      = "3.8.0"
     val decline    = "2.5.0"
-    val elastic4s  = "8.18.0"
+    val elastic4s  = "9.0.0-RC1"
     val fs2        = "3.12.0"
     val http4s     = "0.23.30"
     val iron       = "2.5.0"
@@ -50,7 +50,6 @@ object Dependencies {
   val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.11"
 
   val elastic4sHttp4sClient = "nl.gn0s1s" %% "elastic4s-client-http4s" % V.elastic4s
-  val elastic4sCatsEffect = "nl.gn0s1s" %% "elastic4s-effect-cats"   % V.elastic4s
 
   val mongo4catsCore = "io.github.kirill5k" %% "mongo4cats-core" % V.mongo4cats
   val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % V.mongo4cats

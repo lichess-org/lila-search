@@ -1,7 +1,6 @@
 package lila.search
 package ingestor
 
-import cats.effect.unsafe.IORuntime
 import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
 import com.mongodb.ReadPreference
@@ -20,7 +19,7 @@ class AppResources(
 
 object AppResources:
 
-  def instance(conf: AppConfig)(using Meter[IO], IORuntime): Resource[IO, AppResources] =
+  def instance(conf: AppConfig)(using Meter[IO]): Resource[IO, AppResources] =
     (
       makeMongoClient(conf.mongo),
       makeStudyMongoClient(conf.mongo),
@@ -29,7 +28,7 @@ object AppResources:
       KVStore.apply().toResource
     ).parMapN(AppResources.apply)
 
-  private def makeElasticClient(conf: ElasticConfig)(using Meter[IO], IORuntime): Resource[IO, ESClient[IO]] =
+  private def makeElasticClient(conf: ElasticConfig)(using Meter[IO]): Resource[IO, ESClient[IO]] =
     EmberClientBuilder.default[IO].build.evalMap(ESClient(conf.uri))
 
   private def makeMongoClient(conf: MongoConfig) =
