@@ -11,7 +11,7 @@ object Dependencies {
     val chess      = "17.3.0"
     val ciris      = "3.8.0"
     val decline    = "2.5.0"
-    val elastic4s  = "9.0.0-RC1"
+    val elastic4s  = "9.0.0-RC2"
     val fs2        = "3.12.0"
     val http4s     = "0.23.30"
     val iron       = "2.5.0"
