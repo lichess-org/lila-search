@@ -11,7 +11,7 @@ object Dependencies {
     val chess      = "17.3.0"
     val ciris      = "3.8.0"
     val decline    = "2.5.0"
-    val elastic4s  = "9.0.0-RC1"
+    val elastic4s  = "9.0.0-RC2"
     val fs2        = "3.12.0"
     val http4s     = "0.23.30"
     val iron       = "2.5.0"
@@ -44,8 +44,8 @@ object Dependencies {
   lazy val smithy4sHttp4sSwagger = smithy4s("http4s-swagger")
   lazy val smithy4sJson          = smithy4s("json")
 
-  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.35.3"
-  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.35.3"
+  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.36.2"
+  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.36.2"
 
   val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.11"
 
