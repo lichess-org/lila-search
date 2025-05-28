@@ -61,7 +61,7 @@ object Dependencies {
   val otel4sInstrumentationMetrics =   "org.typelevel" %% "otel4s-instrumentation-metrics" % V.otel4s
   val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.6.0"
 
-  val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.0"
+  val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.1"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.18"
 
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.8"
