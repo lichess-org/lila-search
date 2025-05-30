@@ -8,7 +8,7 @@ import org.testcontainers.containers.wait.strategy.Wait
 
 object ElasticSearchContainer:
 
-  private val PORT = 9200
+  private val PORT      = 9200
   private val container =
     val env = Map(
       "discovery.type"         -> "single-node",

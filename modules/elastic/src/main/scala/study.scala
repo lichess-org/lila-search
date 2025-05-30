@@ -21,7 +21,7 @@ case class Study(text: String, userId: Option[String]):
   def countDef = count(Study.index).query(makeQuery)
 
   private def makeQuery = {
-    val parsed = QueryParser(text, List("owner", "member"))
+    val parsed         = QueryParser(text, List("owner", "member"))
     val matcher: Query =
       if parsed.terms.isEmpty then matchAllQuery()
       else

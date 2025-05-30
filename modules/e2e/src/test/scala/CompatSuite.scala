@@ -31,7 +31,7 @@ object CompatSuite extends weaver.IOSuite:
     val res = AppResources(fakeClient)
     for
       given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
-      res <- App
+      res                           <- App
         .mkServer(res, testAppConfig)
         .flatMap(_ => wsClient)
         .map(SearchClient.play(_, "http://localhost:9999/api"))

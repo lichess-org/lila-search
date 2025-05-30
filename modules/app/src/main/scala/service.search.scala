@@ -25,7 +25,7 @@ class SearchServiceImpl(esClient: ESClient[IO], metric: Histogram[IO, Double])(u
   private val logger: Logger[IO] = LoggerFactory[IO].getLogger
 
   private val baseAttributes = Attributes(Attribute("http.request.method", "POST"))
-  private val countMetric =
+  private val countMetric    =
     metric
       .recordDuration(
         TimeUnit.MILLISECONDS,
