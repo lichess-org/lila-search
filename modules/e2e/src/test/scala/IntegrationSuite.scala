@@ -122,7 +122,7 @@ object IntegrationSuite extends IOSuite:
 
   val defaultIntRange  = IntRange(none, none)
   val defaultDateRange = DateRange(none, none)
-  val defaultGame = Query.game(
+  val defaultGame      = Query.game(
     turns = defaultIntRange,
     averageRating = defaultIntRange,
     aiLevel = defaultIntRange,

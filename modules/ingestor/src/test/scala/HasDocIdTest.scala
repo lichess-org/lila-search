@@ -14,7 +14,7 @@ object HasDocIdTest extends SimpleIOSuite with Checkers:
   given HasDocId[Change]:
     extension (a: Change) def docId: Option[String] = a.docId
 
-  given Show[Change] = Show.fromToString
+  given Show[Change]      = Show.fromToString
   given Arbitrary[Change] = Arbitrary:
     for
       value <- Gen.posNum[Int]
