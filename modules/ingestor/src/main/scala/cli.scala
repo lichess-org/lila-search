@@ -32,8 +32,8 @@ object cli
 
   def makeIngestor: Resource[IO, Ingestors] =
     for
-      config <- AppConfig.load.toResource
-      res    <- AppResources.instance(config)
+      config   <- AppConfig.load.toResource
+      res      <- AppResources.instance(config)
       ingestor <- Ingestors(
         res.lichess,
         res.study,
