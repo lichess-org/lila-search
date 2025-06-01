@@ -4,11 +4,12 @@ import smithy4s.codegen.BuildInfo.version as smithy4sVersion
 object Dependencies {
 
   val lilaMaven = "lila-maven" at "https://raw.githubusercontent.com/lichess-org/lila-maven/master"
-  val ourResolvers = Seq(lilaMaven)
+  val jitpack = "jitpack".at("https://jitpack.io")
+  val ourResolvers = Seq(lilaMaven, jitpack)
 
   object V {
     val catsEffect = "3.6.1"
-    val chess      = "17.3.0"
+    val chess      = "17.7.2"
     val ciris      = "3.8.0"
     val decline    = "2.5.0"
     val elastic4s  = "9.0.0-RC2"
@@ -22,7 +23,7 @@ object Dependencies {
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
   def smithy4s(artifact: String) = "com.disneystreaming.smithy4s" %% s"smithy4s-$artifact" % smithy4sVersion
 
-  val chess = "org.lichess" %% "scalachess" % V.chess
+  val chess = "com.github.lichess-org.scalachess" %% "scalachess" % V.chess
 
   val catsCore   = "org.typelevel" %% "cats-core"   % "2.13.0"
   val catsEffect = "org.typelevel" %% "cats-effect" % V.catsEffect
