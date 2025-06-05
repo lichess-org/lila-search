@@ -8,6 +8,7 @@ import lila.search.game.Game
 import lila.search.spec.*
 import lila.search.study.Study
 import lila.search.team.Team
+import lila.search.ublog.Ublog
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.{ Histogram, Meter }
 import org.typelevel.otel4s.{ Attribute, AttributeKey, Attributes }
@@ -82,6 +83,7 @@ object SearchServiceImpl:
       def searchDef(from: From, size: Size) =
         query match
           case q: Query.Forum => q.to[Forum].searchDef(from, size)
+          case q: Query.Ublog => q.to[Ublog].searchDef(from, size)
           case q: Query.Game  => q.to[Game].searchDef(from, size)
           case q: Query.Study => q.to[Study].searchDef(from, size)
           case q: Query.Team  => q.to[Team].searchDef(from, size)
@@ -89,12 +91,14 @@ object SearchServiceImpl:
       def countDef =
         query match
           case q: Query.Forum => q.to[Forum].countDef
+          case q: Query.Ublog => q.to[Ublog].countDef
           case q: Query.Game  => q.to[Game].countDef
           case q: Query.Study => q.to[Study].countDef
           case q: Query.Team  => q.to[Team].countDef
 
       def index = query match
         case _: Query.Forum => Index.Forum
+        case _: Query.Ublog => Index.Ublog
         case _: Query.Game  => Index.Game
         case _: Query.Study => Index.Study
         case _: Query.Team  => Index.Team

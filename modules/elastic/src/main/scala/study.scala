@@ -9,7 +9,7 @@ case class Study(text: String, userId: Option[String]):
 
   def searchDef(from: From, size: Size) =
     search(Study.index)
-      .query(makeQuery)
+      .query(makeQuery())
       .fetchSource(false)
       .sortBy(
         fieldSort("_score").order(SortOrder.DESC),
@@ -18,9 +18,9 @@ case class Study(text: String, userId: Option[String]):
       .start(from.value)
       .size(size.value)
 
-  def countDef = count(Study.index).query(makeQuery)
+  def countDef = count(Study.index).query(makeQuery())
 
-  private def makeQuery = {
+  private def makeQuery() = {
     val parsed         = QueryParser(text, List("owner", "member"))
     val matcher: Query =
       if parsed.terms.isEmpty then matchAllQuery()

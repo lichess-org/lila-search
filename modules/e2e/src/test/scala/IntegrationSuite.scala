@@ -74,6 +74,27 @@ object IntegrationSuite extends IOSuite:
           y <- service.search(Query.forum("nt9", false), from, size)
         yield expect(x.hitIds.size == 1 && x == y)
 
+  test("ublog"): res =>
+    Clients
+      .search(uri)
+      .use: service =>
+        for
+          _ <- res.esClient.putMapping(Index.Ublog)
+          _ <- res.esClient.store(
+            Index.Ublog,
+            Id("abcdefgh"),
+            ingestor.UblogSource(
+              text = "lil bubber, hayo!",
+              language = "en",
+              date = Instant.now().toEpochMilli(),
+              quality = 1.some
+            )
+          )
+          _ <- res.esClient.refreshIndex(Index.Ublog)
+          x <- service.search(Query.ublog("lil bubber", 1.some), from, size)
+          y <- service.search(Query.ublog("hayo", 2.some), from, size)
+        yield expect(x.hitIds.size == 1 && y.hitIds.isEmpty)
+
   test("team"): res =>
     Clients
       .search(uri)

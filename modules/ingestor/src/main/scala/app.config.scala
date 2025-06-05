@@ -51,6 +51,7 @@ object ElasticConfig:
 
 case class IngestorConfig(
     forum: IngestorConfig.Forum,
+    ublog: IngestorConfig.Ublog,
     team: IngestorConfig.Team,
     study: IngestorConfig.Study,
     game: IngestorConfig.Game
@@ -58,6 +59,7 @@ case class IngestorConfig(
 
 object IngestorConfig:
   case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Instant], maxPostLength: Int)
+  case class Ublog(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
   case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
   case class Study(batchSize: Int, startAt: Option[Instant], interval: FiniteDuration, databaseName: String)
   case class Game(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
@@ -72,6 +74,15 @@ object IngestorConfig:
     private def maxPostLength =
       env("INGESTOR_FORUM_MAX_POST_LENGTH").or(prop("ingestor.forum.max.post.length")).as[Int].default(5_000)
     def config = (batchSize, timeWindows, startAt, maxPostLength).parMapN(Forum.apply)
+
+  private object Ublog:
+    private def batchSize =
+      env("INGESTOR_UBLOG_BATCH_SIZE").or(prop("ingestor.ublog.batch.size")).as[Int].default(100)
+    private def timeWindows =
+      env("INGESTOR_UBLOG_TIME_WINDOWS").or(prop("ingestor.ublog.time.windows")).as[Int].default(10)
+    private def startAt =
+      env("INGESTOR_UBLOG_START_AT").or(prop("ingestor.forum.start.at")).as[Instant].option
+    def config = (batchSize, timeWindows, startAt).parMapN(Ublog.apply)
 
   private object Team:
     private def batchSize =
@@ -104,7 +115,7 @@ object IngestorConfig:
       env("INGESTOR_GAME_START_AT").or(prop("ingestor.game.start.at")).as[Instant].option
     def config = (batchSize, timeWindows, startAt).mapN(Game.apply)
 
-  def config = (Forum.config, Team.config, Study.config, Game.config).mapN(IngestorConfig.apply)
+  def config = (Forum.config, Ublog.config, Team.config, Study.config, Game.config).mapN(IngestorConfig.apply)
 
 object CirisCodec:
   given ConfigDecoder[String, Instant] = ConfigDecoder[String]

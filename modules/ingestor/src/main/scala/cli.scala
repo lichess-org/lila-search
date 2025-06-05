@@ -54,6 +54,8 @@ object cli
       opts.index match
         case Index.Forum =>
           ingestor.forum.run(opts.since, opts.until, opts.dry)
+        case Index.Ublog =>
+          ingestor.ublog.run(opts.since, opts.until, opts.dry)
         case Index.Study =>
           ingestor.study.run(opts.since, opts.until, opts.dry)
         case Index.Game =>
@@ -62,6 +64,7 @@ object cli
           ingestor.team.run(opts.since, opts.until, opts.dry)
         case _ =>
           ingestor.forum.run(opts.since, opts.until, opts.dry) *>
+            ingestor.ublog.run(opts.since, opts.until, opts.dry) *>
             ingestor.study.run(opts.since, opts.until, opts.dry) *>
             ingestor.game.run(opts.since, opts.until, opts.dry) *>
             ingestor.team.run(opts.since, opts.until, opts.dry)
@@ -72,12 +75,15 @@ object cli
           ingestor.game.watch(opts.since.some, opts.dry)
         case Index.Forum =>
           ingestor.forum.watch(opts.since.some, opts.dry)
+        case Index.Ublog =>
+          ingestor.ublog.watch(opts.since.some, opts.dry)
         case Index.Team =>
           ingestor.team.watch(opts.since.some, opts.dry)
         case Index.Study =>
           ingestor.study.watch(opts.since.some, opts.dry)
         case _ =>
           ingestor.forum.watch(opts.since.some, opts.dry) *>
+            ingestor.ublog.watch(opts.since.some, opts.dry) *>
             ingestor.team.watch(opts.since.some, opts.dry) *>
             ingestor.study.watch(opts.since.some, opts.dry) *>
             ingestor.game.watch(opts.since.some, opts.dry)
@@ -95,7 +101,7 @@ object opts:
         long = "index",
         help = "Target index",
         short = "i",
-        metavar = "forum|team|study|game"
+        metavar = "forum|ublog|team|study|game"
       )
 
   val allIndexOpt =

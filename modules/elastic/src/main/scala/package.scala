@@ -19,6 +19,7 @@ extension (index: Index)
 
   def mapping = index match
     case Index.Forum => forum.Mapping.fields
+    case Index.Ublog => ublog.Mapping.fields
     case Index.Game  => game.Mapping.fields
     case Index.Study => study.Mapping.fields
     case Index.Team  => team.Mapping.fields
