@@ -55,7 +55,7 @@ class SearchServiceImpl(esClient: ESClient[IO], metric: Histogram[IO, Double])(u
         .count(query)
         .map(CountOutput.apply)
         .handleErrorWith: e =>
-          logger.error(e)(s"Error in count: query=$query") *>
+          logger.error(e)(s"Error in count: query=${query.toString}") *>
             IO.raiseError(InternalServerError("Internal server error"))
 
   override def search(query: Query, from: From, size: Size): IO[SearchOutput] =
@@ -64,7 +64,7 @@ class SearchServiceImpl(esClient: ESClient[IO], metric: Histogram[IO, Double])(u
         .search(query, from, size)
         .map(SearchOutput.apply)
         .handleErrorWith: e =>
-          logger.error(e)(s"Error in search: query=$query, from=$from, size=$size") *>
+          logger.error(e)(s"Error in search: query=${query.toString}, from=$from, size=$size") *>
             IO.raiseError(InternalServerError("Internal server error"))
 
 object SearchServiceImpl:

@@ -16,7 +16,7 @@ class HealthServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends
       .map(HealthCheckOutput(_))
       .handleErrorWith: e =>
         Logger[IO].error(e)("Error in health check") *>
-          IO.raiseError(InternalServerError(s"Internal server error $e"))
+          IO.raiseError(InternalServerError(s"Internal server error ${e.getMessage}"))
 
   private def transform(status: String): IO[ElasticStatus] =
     status match

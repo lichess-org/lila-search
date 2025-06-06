@@ -25,7 +25,7 @@ object App extends IOApp.Simple:
       given Meter[IO]               <- mkMeter
       _                             <- RuntimeMetrics.register[IO]
       config                        <- AppConfig.load.toResource
-      _   <- Logger[IO].info(s"Starting lila-search with config: $config").toResource
+      _   <- Logger[IO].info(s"Starting lila-search with config: ${config.toString}").toResource
       res <- AppResources.instance(config)
       _   <- mkServer(res, config)
     yield ()
@@ -45,5 +45,5 @@ object App extends IOApp.Simple:
       apiRoutes <- Routes(res, config.server)
       httpRoutes = apiRoutes <+> mkPrometheusRoutes
       _ <- MkHttpServer().newEmber(config.server, httpRoutes.orNotFound)
-      _ <- Logger[IO].info(s"BuildInfo: ${BuildInfo}").toResource
+      _ <- Logger[IO].info(s"BuildInfo: ${BuildInfo.toString}").toResource
     yield ()

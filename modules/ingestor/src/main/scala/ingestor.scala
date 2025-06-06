@@ -90,5 +90,5 @@ object Ingestor:
     private val saveLastIndexedTimestamp: Option[Instant] => IO[Unit] =
       _.traverse_(time =>
         store.put(index.value, time)
-          *> Logger[IO].info(s"Stored last indexed time ${time.getEpochSecond} for $index")
+          *> Logger[IO].info(s"Stored last indexed time ${time.getEpochSecond} for ${index.value}")
       )
