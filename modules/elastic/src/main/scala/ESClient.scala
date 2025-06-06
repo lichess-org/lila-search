@@ -18,7 +18,7 @@ trait ESClient[F[_]]:
   def search[A](query: A, from: From, size: Size)(using Queryable[A]): F[List[Id]]
   def count[A](query: A)(using Queryable[A]): F[Long]
   def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): F[Unit]
-  def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): F[Unit]
+  def storeBulk[A](index: Index, objs: Seq[SourceWithId[A]])(using Indexable[A]): F[Unit]
   def deleteOne(index: Index, id: Id): F[Unit]
   def deleteMany(index: Index, ids: List[Id]): F[Unit]
   def putMapping(index: Index): F[Unit]
@@ -96,9 +96,9 @@ object ESClient:
             .execute(indexInto(index.value).source(obj).id(id.value))
             .flatMap(_.unitOrFail)
 
-    def storeBulk[A](index: Index, objs: Seq[(String, A)])(using Indexable[A]): F[Unit] =
+    def storeBulk[A](index: Index, objs: Seq[SourceWithId[A]])(using Indexable[A]): F[Unit] =
       val request  = indexInto(index.value)
-      val requests = bulk(objs.map((id, obj) => request.source(obj).id(id)))
+      val requests = bulk(objs.map { case (id, source) => request.source(source).id(id) })
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,

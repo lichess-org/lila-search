@@ -78,12 +78,12 @@ object Ingestor:
           Logger[IO].error(e)(s"Failed to delete ${index.value}: ${ids.map(_.value).mkString(", ")}")
         .whenA(ids.nonEmpty)
 
-    private def storeBulk(index: Index, sources: List[(String, A)]): IO[Unit] =
+    private def storeBulk(index: Index, sources: List[SourceWithId[A]]): IO[Unit] =
       Logger[IO].info(s"Received ${sources.size} docs to ${index.value}") *>
         elastic
           .storeBulk(index, sources)
           .handleErrorWith: e =>
-            Logger[IO].error(e)(s"Failed to ${index.value} index: ${sources.map(_._1).mkString(", ")}")
+            Logger[IO].error(e)(s"Failed to ${index.value} index: ${sources.map(_.id).mkString(", ")}")
           .whenA(sources.nonEmpty)
         *> Logger[IO].info(s"Indexed ${sources.size} ${index.value}s")
 

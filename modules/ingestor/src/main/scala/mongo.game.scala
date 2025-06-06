@@ -89,7 +89,6 @@ object GameRepo:
         games
           .find(filter.and(gameFilter))
           .hint("ca_-1")
-          // .projection(postProjection)
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList)
@@ -162,7 +161,7 @@ case class DbGame(
     val seconds = (movedAt.toEpochMilli / 1000 - createdAt.toEpochMilli / 1000)
     Option.when(seconds < 60 * 60 * 12)(seconds.toInt)
 
-  def toSource: (String, GameSource) =
+  def toSource: SourceWithId[GameSource] =
     id ->
       GameSource(
         status = status,
@@ -191,7 +190,7 @@ case class DbGame(
   def debug =
     import smithy4s.json.Json.given
     import com.github.plokhotnyuk.jsoniter_scala.core.*
-    id -> writeToString(toSource._2)
+    id -> writeToString(toSource.source)
 
 object DbGame:
   // format: off

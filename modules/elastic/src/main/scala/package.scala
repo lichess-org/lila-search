@@ -6,6 +6,8 @@ import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.{ Index as ESIndex, Response }
 
+type SourceWithId[A] = (id: String, source: A)
+
 extension (self: Boolean) def fold[A](t: => A, f: => A): A = if self then t else f
 
 extension (queries: List[Query])
