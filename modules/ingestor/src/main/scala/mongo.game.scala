@@ -89,7 +89,6 @@ object GameRepo:
         games
           .find(filter.and(gameFilter))
           .hint("ca_-1")
-          // .projection(postProjection)
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList)
