@@ -21,7 +21,7 @@ val commonSettings = Seq(
     ScalacOptions.other("-indent"),
     ScalacOptions.explain,
     ScalacOptions.release("21"),
-    ScalacOptions.other("-Wsafe-init") // fix in: https://github.com/typelevel/scalac-options/pull/136
+    ScalacOptions.other("-Wall"),
   ),
   resolvers += "jitpack".at("https://jitpack.io")
 )
