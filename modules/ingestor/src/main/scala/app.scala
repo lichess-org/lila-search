@@ -23,10 +23,10 @@ object App extends IOApp.Simple:
       given Meter[IO] <- mkMeter
       _               <- RuntimeMetrics.register[IO]
       config          <- AppConfig.load.toResource
-      _               <- Logger[IO].info(s"Starting lila-search ingestor with config: $config").toResource
-      _               <- Logger[IO].info(s"BuildInfo: ${BuildInfo}").toResource
-      res             <- AppResources.instance(config)
-      _               <- IngestorApp(res, config).run()
+      _   <- Logger[IO].info(s"Starting lila-search ingestor with config: ${config.toString}").toResource
+      _   <- Logger[IO].info(s"BuildInfo: ${BuildInfo.toString}").toResource
+      res <- AppResources.instance(config)
+      _   <- IngestorApp(res, config).run()
     yield ()
 
   def mkMeter = SdkMetrics
