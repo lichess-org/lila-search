@@ -48,7 +48,7 @@ object StudyData:
       case Array(name, value) => Tag(name, value).asRight
       case _                  => "Invalid pgn tag $v".asLeft
 
-  given Encoder[Tag] = Encoder.encodeString.contramap(t => s"${t.name}:${t.value}")
+  given Encoder[Tag] = Encoder.encodeString.contramap(t => s"${t.name.toString}:${t.value}")
 
   private val relevantPgnTags: Set[chess.format.pgn.TagType] = Set(
     Tag.Variant,
@@ -114,5 +114,5 @@ object ChapterRepo:
         .stream
         .compile
         .toList
-        .flatTap(docs => Logger[IO].debug(s"Received $docs chapters"))
+        .flatTap(docs => Logger[IO].debug(s"Received ${docs.toString} chapters"))
         .map(_.map(x => x._id -> x).toMap)

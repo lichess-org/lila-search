@@ -29,4 +29,4 @@ object MkHttpServer:
       .evalTap(showBanner)
 
     private def showBanner(s: Server): IO[Unit] =
-      Logger[IO].info(s"lila-search started at ${s.address}")
+      Logger[IO].info(s"lila-search started at ${s.address.toString}")

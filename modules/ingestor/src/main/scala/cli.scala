@@ -129,7 +129,7 @@ object opts:
   ).mapN(IndexOpts.apply)
     .mapValidated(x =>
       if x.until.isAfter(x.since) then Validated.valid(x)
-      else Validated.invalidNel(s"since: ${x.since} must be before until: ${x.until}")
+      else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
     )
 
   val watchOpt = (
