@@ -70,6 +70,13 @@ structure Forum {
   troll: Boolean = false
 }
 
+structure Ublog {
+  @required
+  queryText: String
+  minQuality: Integer
+  language: String
+}
+
 structure Team {
   @required
   text: String
@@ -136,6 +143,7 @@ list Perfs {
 @adt
 union Query {
   forum: Forum
+  ublog: Ublog
   game: Game
   study: Study
   team: Team
