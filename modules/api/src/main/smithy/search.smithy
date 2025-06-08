@@ -73,6 +73,8 @@ structure Forum {
 structure Ublog {
   @required
   queryText: String
+  @required
+  byDate: Boolean
   minQuality: Integer
   language: String
 }

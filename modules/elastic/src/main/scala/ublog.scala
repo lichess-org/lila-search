@@ -4,13 +4,22 @@ package ublog
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
-case class Ublog(queryText: String, minQuality: Option[Int], language: Option[String]):
+case class Ublog(queryText: String, byDate: Boolean, minQuality: Option[Int], language: Option[String]):
 
   def searchDef(from: From, size: Size) =
-    search(Ublog.index)
+    val req = search(Ublog.index)
       .query(makeQuery())
       .fetchSource(false)
-      .sortBy(fieldSort(Fields.date).order(SortOrder.DESC))
+
+    val sorted =
+      if byDate then
+        req.sortBy(
+          fieldSort(Fields.quality).order(SortOrder.DESC).missing("_last"),
+          fieldSort(Fields.date).order(SortOrder.DESC)
+        )
+      else req
+
+    sorted
       .start(from.value)
       .size(size.value)
 
@@ -28,8 +37,8 @@ case class Ublog(queryText: String, minQuality: Option[Int], language: Option[St
       .must(baseQuery)
       .filter(
         List(
-          minQuality.map(f => rangeQuery("quality").gte(f)),
-          language.map(l => termQuery("language", l))
+          minQuality.map(f => rangeQuery(Fields.quality).gte(f)),
+          language.map(l => termQuery(Fields.language, l))
         ).flatten
       )
 
