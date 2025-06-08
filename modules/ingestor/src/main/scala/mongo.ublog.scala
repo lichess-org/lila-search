@@ -38,11 +38,9 @@ object UblogRepo:
       LoggerFactory[IO]
   ): IO[Repo[UblogSource]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
-    // (mongo.getCollection("ublog_blog"), mongo.getCollection("ublog_post")).mapN(apply(config))
     mongo.getCollection("ublog_post").map(apply(config))
 
   def apply(config: IngestorConfig.Ublog)(
-      // blogs: MongoCollection,
       posts: MongoCollection
   )(using Logger[IO]): Repo[UblogSource] = new:
 
@@ -53,7 +51,6 @@ object UblogRepo:
           .find(filter)
           .projection(postProjection)
           .boundedStream(config.batchSize)
-          .filter(_.isLive)
           .chunkN(config.batchSize)
           .map(_.toList)
           .metered(1.second)
@@ -100,11 +97,10 @@ object UblogRepo:
           text = s"$title\n$topics\n$author\n$intro\n$body"
           date <- doc.getNested(F.livedAt).flatMap(_.asInstant).map(_.toEpochMilli)
           quality = doc.getNestedAs[Int](F.quality)
-          if doc.isLive
         yield UblogSource(text, language, date, quality)
 
       private def isLive: Boolean =
-        doc.getBoolean("live").getOrElse(false)
+        doc.getBoolean("live").contains(true) && !doc.getNestedAs[Int](F.quality).exists(_ == 0)
 
     extension (event: ChangeStreamDocument[Document])
       private def isDelete: Boolean =
