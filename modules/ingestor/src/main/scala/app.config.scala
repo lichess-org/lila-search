@@ -81,7 +81,7 @@ object IngestorConfig:
     private def timeWindows =
       env("INGESTOR_UBLOG_TIME_WINDOWS").or(prop("ingestor.ublog.time.windows")).as[Int].default(10)
     private def startAt =
-      env("INGESTOR_UBLOG_START_AT").or(prop("ingestor.forum.start.at")).as[Instant].option
+      env("INGESTOR_UBLOG_START_AT").or(prop("ingestor.ublog.start.at")).as[Instant].option
     def config = (batchSize, timeWindows, startAt).parMapN(Ublog.apply)
 
   private object Team:
