@@ -6,35 +6,37 @@ import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
 case class Ublog(queryText: String, byDate: Boolean, minQuality: Option[Int], language: Option[String]):
 
+  val sanitized = queryText
+    .trim()
+    .toLowerCase()
+    .replaceAll("""([\-=&|><!(){}\[\]^"~*?\\/])""", """\\$1""")
+    .replaceAll(" and ", " AND ")
+    .replaceAll("\\+", " AND ")
+    .split("\\s+")
+    .map:
+      case s if s.matches("language:[a-z]{2}") || s.matches("quality:[1-3]") => s
+      case s => s.replace(":", " ") // devs can use the query string until we get a ui for lang/quality
+    .mkString(" ")
+
+  println(sanitized)
   def searchDef(from: From, size: Size) =
-    val req = search(Ublog.index)
+    val sortFields =
+      (if !byDate then Seq(scoreSort().order(SortOrder.DESC)) else Nil) ++ Seq(
+        fieldSort("quality").order(SortOrder.DESC).missing("_last"),
+        fieldSort("date").order(SortOrder.DESC)
+      )
+    search(Ublog.index)
       .query(makeQuery())
       .fetchSource(false)
-
-    val sorted =
-      if byDate then
-        req.sortBy(
-          fieldSort(Fields.quality).order(SortOrder.DESC).missing("_last"),
-          fieldSort(Fields.date).order(SortOrder.DESC)
-        )
-      else req
-
-    sorted
+      .sortBy(sortFields*)
       .start(from.value)
       .size(size.value)
 
   def countDef = count(Ublog.index).query(makeQuery())
 
   private def makeQuery() =
-    val parsed    = QueryParser(queryText, Nil)
-    val baseQuery =
-      if parsed.terms.isEmpty then matchAllQuery()
-      else
-        multiMatchQuery(parsed.terms.mkString(" "))
-          .fields(Ublog.searchableFields*)
-          .matchType("most_fields")
     boolQuery()
-      .must(baseQuery)
+      .must(queryStringQuery(sanitized).defaultField(Fields.text))
       .filter(
         List(
           minQuality.map(f => rangeQuery(Fields.quality).gte(f)),
@@ -43,8 +45,7 @@ case class Ublog(queryText: String, byDate: Boolean, minQuality: Option[Int], la
       )
 
 object Ublog:
-  val index                    = "ublog"
-  private val searchableFields = List(Fields.text)
+  val index = "ublog"
 
 object Fields:
   val text     = "text"
