@@ -92,7 +92,7 @@ object UblogRepo:
           intro    <- doc.getString(F.intro)
           body     <- doc.getString(F.markdown)
           author   <- doc.getString(F.blog).map(_.split(":")(1))
-          language <- doc.getString("language")
+          language <- doc.getString(F.language)
           topics   <- doc.getAs[List[String]](F.topics).map(_.mkString(" ").replaceAll("Chess", ""))
           text = s"$title\n$topics\n$author\n$intro\n$body"
           date <- doc.getNested(F.livedAt).flatMap(_.asInstant).map(_.toEpochMilli)
