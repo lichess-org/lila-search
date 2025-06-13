@@ -115,10 +115,11 @@ structure TeamSource {
 structure UblogSource {
   @required
   text: String
-  quality: Integer
   @required
   language: String
   @required
-  /// time in milliseconds
+  likes: Integer
+  @required
   date: Long
+  quality: Integer
 }

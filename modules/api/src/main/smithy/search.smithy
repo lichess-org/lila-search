@@ -74,7 +74,7 @@ structure Ublog {
   @required
   queryText: String
   @required
-  byDate: Boolean
+  by: SortBlogsBy
   minQuality: Integer
   language: String
 }
@@ -140,6 +140,13 @@ structure Sorting {
 
 list Perfs {
   member: Integer
+}
+
+enum SortBlogsBy {
+  Newest
+  Oldest
+  Score
+  Likes
 }
 
 @adt

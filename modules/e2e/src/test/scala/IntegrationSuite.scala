@@ -86,13 +86,14 @@ object IntegrationSuite extends IOSuite:
             ingestor.UblogSource(
               text = "lil bubber, hayo!",
               language = "en",
+              likes = 0,
               date = Instant.now().toEpochMilli(),
               quality = 1.some
             )
           )
           _ <- res.esClient.refreshIndex(Index.Ublog)
-          x <- service.search(Query.ublog("lil bubber", true, 1.some), from, size)
-          y <- service.search(Query.ublog("hayo", true, 2.some), from, size)
+          x <- service.search(Query.ublog("lil bubber", SortBlogsBy.Score, 1.some), from, size)
+          y <- service.search(Query.ublog("hayo", SortBlogsBy.Newest, 2.some), from, size)
         yield expect(x.hitIds.size == 1 && y.hitIds.isEmpty)
 
   test("team"): res =>

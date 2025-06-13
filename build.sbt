@@ -21,7 +21,7 @@ val commonSettings = Seq(
     ScalacOptions.other("-indent"),
     ScalacOptions.explain,
     ScalacOptions.release("21"),
-    ScalacOptions.other("-Wall"),
+    ScalacOptions.other("-Wall")
   ),
   resolvers += "jitpack".at("https://jitpack.io")
 )
@@ -46,6 +46,20 @@ lazy val core = project
     )
   )
 
+lazy val api = project
+  .in(file("modules/api"))
+  .enablePlugins(Smithy4sCodegenPlugin)
+  .settings(
+    name := "api",
+    commonSettings,
+    smithy4sWildcardArgument := "?",
+    libraryDependencies ++= Seq(
+      catsCore,
+      smithy4sCore
+    )
+  )
+  .dependsOn(core)
+
 lazy val elastic = project
   .in(file("modules/elastic"))
   .settings(
@@ -61,21 +75,7 @@ lazy val elastic = project
       otel4sCore
     )
   )
-  .dependsOn(core)
-
-lazy val api = project
-  .in(file("modules/api"))
-  .enablePlugins(Smithy4sCodegenPlugin)
-  .settings(
-    name := "api",
-    commonSettings,
-    smithy4sWildcardArgument := "?",
-    libraryDependencies ++= Seq(
-      catsCore,
-      smithy4sCore
-    )
-  )
-  .dependsOn(core)
+  .dependsOn(api, core)
 
 lazy val ingestor = project
   .in(file("modules/ingestor"))

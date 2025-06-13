@@ -22,7 +22,19 @@ object UblogRepo:
   private val interestedOperations = List(DELETE, INSERT, REPLACE, UPDATE).map(_.getValue)
 
   private val interestedFields =
-    List(_id, F.markdown, F.title, F.intro, F.topics, F.blog, F.live, F.livedAt, F.language, F.quality)
+    List(
+      _id,
+      F.markdown,
+      F.title,
+      F.intro,
+      F.topics,
+      F.blog,
+      F.live,
+      F.livedAt,
+      F.likes,
+      F.language,
+      F.quality
+    )
   private val postProjection = Projection.include(interestedFields)
 
   private val interestedEventFields =
@@ -93,11 +105,12 @@ object UblogRepo:
           body     <- doc.getString(F.markdown)
           author   <- doc.getString(F.blog).map(_.split(":")(1))
           language <- doc.getString(F.language)
+          likes    <- doc.getAs[Int](F.likes)
           topics   <- doc.getAs[List[String]](F.topics).map(_.mkString(" ").replaceAll("Chess", ""))
           text = s"$title\n$topics\n$author\n$intro\n$body"
           date <- doc.getNested(F.livedAt).flatMap(_.asInstant).map(_.toEpochMilli)
           quality = doc.getNestedAs[Int](F.quality)
-        yield UblogSource(text, language, date, quality)
+        yield UblogSource(text, language, likes, date, quality)
 
       private def isLive: Boolean =
         doc.getBoolean("live").contains(true) && !doc.getNestedAs[Int](F.quality).exists(_ == 0)
@@ -112,6 +125,7 @@ object UblogRepo:
     val intro    = "intro"
     val blog     = "blog"
     val language = "language"
+    val likes    = "likes"
     val live     = "live"
     val livedAt  = "lived.at"
     val quality  = "automod.quality"
