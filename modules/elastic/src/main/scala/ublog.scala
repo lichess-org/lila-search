@@ -3,6 +3,7 @@ package ublog
 
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
+
 import spec.SortBlogsBy
 
 case class Ublog(
