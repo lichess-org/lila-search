@@ -111,3 +111,15 @@ structure TeamSource {
   @jsonName("nbm")
   nbMembers: Integer
 }
+
+structure UblogSource {
+  @required
+  text: String
+  @required
+  language: String
+  @required
+  likes: Integer
+  @required
+  date: Long
+  quality: Integer
+}

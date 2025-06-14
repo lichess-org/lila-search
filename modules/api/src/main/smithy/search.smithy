@@ -70,6 +70,15 @@ structure Forum {
   troll: Boolean = false
 }
 
+structure Ublog {
+  @required
+  queryText: String
+  @required
+  by: SortBlogsBy
+  minQuality: Integer
+  language: String
+}
+
 structure Team {
   @required
   text: String
@@ -133,9 +142,17 @@ list Perfs {
   member: Integer
 }
 
+enum SortBlogsBy {
+  Newest
+  Oldest
+  Score
+  Likes
+}
+
 @adt
 union Query {
   forum: Forum
+  ublog: Ublog
   game: Game
   study: Study
   team: Team
