@@ -92,8 +92,8 @@ object IntegrationSuite extends IOSuite:
             )
           )
           _ <- res.esClient.refreshIndex(Index.Ublog)
-          x <- service.search(Query.ublog("lil bubber", SortBlogsBy.Score, 1.some), from, size)
-          y <- service.search(Query.ublog("hayo", SortBlogsBy.Newest, 2.some), from, size)
+          x <- service.search(Query.ublog("lil bubber", SortBlogsBy.score, 1.some), from, size)
+          y <- service.search(Query.ublog("hayo", SortBlogsBy.newest, 2.some), from, size)
         yield expect(x.hitIds.size == 1 && y.hitIds.isEmpty)
 
   test("team"): res =>

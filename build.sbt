@@ -84,7 +84,7 @@ lazy val ingestor = project
     name := "ingestor",
     commonSettings,
     buildInfoSettings,
-    dockerBaseImage := "docker.io/eclipse-temurin:21-jdk",
+    dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
     publish         := {},
     publish / skip  := true,
     libraryDependencies ++= Seq(
@@ -142,7 +142,7 @@ lazy val app = project
     name := "lila-search",
     commonSettings,
     buildInfoSettings,
-    dockerBaseImage := "docker.io/eclipse-temurin:21-jdk",
+    dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
     publish         := {},
     publish / skip  := true,
     libraryDependencies ++= Seq(
