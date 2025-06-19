@@ -25,15 +25,14 @@ case class Ublog(
       case s => s.replace(":", " ") // devs can use the query string until we get a ui for lang/quality
     .mkString(" ")
 
-  println(sanitized)
   def searchDef(from: From, size: Size) =
     val sortFields =
-      (if by == SortBlogsBy.Score then Seq(scoreSort().order(SortOrder.DESC))
-       else if by == SortBlogsBy.Likes then Seq(fieldSort("likes").order(SortOrder.DESC))
+      (if by == SortBlogsBy.score then Seq(scoreSort().order(SortOrder.DESC))
+       else if by == SortBlogsBy.likes then Seq(fieldSort("likes").order(SortOrder.DESC))
        else Nil) ++ Seq(
         fieldSort("quality").order(SortOrder.DESC).missing("_last"),
         fieldSort("date")
-          .order(if by == SortBlogsBy.Oldest then SortOrder.ASC else SortOrder.DESC)
+          .order(if by == SortBlogsBy.oldest then SortOrder.ASC else SortOrder.DESC)
           .missing("_last")
       )
     search(Ublog.index)

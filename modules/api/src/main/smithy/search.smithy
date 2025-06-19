@@ -143,10 +143,10 @@ list Perfs {
 }
 
 enum SortBlogsBy {
-  Newest
-  Oldest
-  Score
-  Likes
+  newest
+  oldest
+  score
+  likes
 }
 
 @adt
