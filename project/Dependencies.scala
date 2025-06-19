@@ -10,7 +10,7 @@ object Dependencies {
   object V {
     val catsEffect = "3.6.1"
     val chess      = "17.8.2"
-    val ciris      = "3.8.0"
+    val ciris      = "3.9.0"
     val decline    = "2.5.0"
     val elastic4s  = "9.0.0"
     val fs2        = "3.12.0"
@@ -45,8 +45,8 @@ object Dependencies {
   lazy val smithy4sHttp4sSwagger = smithy4s("http4s-swagger")
   lazy val smithy4sJson          = smithy4s("json")
 
-  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.36.4"
-  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.36.4"
+  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.36.5"
+  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.36.5"
 
   val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.11"
 
@@ -54,7 +54,7 @@ object Dependencies {
 
   val mongo4catsCore = "io.github.kirill5k" %% "mongo4cats-core" % V.mongo4cats
   val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % V.mongo4cats
-  val circe = "io.circe" %% "circe-core" % "0.14.13"
+  val circe = "io.circe" %% "circe-core" % "0.14.14"
 
   val otel4sCore =  "org.typelevel" %% "otel4s-core" % V.otel4s
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
@@ -65,7 +65,7 @@ object Dependencies {
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.1"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.18"
 
-  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.8"
+  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.9"
 
   val declineCore = "com.monovore" %% "decline" % V.decline
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
