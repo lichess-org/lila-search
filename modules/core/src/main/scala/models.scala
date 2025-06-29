@@ -29,6 +29,7 @@ object Id:
 
 enum Index(val value: String):
   case Forum extends Index("forum")
+  case Ublog extends Index("ublog")
   case Game  extends Index("game")
   case Study extends Index("study")
   case Team  extends Index("team")
@@ -37,6 +38,7 @@ object Index:
   def fromString(value: String): Either[String, Index] =
     value match
       case "forum" => Index.Forum.asRight
+      case "ublog" => Index.Ublog.asRight
       case "game"  => Index.Game.asRight
       case "study" => Index.Study.asRight
       case "team"  => Index.Team.asRight
