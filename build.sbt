@@ -21,7 +21,7 @@ val commonSettings = Seq(
     ScalacOptions.other("-indent"),
     ScalacOptions.explain,
     ScalacOptions.release("21"),
-    ScalacOptions.other("-Wall"),
+    ScalacOptions.other("-Wall")
   ),
   resolvers += "jitpack".at("https://jitpack.io")
 )
