@@ -46,6 +46,20 @@ lazy val core = project
     )
   )
 
+lazy val api = project
+  .in(file("modules/api"))
+  .enablePlugins(Smithy4sCodegenPlugin)
+  .settings(
+    name := "api",
+    commonSettings,
+    smithy4sWildcardArgument := "?",
+    libraryDependencies ++= Seq(
+      catsCore,
+      smithy4sCore
+    )
+  )
+  .dependsOn(core)
+
 lazy val elastic = project
   .in(file("modules/elastic"))
   .settings(
@@ -61,21 +75,7 @@ lazy val elastic = project
       otel4sCore
     )
   )
-  .dependsOn(core)
-
-lazy val api = project
-  .in(file("modules/api"))
-  .enablePlugins(Smithy4sCodegenPlugin)
-  .settings(
-    name := "api",
-    commonSettings,
-    smithy4sWildcardArgument := "?",
-    libraryDependencies ++= Seq(
-      catsCore,
-      smithy4sCore
-    )
-  )
-  .dependsOn(core)
+  .dependsOn(api, core)
 
 lazy val ingestor = project
   .in(file("modules/ingestor"))
@@ -84,8 +84,9 @@ lazy val ingestor = project
     name := "ingestor",
     commonSettings,
     buildInfoSettings,
-    publish        := {},
-    publish / skip := true,
+    dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
+    publish         := {},
+    publish / skip  := true,
     libraryDependencies ++= Seq(
       chess,
       catsCore,
@@ -141,8 +142,9 @@ lazy val app = project
     name := "lila-search",
     commonSettings,
     buildInfoSettings,
-    publish        := {},
-    publish / skip := true,
+    dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
+    publish         := {},
+    publish / skip  := true,
     libraryDependencies ++= Seq(
       smithy4sHttp4s,
       jsoniterCore,
