@@ -1,1 +1,1 @@
-ThisBuild / version := "3.2.1-UBLOG"
+ThisBuild / version := "3.2.0"
