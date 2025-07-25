@@ -14,19 +14,19 @@ import org.typelevel.otel4s.sdk.metrics.SdkMetrics
 object App extends IOApp.Simple:
 
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
-  given Logger[IO]        = LoggerFactory[IO].getLogger
+  given Logger[IO] = LoggerFactory[IO].getLogger
 
   override def run: IO[Unit] = app.useForever
 
   def app: Resource[IO, Unit] =
     for
       given Meter[IO] <- mkMeter
-      _               <- RuntimeMetrics.register[IO]
-      config          <- AppConfig.load.toResource
-      _   <- Logger[IO].info(s"Starting lila-search ingestor with config: ${config.toString}").toResource
-      _   <- Logger[IO].info(s"BuildInfo: ${BuildInfo.toString}").toResource
+      _ <- RuntimeMetrics.register[IO]
+      config <- AppConfig.load.toResource
+      _ <- Logger[IO].info(s"Starting lila-search ingestor with config: ${config.toString}").toResource
+      _ <- Logger[IO].info(s"BuildInfo: ${BuildInfo.toString}").toResource
       res <- AppResources.instance(config)
-      _   <- IngestorApp(res, config).run()
+      _ <- IngestorApp(res, config).run()
     yield ()
 
   def mkMeter = SdkMetrics

@@ -12,9 +12,9 @@ extension (self: Boolean) def fold[A](t: => A, f: => A): A = if self then t else
 
 extension (queries: List[Query])
   def compile: Query = queries match
-    case Nil      => matchAllQuery()
+    case Nil => matchAllQuery()
     case q :: Nil => q
-    case _        => boolQuery().filter(queries)
+    case _ => boolQuery().filter(queries)
 
 extension (index: Index)
   def toES: ESIndex = ESIndex(index.value)
@@ -22,14 +22,14 @@ extension (index: Index)
   def mapping = index match
     case Index.Forum => forum.Mapping.fields
     case Index.Ublog => ublog.Mapping.fields
-    case Index.Game  => game.Mapping.fields
+    case Index.Game => game.Mapping.fields
     case Index.Study => study.Mapping.fields
-    case Index.Team  => team.Mapping.fields
+    case Index.Team => team.Mapping.fields
 
   def refreshInterval =
     index match
       case Index.Study => "10s"
-      case _           => "300s"
+      case _ => "300s"
 
 extension [F[_]: MonadThrow, A](response: Response[A])
   def toResult: F[A] =

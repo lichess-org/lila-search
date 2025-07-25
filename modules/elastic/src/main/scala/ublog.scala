@@ -58,11 +58,11 @@ object Ublog:
   val index = "ublog"
 
 object Fields:
-  val text     = "text"
-  val likes    = "likes"
-  val quality  = "quality"
+  val text = "text"
+  val likes = "likes"
+  val quality = "quality"
   val language = "language"
-  val date     = "date"
+  val date = "date"
 
 object Mapping:
   import Fields.*

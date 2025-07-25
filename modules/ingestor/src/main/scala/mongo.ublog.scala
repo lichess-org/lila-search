@@ -85,7 +85,7 @@ object UblogRepo:
         .groupWithin(config.batchSize, config.timeWindows.second)
         .map(_.toList.distincByDocId)
         .map: docs =>
-          val lastEventTimestamp  = docs.flatten(using _.clusterTime.flatMap(_.asInstant)).maxOption
+          val lastEventTimestamp = docs.flatten(using _.clusterTime.flatMap(_.asInstant)).maxOption
           val (toDelete, toIndex) = docs.partition(_.isDelete)
           Result(
             toIndex.flatten(using _.fullDocument).toSources,
@@ -100,13 +100,13 @@ object UblogRepo:
     extension (doc: Document)
       private def toSource: Option[UblogSource] =
         for
-          title    <- doc.getString(F.title)
-          intro    <- doc.getString(F.intro)
-          body     <- doc.getString(F.markdown)
-          author   <- doc.getString(F.blog).map(_.split(":")(1))
+          title <- doc.getString(F.title)
+          intro <- doc.getString(F.intro)
+          body <- doc.getString(F.markdown)
+          author <- doc.getString(F.blog).map(_.split(":")(1))
           language <- doc.getString(F.language)
-          likes    <- doc.getAs[Int](F.likes)
-          topics   <- doc.getAs[List[String]](F.topics).map(_.mkString(" ").replaceAll("Chess", ""))
+          likes <- doc.getAs[Int](F.likes)
+          topics <- doc.getAs[List[String]](F.topics).map(_.mkString(" ").replaceAll("Chess", ""))
           text = s"$title\n$topics\n$author\n$intro\n$body"
           date <- doc.getNested(F.livedAt).flatMap(_.asInstant).map(_.toEpochMilli)
           quality = doc.getNestedAs[Int](F.quality)
@@ -121,12 +121,12 @@ object UblogRepo:
 
   object F:
     val markdown = "markdown"
-    val title    = "title"
-    val intro    = "intro"
-    val blog     = "blog"
+    val title = "title"
+    val intro = "intro"
+    val blog = "blog"
     val language = "language"
-    val likes    = "likes"
-    val live     = "live"
-    val livedAt  = "lived.at"
-    val quality  = "automod.quality"
-    val topics   = "topics"
+    val likes = "likes"
+    val live = "live"
+    val livedAt = "lived.at"
+    val quality = "automod.quality"
+    val topics = "topics"

@@ -20,9 +20,9 @@ import scala.concurrent.ExecutionContext.Implicits.*
 
 object CompatSuite extends weaver.IOSuite:
 
-  given Logger[IO]        = NoOpLogger[IO]
+  given Logger[IO] = NoOpLogger[IO]
   given LoggerFactory[IO] = NoOpFactory[IO]
-  given Meter[IO]         = Meter.noop[IO]
+  given Meter[IO] = Meter.noop[IO]
 
   override type Res = SearchClient
 
@@ -30,7 +30,7 @@ object CompatSuite extends weaver.IOSuite:
     val res = AppResources(fakeClient)
     for
       given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
-      res                           <- App
+      res <- App
         .mkServer(res, testAppConfig)
         .flatMap(_ => wsClient)
         .map(SearchClient.play(_, "http://localhost:9999/api"))

@@ -22,9 +22,9 @@ object cli
     ):
 
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
-  given Logger[IO]        = LoggerFactory[IO].getLogger
-  given Meter[IO]         = Meter.noop[IO]
-  given IORuntime         = runtime
+  given Logger[IO] = LoggerFactory[IO].getLogger
+  given Meter[IO] = Meter.noop[IO]
+  given IORuntime = runtime
 
   override def main: Opts[IO[ExitCode]] =
     opts.parse.map: opts =>
@@ -32,8 +32,8 @@ object cli
 
   def makeIngestor: Resource[IO, Ingestors] =
     for
-      config   <- AppConfig.load.toResource
-      res      <- AppResources.instance(config)
+      config <- AppConfig.load.toResource
+      res <- AppResources.instance(config)
       ingestor <- Ingestors(
         res.lichess,
         res.study,

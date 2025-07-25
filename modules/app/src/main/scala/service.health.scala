@@ -20,7 +20,7 @@ class HealthServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends
 
   private def transform(status: String): IO[ElasticStatus] =
     status match
-      case "green"  => ElasticStatus.green.pure[IO]
+      case "green" => ElasticStatus.green.pure[IO]
       case "yellow" => ElasticStatus.yellow.pure[IO]
-      case "red"    => ElasticStatus.red.pure[IO]
-      case _        => IO.raiseError(new Exception(s"Unknown status: $status"))
+      case "red" => ElasticStatus.red.pure[IO]
+      case _ => IO.raiseError(new Exception(s"Unknown status: $status"))

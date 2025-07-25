@@ -25,7 +25,7 @@ import Repo.{ *, given }
 object GameRepo:
 
   private val interestedOperations = List(UPDATE, DELETE).map(_.getValue)
-  private val eventFilter          = Filter.in("operationType", interestedOperations)
+  private val eventFilter = Filter.in("operationType", interestedOperations)
 
   private val interestedEventFields =
     List(
@@ -41,7 +41,7 @@ object GameRepo:
   val gameFilter: Filter =
     // Filter games that finished
     // https://github.com/lichess-org/scalachess/blob/18edf46a50445048fdc2ee5a83752e5b3884f490/core/src/main/scala/Status.scala#L18-L27
-    val statusFilter   = Filter.gte("s", 30)
+    val statusFilter = Filter.gte("s", 30)
     val noImportFilter = Filter.ne("so", 7)
     // us fields is the list of player ids, if it's missing then it's
     // an all anonymous (or anonymous vs stockfish) game
@@ -52,7 +52,7 @@ object GameRepo:
   val changeFilter: Filter =
     // Filter games that finished
     // https://github.com/lichess-org/scalachess/blob/18edf46a50445048fdc2ee5a83752e5b3884f490/core/src/main/scala/Status.scala#L18-L27
-    val statusFilter   = Filter.gte("fullDocument.s", 30)
+    val statusFilter = Filter.gte("fullDocument.s", 30)
     val noImportFilter = Filter.ne("fullDocument.so", 7)
     // us fields is the list of player ids, if it's missing then it's
     // an all anonymous (or anonymous vs stockfish) game
@@ -75,7 +75,7 @@ object GameRepo:
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[GameSource]] =
       changes(since)
         .map: events =>
-          val lastEventTimestamp  = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
+          val lastEventTimestamp = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
           val (toDelete, toIndex) = events.partition(_.operationType == DELETE)
           Result(
             toIndex.flatten(using _.fullDocument.map(_.toSource)),
@@ -117,44 +117,44 @@ object GameRepo:
 
 type PlayerId = String
 case class DbGame(
-    id: String,                             // _id
-    players: List[PlayerId],                // us
-    winnerId: Option[PlayerId],             // wid
-    createdAt: Instant,                     // ca
-    movedAt: Instant,                       // ua
-    ply: Int,                               // t
-    analysed: Option[Boolean],              // an
-    whitePlayer: Option[DbPlayer],          // p0
-    blackPlayer: Option[DbPlayer],          // p1
-    playerIds: String,                      // is
-    binaryPieces: Option[Array[Byte]],      // ps
-    huffmanPgn: Option[Array[Byte]],        // hp
-    status: Int,                            // s
-    encodedClock: Option[Array[Byte]],      // c
-    moveTimes: Option[Array[Byte]],         // mt
+    id: String, // _id
+    players: List[PlayerId], // us
+    winnerId: Option[PlayerId], // wid
+    createdAt: Instant, // ca
+    movedAt: Instant, // ua
+    ply: Int, // t
+    analysed: Option[Boolean], // an
+    whitePlayer: Option[DbPlayer], // p0
+    blackPlayer: Option[DbPlayer], // p1
+    playerIds: String, // is
+    binaryPieces: Option[Array[Byte]], // ps
+    huffmanPgn: Option[Array[Byte]], // hp
+    status: Int, // s
+    encodedClock: Option[Array[Byte]], // c
+    moveTimes: Option[Array[Byte]], // mt
     encodedWhiteClock: Option[Array[Byte]], // cw
     encodedBlackClock: Option[Array[Byte]], // cb
-    rated: Option[Boolean],                 // ra
-    variant: Option[Int],                   // v
-    source: Option[Int],                    // so
-    winnerColor: Option[Boolean]            // w
+    rated: Option[Boolean], // ra
+    variant: Option[Int], // v
+    source: Option[Int], // so
+    winnerColor: Option[Boolean] // w
 ):
   def clockConfig: Option[Config] = encodedClock.flatMap(ClockDecoder.read)
-  def clockInit: Option[Int]      = clockConfig.map(_.limitSeconds.value)
-  def clockInc: Option[Int]       = clockConfig.map(_.incrementSeconds.value)
-  def whiteId: Option[PlayerId]   = players.headOption
-  def blackId: Option[PlayerId]   = players.lift(1)
-  def variantOrDefault: Variant   = Variant.idOrDefault(variant.map(Variant.Id.apply))
-  def speed: Speed                = Speed(clockConfig)
-  def loser: Option[PlayerId]     = players.find(_.some != winnerId)
-  def aiLevel: Option[Int]        = whitePlayer.flatMap(_.aiLevel).orElse(blackPlayer.flatMap(_.aiLevel))
+  def clockInit: Option[Int] = clockConfig.map(_.limitSeconds.value)
+  def clockInc: Option[Int] = clockConfig.map(_.incrementSeconds.value)
+  def whiteId: Option[PlayerId] = players.headOption
+  def blackId: Option[PlayerId] = players.lift(1)
+  def variantOrDefault: Variant = Variant.idOrDefault(variant.map(Variant.Id.apply))
+  def speed: Speed = Speed(clockConfig)
+  def loser: Option[PlayerId] = players.find(_.some != winnerId)
+  def aiLevel: Option[Int] = whitePlayer.flatMap(_.aiLevel).orElse(blackPlayer.flatMap(_.aiLevel))
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/core/src/main/game/Game.scala#L261
   private def averageUsersRating =
     List(whitePlayer.flatMap(_.rating), blackPlayer.flatMap(_.rating)).flatten match
       case a :: b :: Nil => Some((a + b) / 2)
-      case a :: Nil      => Some((a + 1500) / 2)
-      case _             => None
+      case a :: Nil => Some((a + 1500) / 2)
+      case _ => None
 
   // https://github.com/lichess-org/lila/blob/02ac57c4584b89a0df8f343f34074c0135c2d2b4/modules/core/src/main/game/Game.scala#L90-L97
   def durationSeconds: Option[Int] =
@@ -207,20 +207,20 @@ object DbGame:
     variant.match
       case Standard | FromPosition =>
         speed match
-          case Speed.UltraBullet    => 0
-          case Speed.Bullet         => 1
-          case Speed.Blitz          => 2
-          case Speed.Rapid          => 6
-          case Speed.Classical      => 3
+          case Speed.UltraBullet => 0
+          case Speed.Bullet => 1
+          case Speed.Blitz => 2
+          case Speed.Rapid => 6
+          case Speed.Classical => 3
           case Speed.Correspondence => 4
-      case Crazyhouse    => 18
-      case Chess960      => 11
+      case Crazyhouse => 18
+      case Chess960 => 11
       case KingOfTheHill => 12
-      case ThreeCheck    => 15
-      case Antichess     => 13
-      case Atomic        => 14
-      case Horde         => 16
-      case RacingKings   => 17
+      case ThreeCheck => 15
+      case Antichess => 13
+      case Atomic => 14
+      case Horde => 16
+      case RacingKings => 17
 
 case class DbPlayer(
     rating: Option[Int],
@@ -246,4 +246,4 @@ object ClockDecoder:
   def read(ba: Array[Byte]): Option[Clock.Config] =
     ba.take(2).map(toInt) match
       case Array(b1, b2) => Clock.Config(readClockLimit(b1), Clock.IncrementSeconds(b2)).some
-      case _             => None
+      case _ => None

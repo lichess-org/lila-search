@@ -19,9 +19,9 @@ import java.time.Instant
 
 object IntegrationSuite extends IOSuite:
 
-  given Logger[IO]        = NoOpLogger[IO]
+  given Logger[IO] = NoOpLogger[IO]
   given LoggerFactory[IO] = NoOpFactory[IO]
-  given Meter[IO]         = Meter.noop[IO]
+  given Meter[IO] = Meter.noop[IO]
 
   private val uri = Uri.unsafeFromString("http://localhost:9999")
 
@@ -33,9 +33,9 @@ object IntegrationSuite extends IOSuite:
     for
       elastic <- ElasticSearchContainer.start
       config = testAppConfig(elastic)
-      res                           <- AppResources.instance(config)
+      res <- AppResources.instance(config)
       given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
-      _                             <- App.mkServer(res, config)
+      _ <- App.mkServer(res, config)
     yield res
 
   def testAppConfig(elastic: ElasticConfig) = AppConfig(
@@ -142,9 +142,9 @@ object IntegrationSuite extends IOSuite:
           c <- service.search(Query.study("topic1"), from, size)
         yield expect(a.hitIds.size == 1 && b == a && c == a)
 
-  val defaultIntRange  = IntRange(none, none)
+  val defaultIntRange = IntRange(none, none)
   val defaultDateRange = DateRange(none, none)
-  val defaultGame      = Query.game(
+  val defaultGame = Query.game(
     turns = defaultIntRange,
     averageRating = defaultIntRange,
     aiLevel = defaultIntRange,

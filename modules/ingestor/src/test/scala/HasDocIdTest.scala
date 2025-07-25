@@ -14,7 +14,7 @@ object HasDocIdTest extends SimpleIOSuite with Checkers:
   given HasDocId[Change]:
     extension (a: Change) def docId: Option[String] = a.docId
 
-  given Show[Change]      = Show.fromToString
+  given Show[Change] = Show.fromToString
   given Arbitrary[Change] = Arbitrary:
     for
       value <- Gen.posNum[Int]
@@ -23,7 +23,7 @@ object HasDocIdTest extends SimpleIOSuite with Checkers:
 
   test("distincByDocId is empty when input is empty"):
     val changes = List.empty[Change]
-    val result  = changes.distincByDocId
+    val result = changes.distincByDocId
     IO(expect(List.empty[Option[String]] == result))
 
   test("distincByDocId is empty when all docIds are none"):
@@ -41,6 +41,6 @@ object HasDocIdTest extends SimpleIOSuite with Checkers:
 
   test("distincByDocId == reverse.distincBy.reverse"):
     forall: (changes: List[Change]) =>
-      val result         = changes.distincByDocId
+      val result = changes.distincByDocId
       val doubleReversed = changes.reverse.filter(_.docId.isDefined).distinctBy(_.docId).reverse
       expect(result == doubleReversed)

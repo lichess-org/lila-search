@@ -46,7 +46,7 @@ object StudyData:
   given Decoder[Tag] = Decoder.decodeString.emap: s =>
     s.split(":", 2) match
       case Array(name, value) => Tag(name, value).asRight
-      case _                  => "Invalid pgn tag $v".asLeft
+      case _ => "Invalid pgn tag $v".asLeft
 
   given Encoder[Tag] = Encoder.encodeString.contramap(t => s"${t.name.toString}:${t.value}")
 
@@ -69,16 +69,16 @@ object ChapterRepo:
 
   object F:
 
-    val name        = "name"
-    val studyId     = "studyId"
-    val tags        = "tags"
-    val conceal     = "conceal"
+    val name = "name"
+    val studyId = "studyId"
+    val tags = "tags"
+    val conceal = "conceal"
     val description = "description"
-    val practice    = "practice"
-    val gamebook    = "gamebook"
+    val practice = "practice"
+    val gamebook = "gamebook"
 
     // accumulates comments into a list
-    val comments     = "comments"
+    val comments = "comments"
     val commentTexts = "comments.v.co.text"
 
   object Query:

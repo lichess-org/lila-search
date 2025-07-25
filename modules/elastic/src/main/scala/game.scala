@@ -56,7 +56,7 @@ case class Game(
     def toQueries(query: Option[String | Int | Boolean], name: String): List[TermQuery] =
       query.toList.map:
         case s: String => termQuery(name, s.toLowerCase)
-        case x         => termQuery(name, x)
+        case x => termQuery(name, x)
 
     List(
       usernames.map(termQuery(Fields.uids, _)),
@@ -81,24 +81,24 @@ case class Game(
     ).flatten.compile
 
 object Fields:
-  val status        = "s"
-  val turns         = "t"
-  val rated         = "r"
-  val perf          = "p"
-  val uids          = "u"
-  val winner        = "w"
-  val loser         = "o"
-  val winnerColor   = "c"
+  val status = "s"
+  val turns = "t"
+  val rated = "r"
+  val perf = "p"
+  val uids = "u"
+  val winner = "w"
+  val loser = "o"
+  val winnerColor = "c"
   val averageRating = "a"
-  val ai            = "i"
-  val date          = "d"
-  val duration      = "l"
-  val clockInit     = "ct"
-  val clockInc      = "ci"
-  val analysed      = "n"
-  val whiteUser     = "wu"
-  val blackUser     = "bu"
-  val source        = "so"
+  val ai = "i"
+  val date = "d"
+  val duration = "l"
+  val clockInit = "ct"
+  val clockInc = "ci"
+  val analysed = "n"
+  val whiteUser = "wu"
+  val blackUser = "bu"
+  val source = "so"
 
 object Mapping:
   import Fields.*
@@ -135,5 +135,5 @@ case class Sorting(f: String, order: String):
 
 object Sorting:
 
-  val default   = Sorting(Fields.date, "desc")
+  val default = Sorting(Fields.date, "desc")
   val fieldKeys = List(Fields.date, Fields.turns, Fields.averageRating)

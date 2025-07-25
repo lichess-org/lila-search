@@ -20,10 +20,10 @@ import Repo.{ *, given }
 object TeamRepo:
 
   private val interestedOperations = List(DELETE, INSERT, UPDATE, REPLACE).map(_.getValue)
-  private val eventFilter          = Filter.in("operationType", interestedOperations)
+  private val eventFilter = Filter.in("operationType", interestedOperations)
 
   private val interestedFields = List("_id", F.name, F.description, F.nbMembers, F.name, F.enabled)
-  private val postProjection   = Projection.include(interestedFields)
+  private val postProjection = Projection.include(interestedFields)
 
   private val interestedEventFields =
     List("operationType", "clusterTime", "documentKey._id") ++ interestedFields.map("fullDocument." + _)
@@ -42,7 +42,7 @@ object TeamRepo:
     def watch(since: Option[Instant]) =
       // skip the first event if we're starting from a specific timestamp
       // since the event at that timestamp is already indexed
-      val skip    = since.fold(0)(_ => 1)
+      val skip = since.fold(0)(_ => 1)
       val builder = teams.watch(aggregate)
       since
         .fold(builder)(x => builder.startAtOperationTime(x.asBsonTimestamp))
@@ -54,7 +54,7 @@ object TeamRepo:
         .groupWithin(config.batchSize, config.timeWindows.second)
         .map(_.toList.distincByDocId)
         .map: docs =>
-          val lastEventTimestamp  = docs.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
+          val lastEventTimestamp = docs.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
           val (toDelete, toIndex) = docs.partition(_.isDelete)
           Result(
             toIndex.flatten(using _.fullDocument).toSources,
@@ -103,10 +103,10 @@ object TeamRepo:
           event.fullDocument.fold(false)(x => !x.isEnabled)
 
   object F:
-    val name        = "name"
+    val name = "name"
     val description = "description"
-    val nbMembers   = "nbMembers"
-    val enabled     = "enabled"
-    val createdAt   = "createdAt"
-    val updatedAt   = "updatedAt"
-    val erasedAt    = "erasedAt"
+    val nbMembers = "nbMembers"
+    val enabled = "enabled"
+    val createdAt = "createdAt"
+    val updatedAt = "updatedAt"
+    val erasedAt = "erasedAt"

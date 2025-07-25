@@ -28,7 +28,7 @@ object ForumRepo:
     Filter.in("operationType", interestedOperations) && maxPostSizeFilter(maxPostLength)
 
   private val interestedFields = List(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt)
-  private val postProjection   = Projection.include(interestedFields)
+  private val postProjection = Projection.include(interestedFields)
 
   private val interestedEventFields =
     List("operationType", "clusterTime", "documentKey._id") ++ interestedFields.map("fullDocument." + _)
@@ -82,7 +82,7 @@ object ForumRepo:
         .evalTap(_.traverse_(x => debug"received $x"))
         .map(_.toList.distincByDocId)
         .evalMap: events =>
-          val lastEventTimestamp  = events.flatten(using _.clusterTime.flatMap(_.asInstant)).maxOption
+          val lastEventTimestamp = events.flatten(using _.clusterTime.flatMap(_.asInstant)).maxOption
           val (toDelete, toIndex) = events.partition(_.isDelete)
           toIndex
             .flatten(using _.fullDocument)
@@ -148,13 +148,13 @@ object ForumRepo:
         event.operationType == DELETE || event.fullDocument.exists(_.isErased)
 
   object F:
-    val text      = "text"
-    val topicId   = "topicId"
-    val troll     = "troll"
-    val userId    = "userId"
+    val text = "text"
+    val topicId = "topicId"
+    val troll = "troll"
+    val userId = "userId"
     val createdAt = "createdAt"
     val updatedAt = "updatedAt"
-    val erasedAt  = "erasedAt"
+    val erasedAt = "erasedAt"
 
   object Topic:
     val name = "name"

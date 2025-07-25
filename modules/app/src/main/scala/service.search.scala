@@ -26,7 +26,7 @@ class SearchServiceImpl(esClient: ESClient[IO], metric: Histogram[IO, Double])(u
   private val logger: Logger[IO] = LoggerFactory[IO].getLogger
 
   private val baseAttributes = Attributes(Attribute("http.request.method", "POST"))
-  private val countMetric    =
+  private val countMetric =
     metric
       .recordDuration(
         TimeUnit.MILLISECONDS,
@@ -46,7 +46,7 @@ class SearchServiceImpl(esClient: ESClient[IO], metric: Histogram[IO, Double])(u
         )
       )
 
-  private def countRecord[A](f: IO[A])  = countMetric.surround(f)
+  private def countRecord[A](f: IO[A]) = countMetric.surround(f)
   private def searchRecord[A](f: IO[A]) = searchMetric.surround(f)
 
   override def count(query: Query): IO[CountOutput] =
@@ -84,24 +84,24 @@ object SearchServiceImpl:
         query match
           case q: Query.Forum => q.to[Forum].searchDef(from, size)
           case q: Query.Ublog => q.to[Ublog].searchDef(from, size)
-          case q: Query.Game  => q.to[Game].searchDef(from, size)
+          case q: Query.Game => q.to[Game].searchDef(from, size)
           case q: Query.Study => q.to[Study].searchDef(from, size)
-          case q: Query.Team  => q.to[Team].searchDef(from, size)
+          case q: Query.Team => q.to[Team].searchDef(from, size)
 
       def countDef =
         query match
           case q: Query.Forum => q.to[Forum].countDef
           case q: Query.Ublog => q.to[Ublog].countDef
-          case q: Query.Game  => q.to[Game].countDef
+          case q: Query.Game => q.to[Game].countDef
           case q: Query.Study => q.to[Study].countDef
-          case q: Query.Team  => q.to[Team].countDef
+          case q: Query.Team => q.to[Team].countDef
 
       def index = query match
         case _: Query.Forum => Index.Forum
         case _: Query.Ublog => Index.Ublog
-        case _: Query.Game  => Index.Game
+        case _: Query.Game => Index.Game
         case _: Query.Study => Index.Study
-        case _: Query.Team  => Index.Team
+        case _: Query.Team => Index.Team
 
   def apply(elastic: ESClient[IO])(using Meter[IO], LoggerFactory[IO]): IO[SearchService[IO]] =
     Meter[IO]

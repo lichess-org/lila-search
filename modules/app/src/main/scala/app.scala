@@ -15,19 +15,19 @@ import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
 object App extends IOApp.Simple:
 
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
-  given Logger[IO]        = LoggerFactory[IO].getLogger
+  given Logger[IO] = LoggerFactory[IO].getLogger
 
   override def run: IO[Unit] = app.useForever
 
   def app: Resource[IO, Unit] =
     for
       given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
-      given Meter[IO]               <- mkMeter
-      _                             <- RuntimeMetrics.register[IO]
-      config                        <- AppConfig.load.toResource
-      _   <- Logger[IO].info(s"Starting lila-search with config: ${config.toString}").toResource
+      given Meter[IO] <- mkMeter
+      _ <- RuntimeMetrics.register[IO]
+      config <- AppConfig.load.toResource
+      _ <- Logger[IO].info(s"Starting lila-search with config: ${config.toString}").toResource
       res <- AppResources.instance(config)
-      _   <- mkServer(res, config)
+      _ <- mkServer(res, config)
     yield ()
 
   def mkMeter(using exporter: MetricExporter.Pull[IO]) = SdkMetrics

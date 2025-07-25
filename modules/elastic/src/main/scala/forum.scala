@@ -25,16 +25,16 @@ case class Forum(text: String, troll: Boolean):
     ).flatten.compile
 
 object Forum:
-  val index                    = "forum"
+  val index = "forum"
   private val searchableFields = List(Fields.body, Fields.topic, Fields.author)
 
 object Fields:
-  val body    = "bo"
-  val topic   = "to"
+  val body = "bo"
+  val topic = "to"
   val topicId = "ti"
-  val author  = "au"
-  val troll   = "tr"
-  val date    = "da"
+  val author = "au"
+  val troll = "tr"
+  val date = "da"
 
 object Mapping:
   import Fields.*

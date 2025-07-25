@@ -97,7 +97,7 @@ object ESClient:
             .flatMap(_.unitOrFail)
 
     def storeBulk[A](index: Index, objs: Seq[SourceWithId[A]])(using Indexable[A]): F[Unit] =
-      val request  = indexInto(index.value)
+      val request = indexInto(index.value)
       val requests = bulk(objs.map { case (id, source) => request.source(source).id(id) })
       metric
         .recordDuration(
@@ -167,9 +167,9 @@ object ESClient:
 
   object MetricKeys:
     val dbCollectionName = AttributeKey.string("db.collection.name")
-    val dbBatchSize      = AttributeKey.long("db.operation.batch.size")
-    val dbOperationName  = AttributeKey.string("db.operation.name")
-    val errorType        = AttributeKey.string("error.type")
+    val dbBatchSize = AttributeKey.long("db.operation.batch.size")
+    val dbOperationName = AttributeKey.string("db.operation.name")
+    val errorType = AttributeKey.string("error.type")
 
   private def withErrorType(static: Attributes)(ec: Resource.ExitCase): Attributes = ec match
     case Resource.ExitCase.Succeeded =>

@@ -17,7 +17,7 @@ object StudyRepo:
 
   private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics, F.likes)
 
-  private val indexDocProjection  = Projection.include(interestedfields)
+  private val indexDocProjection = Projection.include(interestedfields)
   private val deleteDocProjection = Projection.include(F.oplogId)
 
   def apply(
@@ -122,11 +122,11 @@ object StudyRepo:
                 + doc.getChapterTexts(chapters).fold("missing doc.chapterTexts; ")(_ => "")
             info"failed to convert document to source: $doc because $reason".whenA(source.isEmpty)
 
-      private def getName    = doc.getString(F.name)
+      private def getName = doc.getString(F.name)
       private def getOwnerId = doc.getString(F.ownerId)
       private def getMembers = doc.getDocument(F.members).fold(Nil)(_.toMap.keys.toList)
-      private def getTopics  = doc.getList(F.topics).map(_.flatMap(_.asString)).getOrElse(Nil)
-      private def getLikes   = doc.getInt(F.likes).getOrElse(0)
+      private def getTopics = doc.getList(F.topics).map(_.flatMap(_.asString)).getOrElse(Nil)
+      private def getLikes = doc.getInt(F.likes).getOrElse(0)
       private def getChapterTexts(chapters: Map[String, StudyData]) =
         chapters.get(doc.id.getOrElse("")).map(_.chapterTexts)
       private def getChapterNames(chapters: Map[String, StudyData]) =
@@ -134,12 +134,12 @@ object StudyRepo:
       private def getPublic = doc.getString(F.visibility).map(_ == "public").getOrElse(true)
 
   object F:
-    val name       = "name"
-    val likes      = "likes"
-    val members    = "members"
-    val ownerId    = "ownerId"
+    val name = "name"
+    val likes = "likes"
+    val members = "members"
+    val ownerId = "ownerId"
     val visibility = "visibility"
-    val topics     = "topics"
-    val createdAt  = "createdAt"
-    val updatedAt  = "updatedAt"
-    val oplogId    = "o._id"
+    val topics = "topics"
+    val createdAt = "createdAt"
+    val updatedAt = "updatedAt"
+    val oplogId = "o._id"

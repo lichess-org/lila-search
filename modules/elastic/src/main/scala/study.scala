@@ -21,7 +21,7 @@ case class Study(text: String, userId: Option[String]):
   def countDef = count(Study.index).query(makeQuery())
 
   private def makeQuery() = {
-    val parsed         = QueryParser(text, List("owner", "member"))
+    val parsed = QueryParser(text, List("owner", "member"))
     val matcher: Query =
       if parsed.terms.isEmpty then matchAllQuery()
       else
@@ -50,16 +50,16 @@ case class Study(text: String, userId: Option[String]):
   private def selectUserId(userId: String) = termQuery(Fields.members, userId)
 
 object Fields:
-  val name         = "name"
-  val owner        = "owner"
-  val members      = "members"
+  val name = "name"
+  val owner = "owner"
+  val members = "members"
   val chapterNames = "chapterNames"
   val chapterTexts = "chapterTexts"
-  val topics       = "topics"
+  val topics = "topics"
   // val createdAt = "createdAt"
   // val updatedAt = "updatedAt"
   // val rank = "rank"
-  val likes  = "likes"
+  val likes = "likes"
   val public = "public"
 
 object Mapping:
