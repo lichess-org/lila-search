@@ -3,15 +3,15 @@ import org.typelevel.scalacoptions.ScalacOptions
 
 inThisBuild(
   Seq(
-    scalaVersion  := "3.7.1",
+    scalaVersion := "3.7.1",
     versionScheme := Some("early-semver"),
-    organization  := "org.lichess.search",
-    run / fork    := true,
+    organization := "org.lichess.search",
+    run / fork := true,
     run / javaOptions += "-Dconfig.override_with_env_vars=true",
     semanticdbEnabled := true, // for scalafix
     resolvers ++= ourResolvers,
     Compile / doc / sources := Seq.empty,
-    publishTo               := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", ""))))
+    publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", ""))))
   )
 )
 
@@ -65,7 +65,7 @@ lazy val elastic = project
   .settings(
     name := "elastic",
     commonSettings,
-    publish        := {},
+    publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
       catsCore,
@@ -85,8 +85,8 @@ lazy val ingestor = project
     commonSettings,
     buildInfoSettings,
     dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
-    publish         := {},
-    publish / skip  := true,
+    publish := {},
+    publish / skip := true,
     libraryDependencies ++= Seq(
       chess,
       catsCore,
@@ -117,7 +117,7 @@ lazy val ingestor = project
       weaverScalaCheck
     ),
     Compile / doc / sources := Seq.empty,
-    Compile / run / fork    := true
+    Compile / run / fork := true
   )
   .dependsOn(elastic, core)
 
@@ -143,8 +143,8 @@ lazy val app = project
     commonSettings,
     buildInfoSettings,
     dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
-    publish         := {},
-    publish / skip  := true,
+    publish := {},
+    publish / skip := true,
     libraryDependencies ++= Seq(
       smithy4sHttp4s,
       jsoniterCore,
@@ -165,14 +165,14 @@ lazy val app = project
       otel4sInstrumentationMetrics
     ),
     Compile / doc / sources := Seq.empty,
-    Compile / run / fork    := true
+    Compile / run / fork := true
   )
   .dependsOn(api, elastic)
 
 val e2e = project
   .in(file("modules/e2e"))
   .settings(
-    publish        := {},
+    publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(testContainers, weaver)
   )
