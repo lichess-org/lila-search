@@ -1,10 +1,12 @@
 package lila.search
 
-import cats.MonadThrow
+import cats.Monad
+import cats.mtl.Raise
+import cats.mtl.implicits.*
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
-import com.sksamuel.elastic4s.{ Index as ESIndex, Response }
+import com.sksamuel.elastic4s.{ ElasticError, Index as ESIndex, Response }
 
 type SourceWithId[A] = (id: String, source: A)
 
@@ -31,8 +33,8 @@ extension (index: Index)
       case Index.Study => "10s"
       case _ => "300s"
 
-extension [F[_]: MonadThrow, A](response: Response[A])
-  def toResult: F[A] =
-    response.fold(response.error.asException.raiseError)(r => r.pure[F])
-  def unitOrFail: F[Unit] =
-    response.fold(response.error.asException.raiseError)(_ => ().pure[F])
+extension [F[_]: Monad, A](response: Response[A])
+  def toResult: Raise[F, ElasticError] ?=> F[A] =
+    response.fold(response.error.raise)(_.pure[F])
+  def unitOrFail: Raise[F, ElasticError] ?=> F[Unit] =
+    response.fold(response.error.raise)(_ => ().pure[F])

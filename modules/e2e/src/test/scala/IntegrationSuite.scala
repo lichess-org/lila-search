@@ -1,9 +1,13 @@
 package lila.search
 package app
 package test
+
+import cats.Functor
 import cats.effect.{ IO, Resource }
+import cats.mtl.Raise
 import cats.syntax.all.*
 import com.comcast.ip4s.*
+import com.sksamuel.elastic4s.ElasticError
 import lila.search.ingestor.Ingestor.given
 import lila.search.spec.*
 import org.http4s.Uri
@@ -22,6 +26,10 @@ object IntegrationSuite extends IOSuite:
   given Logger[IO] = NoOpLogger[IO]
   given LoggerFactory[IO] = NoOpFactory[IO]
   given Meter[IO] = Meter.noop[IO]
+  private given Raise[IO, ElasticError]:
+    def functor: Functor[IO] = Functor[IO]
+    def raise[E <: ElasticError, A](e: E): IO[A] =
+      IO.raiseError(e.asException)
 
   private val uri = Uri.unsafeFromString("http://localhost:9999")
 

@@ -1,10 +1,11 @@
 package lila.search
 
 import cats.effect.*
+import cats.mtl.Raise
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.http4s.Http4sClient
-import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, Index as ESIndex, Indexable }
+import com.sksamuel.elastic4s.{ ElasticClient, ElasticDsl, ElasticError, Index as ESIndex, Indexable }
 import lila.search.ESClient.MetricKeys.*
 import org.http4s.Uri
 import org.http4s.client.Client
@@ -14,16 +15,17 @@ import org.typelevel.otel4s.{ Attribute, AttributeKey, Attributes }
 import java.util.concurrent.TimeUnit
 
 trait ESClient[F[_]]:
+  type RaiseF[A] = Raise[F, ElasticError] ?=> F[A]
 
-  def search[A](query: A, from: From, size: Size)(using Queryable[A]): F[List[Id]]
-  def count[A](query: A)(using Queryable[A]): F[Long]
-  def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): F[Unit]
-  def storeBulk[A](index: Index, objs: Seq[SourceWithId[A]])(using Indexable[A]): F[Unit]
-  def deleteOne(index: Index, id: Id): F[Unit]
-  def deleteMany(index: Index, ids: List[Id]): F[Unit]
-  def putMapping(index: Index): F[Unit]
-  def refreshIndex(index: Index): F[Unit]
-  def status: F[String]
+  def search[A](query: A, from: From, size: Size)(using Queryable[A]): RaiseF[List[Id]]
+  def count[A](query: A)(using Queryable[A]): RaiseF[Long]
+  def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): RaiseF[Unit]
+  def storeBulk[A](index: Index, objs: Seq[SourceWithId[A]])(using Indexable[A]): RaiseF[Unit]
+  def deleteOne(index: Index, id: Id): RaiseF[Unit]
+  def deleteMany(index: Index, ids: List[Id]): RaiseF[Unit]
+  def putMapping(index: Index): RaiseF[Unit]
+  def refreshIndex(index: Index): RaiseF[Unit]
+  def status: RaiseF[String]
 
 object ESClient:
 
@@ -43,13 +45,13 @@ object ESClient:
       metric: Histogram[F, Double]
   ) = new ESClient[F]:
 
-    def status: F[String] =
+    def status: RaiseF[String] =
       client
         .execute(clusterHealth())
         .flatMap(_.toResult)
         .map(_.status)
 
-    def search[A](query: A, from: From, size: Size)(using Queryable[A]): F[List[Id]] =
+    def search[A](query: A, from: From, size: Size)(using Queryable[A]): RaiseF[List[Id]] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
@@ -65,7 +67,7 @@ object ESClient:
             .flatMap(_.toResult)
             .map(_.hits.hits.toList.map(h => Id(h.id)))
 
-    def count[A](query: A)(using Queryable[A]): F[Long] =
+    def count[A](query: A)(using Queryable[A]): RaiseF[Long] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
@@ -81,7 +83,7 @@ object ESClient:
             .flatMap(_.toResult)
             .map(_.count)
 
-    def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): F[Unit] =
+    def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): RaiseF[Unit] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
@@ -96,7 +98,7 @@ object ESClient:
             .execute(indexInto(index.value).source(obj).id(id.value))
             .flatMap(_.unitOrFail)
 
-    def storeBulk[A](index: Index, objs: Seq[SourceWithId[A]])(using Indexable[A]): F[Unit] =
+    def storeBulk[A](index: Index, objs: Seq[SourceWithId[A]])(using Indexable[A]): RaiseF[Unit] =
       val request = indexInto(index.value)
       val requests = bulk(objs.map { case (id, source) => request.source(source).id(id) })
       metric
@@ -115,7 +117,7 @@ object ESClient:
             .flatMap(_.unitOrFail)
         .whenA(objs.nonEmpty)
 
-    def deleteOne(index: Index, id: Id): F[Unit] =
+    def deleteOne(index: Index, id: Id): RaiseF[Unit] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
@@ -130,7 +132,7 @@ object ESClient:
             .execute(deleteById(index.toES, id.value))
             .flatMap(_.unitOrFail)
 
-    def deleteMany(index: Index, ids: List[Id]): F[Unit] =
+    def deleteMany(index: Index, ids: List[Id]): RaiseF[Unit] =
       metric
         .recordDuration(
           TimeUnit.MILLISECONDS,
@@ -147,7 +149,7 @@ object ESClient:
             .flatMap(_.unitOrFail)
         .whenA(ids.nonEmpty)
 
-    def putMapping(index: Index): F[Unit] =
+    def putMapping(index: Index): RaiseF[Unit] =
       dropIndex(index) *> client
         .execute:
           createIndex(index.value)
@@ -157,7 +159,7 @@ object ESClient:
             .refreshInterval(index.refreshInterval)
         .flatMap(_.unitOrFail)
 
-    def refreshIndex(index: Index): F[Unit] =
+    def refreshIndex(index: Index): RaiseF[Unit] =
       client
         .execute(ElasticDsl.refreshIndex(index.value))
         .flatMap(_.unitOrFail)
