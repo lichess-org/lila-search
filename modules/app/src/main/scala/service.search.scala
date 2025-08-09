@@ -2,6 +2,7 @@ package lila.search
 package app
 
 import cats.effect.*
+import cats.mtl.Handle.*
 import io.github.arainko.ducktape.*
 import lila.search.forum.Forum
 import lila.search.game.Game
@@ -51,21 +52,21 @@ class SearchServiceImpl(esClient: ESClient[IO], metric: Histogram[IO, Double])(u
 
   override def count(query: Query): IO[CountOutput] =
     countRecord:
-      esClient
-        .count(query)
-        .map(CountOutput.apply)
-        .handleErrorWith: e =>
-          logger.error(e)(s"Error in count: query=${query.toString}") *>
-            IO.raiseError(InternalServerError("Internal server error"))
+      allow:
+        esClient.count(query)
+      .rescue: e =>
+        logger.error(e.asException)(s"Error in count: query=${query.toString}") *>
+          IO.raiseError(InternalServerError("Internal server error"))
+      .map(CountOutput.apply)
 
   override def search(query: Query, from: From, size: Size): IO[SearchOutput] =
     searchRecord:
-      esClient
-        .search(query, from, size)
-        .map(SearchOutput.apply)
-        .handleErrorWith: e =>
-          logger.error(e)(s"Error in search: query=${query.toString}, from=$from, size=$size") *>
-            IO.raiseError(InternalServerError("Internal server error"))
+      allow:
+        esClient.search(query, from, size)
+      .rescue: e =>
+        logger.error(e.asException)(s"Error in search: query=${query.toString}, from=$from, size=$size") *>
+          IO.raiseError(InternalServerError("Internal server error"))
+      .map(SearchOutput.apply)
 
 object SearchServiceImpl:
 

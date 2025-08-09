@@ -2,6 +2,7 @@ package lila.search
 package ingestor
 
 import cats.effect.*
+import cats.mtl.Handle.*
 import cats.syntax.all.*
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.sksamuel.elastic4s.Indexable
@@ -31,7 +32,7 @@ object Ingestor:
       elastic: ESClient[IO],
       defaultStartAt: Option[Instant]
   )(using LoggerFactory[IO]): Ingestor = new:
-    given Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
+    given logger: Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
 
     def watch: IO[Unit] =
       fs2.Stream
@@ -71,21 +72,21 @@ object Ingestor:
         .flatTap(since => info"Starting ${index.value} ingestor from $since")
 
     private def deleteMany(index: Index, ids: List[Id]): IO[Unit] =
-      elastic
-        .deleteMany(index, ids)
-        .flatTap(_ => Logger[IO].info(s"Deleted ${ids.size} ${index.value}s"))
-        .handleErrorWith: e =>
-          Logger[IO].error(e)(s"Failed to delete ${index.value}: ${ids.map(_.value).mkString(", ")}")
+      allow:
+        elastic.deleteMany(index, ids)
+      .rescue: e =>
+        logger.error(e.asException)(s"Failed to delete ${index.value}: ${ids.map(_.value).mkString(", ")}")
+      .flatTap(_ => Logger[IO].info(s"Deleted ${ids.size} ${index.value}s"))
         .whenA(ids.nonEmpty)
 
     private def storeBulk(index: Index, sources: List[SourceWithId[A]]): IO[Unit] =
       Logger[IO].info(s"Received ${sources.size} docs to ${index.value}") *>
-        elastic
-          .storeBulk(index, sources)
-          .handleErrorWith: e =>
-            Logger[IO].error(e)(s"Failed to ${index.value} index: ${sources.map(_.id).mkString(", ")}")
-          .whenA(sources.nonEmpty)
-        *> Logger[IO].info(s"Indexed ${sources.size} ${index.value}s")
+        allow:
+          elastic.storeBulk(index, sources)
+        .rescue: e =>
+          logger.error(e.asException)(s"Failed to ${index.value} index: ${sources.map(_.id).mkString(", ")}")
+        .whenA(sources.nonEmpty)
+        *> logger.info(s"Indexed ${sources.size} ${index.value}s")
 
     private val saveLastIndexedTimestamp: Option[Instant] => IO[Unit] =
       _.traverse_(time =>

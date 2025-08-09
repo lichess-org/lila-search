@@ -67,18 +67,18 @@ object CompatSuite extends weaver.IOSuite:
 
   def fakeClient: ESClient[IO] = new:
 
-    override def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): IO[Unit] = IO.unit
+    override def store[A](index: Index, id: Id, obj: A)(using Indexable[A]) = IO.unit
 
-    override def storeBulk[A](index: Index, objs: Seq[SourceWithId[A]])(using Indexable[A]): IO[Unit] =
+    override def storeBulk[A](index: Index, objs: Seq[SourceWithId[A]])(using Indexable[A]) =
       IO.unit
 
-    override def putMapping(index: Index): IO[Unit] = IO.unit
+    override def putMapping(index: Index) = IO.unit
 
-    override def refreshIndex(index: Index): IO[Unit] = IO.unit
+    override def refreshIndex(index: Index) = IO.unit
 
-    override def deleteOne(index: Index, id: Id): IO[Unit] = IO.unit
+    override def deleteOne(index: Index, id: Id) = IO.unit
 
-    override def deleteMany(index: Index, ids: List[Id]): IO[Unit] = IO.unit
+    override def deleteMany(index: Index, ids: List[Id]) = IO.unit
 
     override def count[A](query: A)(using Queryable[A]) =
       IO.pure(0)
@@ -86,7 +86,7 @@ object CompatSuite extends weaver.IOSuite:
     override def search[A](query: A, from: From, size: Size)(using Queryable[A]) =
       IO.pure(Nil)
 
-    override def status: IO[String] = IO.pure("yellow")
+    override def status = IO.pure("yellow")
 
   given system: ActorSystem = ActorSystem()
 

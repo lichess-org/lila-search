@@ -5,10 +5,11 @@ object Dependencies {
 
   val lilaMaven = "lila-maven" at "https://raw.githubusercontent.com/lichess-org/lila-maven/master"
   val jitpack = "jitpack".at("https://jitpack.io")
-  val ourResolvers = Seq(lilaMaven, jitpack)
+  val ourResolvers = Seq(lilaMaven, jitpack, Resolver.sonatypeCentralSnapshots)
 
   object V {
     val catsEffect = "3.6.3"
+    val catsMtl    = "1.6-6ad7882-SNAPSHOT"
     val chess      = "17.9.3"
     val ciris      = "3.9.0"
     val decline    = "2.5.0"
@@ -27,6 +28,7 @@ object Dependencies {
 
   val catsCore   = "org.typelevel" %% "cats-core"   % "2.13.0"
   val catsEffect = "org.typelevel" %% "cats-effect" % V.catsEffect
+  val catsMtl    = "org.typelevel" %% "cats-mtl" % V.catsMtl
 
   val fs2   = "co.fs2" %% "fs2-core" % V.fs2
   val fs2IO = "co.fs2" %% "fs2-io"   % V.fs2
