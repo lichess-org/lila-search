@@ -22,6 +22,7 @@ case class Game(
     hasAi: Option[Boolean] = None,
     aiLevel: Range[Int] = Range.none,
     rated: Option[Boolean] = None,
+    startPosition: Option[Int] = None,
     date: Range[Instant] = Range.none,
     duration: Range[Int] = Range.none,
     sorting: Sorting = Sorting.default,

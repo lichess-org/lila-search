@@ -137,6 +137,7 @@ case class DbGame(
     rated: Option[Boolean], // ra
     variant: Option[Int], // v
     source: Option[Int], // so
+    startPosition:  Option[String], // if
     winnerColor: Option[Boolean] // w
 ):
   def clockConfig: Option[Config] = encodedClock.flatMap(ClockDecoder.read)
@@ -168,6 +169,7 @@ case class DbGame(
         turns = (ply + 1) / 2,
         rated = rated.getOrElse(false),
         perf = DbGame.perfId(variantOrDefault, speed),
+        startPosition = startPosition,
         winnerColor = winnerColor.fold(3)(if _ then 1 else 2),
         date = SearchDateTime.fromInstant(movedAt),
         analysed = analysed.getOrElse(false),
@@ -192,11 +194,11 @@ case class DbGame(
     import com.github.plokhotnyuk.jsoniter_scala.core.*
     id -> writeToString(toSource.source)
 
-object DbGame:
+object  DbGame:
   // format: off
-  given Decoder[DbGame] = Decoder.forProduct21(
+  given Decoder[DbGame] = Decoder.forProduct22(
     "_id", "us", "wid", "ca", "ua", "t", "an", "p0", "p1", "is", "ps",
-    "hp", "s", "c", "mt", "cw", "cb", "ra", "v", "so", "w")(DbGame.apply)
+    "hp", "s", "c", "mt", "cw", "cb", "ra", "v", "so", "if", "w")(DbGame.apply)
   // format: on
 
   // We don't write to the database so We don't need to implement this
@@ -204,7 +206,7 @@ object DbGame:
     def apply(a: DbGame): Json = ???
 
   def perfId(variant: Variant, speed: Speed): Int =
-    variant.match
+    variant match
       case Standard | FromPosition =>
         speed match
           case Speed.UltraBullet => 0
@@ -221,6 +223,7 @@ object DbGame:
       case Atomic => 14
       case Horde => 16
       case RacingKings => 17
+
 
 case class DbPlayer(
     rating: Option[Int],
