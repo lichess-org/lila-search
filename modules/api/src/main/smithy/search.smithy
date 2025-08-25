@@ -93,6 +93,7 @@ structure Study {
 structure Game {
   user1: String
   user2: String
+  startPosition: Integer
   winner: String
   loser: String
   winnerColor: Integer

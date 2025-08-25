@@ -6,6 +6,7 @@ import cats.syntax.all.*
 import chess.Clock.Config
 import chess.Speed
 import chess.variant.*
+import chess.format.FullFen
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
 import io.circe.*
@@ -169,7 +170,7 @@ case class DbGame(
         turns = (ply + 1) / 2,
         rated = rated.getOrElse(false),
         perf = DbGame.perfId(variantOrDefault, speed),
-        startPosition = startPosition,
+        startPosition = DbGame.startPos(startPosition),
         winnerColor = winnerColor.fold(3)(if _ then 1 else 2),
         date = SearchDateTime.fromInstant(movedAt),
         analysed = analysed.getOrElse(false),
@@ -224,6 +225,9 @@ object  DbGame:
       case Horde => 16
       case RacingKings => 17
 
+  def startPos(startPosition: Option[String]): Option[Int] =
+    Chess960.positionNumber(FullFen.clean(startPosition.getOrElse(""))) 
+      
 
 case class DbPlayer(
     rating: Option[Int],

@@ -51,6 +51,8 @@ structure GameSource {
   uids: PlayerIds
   @jsonName("w")
   winner: String
+  @jsonName("if")
+  startPosition: Integer
   @jsonName("o")
   loser: String
   @required
