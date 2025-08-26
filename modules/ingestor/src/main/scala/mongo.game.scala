@@ -5,8 +5,8 @@ import cats.effect.*
 import cats.syntax.all.*
 import chess.Clock.Config
 import chess.Speed
-import chess.variant.*
 import chess.format.FullFen
+import chess.variant.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
 import io.circe.*
@@ -138,7 +138,7 @@ case class DbGame(
     rated: Option[Boolean], // ra
     variant: Option[Int], // v
     source: Option[Int], // so
-    startPosition:  Option[String], // if
+    startPosition: Option[String], // if
     winnerColor: Option[Boolean] // w
 ):
   def clockConfig: Option[Config] = encodedClock.flatMap(ClockDecoder.read)
@@ -195,7 +195,7 @@ case class DbGame(
     import com.github.plokhotnyuk.jsoniter_scala.core.*
     id -> writeToString(toSource.source)
 
-object  DbGame:
+object DbGame:
   // format: off
   given Decoder[DbGame] = Decoder.forProduct22(
     "_id", "us", "wid", "ca", "ua", "t", "an", "p0", "p1", "is", "ps",
@@ -226,8 +226,7 @@ object  DbGame:
       case RacingKings => 17
 
   def startPos(startPosition: Option[String]): Option[Int] =
-    Chess960.positionNumber(FullFen.clean(startPosition.getOrElse(""))) 
-      
+    Chess960.positionNumber(FullFen.clean(startPosition.getOrElse("")))
 
 case class DbPlayer(
     rating: Option[Int],
