@@ -2,11 +2,13 @@ package lila.search
 package ingestor
 
 import cats.effect.*
+import cats.effect.unsafe.implicits.global
 import cats.syntax.all.*
 import chess.Clock.Config
 import chess.Speed
 import chess.format.FullFen
 import chess.variant.*
+import ciris.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
 import io.circe.*
@@ -39,15 +41,17 @@ object GameRepo:
   private val eventProjection = Projection.include(interestedEventFields)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/gameSearch/src/main/GameSearchApi.scala#L52
-  val gameFilter: Filter =
+  def gameFilter(all960: Boolean): Filter =
     // Filter games that finished
     // https://github.com/lichess-org/scalachess/blob/18edf46a50445048fdc2ee5a83752e5b3884f490/core/src/main/scala/Status.scala#L18-L27
     val statusFilter = Filter.gte("s", 30)
     val noImportFilter = Filter.ne("so", 7)
+    // Filter 960 games
+    val only960Filter = all960.fold(Filter.eq("v", 2), Filter.empty)
     // us fields is the list of player ids, if it's missing then it's
     // an all anonymous (or anonymous vs stockfish) game
     val noAllAnonFilter = Filter.exists("us")
-    statusFilter.and(noImportFilter).and(noAllAnonFilter)
+    statusFilter.and(noImportFilter).and(only960Filter).and(noAllAnonFilter)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/gameSearch/src/main/GameSearchApi.scala#L52
   val changeFilter: Filter =
@@ -84,11 +88,13 @@ object GameRepo:
             lastEventTimestamp
           )
 
+    private def all960 = env("REINGEST_960_GAMES").or(prop("reingest.960.games")).as[Boolean].default(false)
+
     def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
       val filter = range(F.createdAt)(since, until.some)
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
-          .find(filter.and(gameFilter))
+          .find(filter.and(gameFilter(all960.load[IO].unsafeRunSync())))
           .hint("ca_-1")
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
