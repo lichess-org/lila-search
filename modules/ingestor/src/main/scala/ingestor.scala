@@ -20,6 +20,8 @@ trait Ingestor:
   def watch(since: Option[Instant], dryRun: Boolean): IO[Unit]
   // Fetch documents in [since, until] and ingest into elastic search
   def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit]
+  // Fetch documents in [since, until] and ingest with an option to re ingest all 960 into elastic search
+  def run(since: Instant, until: Instant, reIngestAll960: Boolean, dryRun: Boolean): IO[Unit]
 
 object Ingestor:
 
@@ -49,6 +51,20 @@ object Ingestor:
         .evalMap(updateElastic(_, dryRun))
         .compile
         .drain
+
+    def run(since: Instant, until: Instant, reIngestAll960: Boolean, dryRun: Boolean): IO[Unit] =
+      reIngestAll960.fold(
+        repo
+          .fetch960Games(since, until)
+          .evalMap(updateElastic(_, dryRun))
+          .compile
+          .drain,
+        repo
+          .fetch(since, until)
+          .evalMap(updateElastic(_, dryRun))
+          .compile
+          .drain
+      )
 
     def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit] =
       repo

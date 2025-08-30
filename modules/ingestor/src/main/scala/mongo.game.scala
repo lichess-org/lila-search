@@ -2,13 +2,11 @@ package lila.search
 package ingestor
 
 import cats.effect.*
-import cats.effect.unsafe.implicits.global
 import cats.syntax.all.*
 import chess.Clock.Config
 import chess.Speed
 import chess.format.FullFen
 import chess.variant.*
-import ciris.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
 import io.circe.*
@@ -88,18 +86,28 @@ object GameRepo:
             lastEventTimestamp
           )
 
-    private def all960 = env("REINGEST_960_GAMES").or(prop("reingest.960.games")).as[Boolean].default(false)
-
     def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
       val filter = range(F.createdAt)(since, until.some)
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
-          .find(filter.and(gameFilter(all960.load[IO].unsafeRunSync())))
+          .find(filter.and(gameFilter(false)))
           .hint("ca_-1")
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList)
           .metered(1.second) // to avoid overloading the elasticsearch
+          .map(ds => Result(ds.map(_.toSource), Nil, none))
+
+    override def fetch960Games(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
+      val filter = range(F.createdAt)(since, until.some)
+      fs2.Stream.eval(info"Fetching Chess960 games from $since to $until") *>
+        games
+          .find(filter.and(gameFilter(true)))
+          .hint("ca_-1")
+          .boundedStream(config.batchSize)
+          .chunkN(config.batchSize)
+          .map(_.toList)
+          .metered(1.second)
           .map(ds => Result(ds.map(_.toSource), Nil, none))
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =

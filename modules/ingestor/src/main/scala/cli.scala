@@ -59,7 +59,7 @@ object cli
         case Index.Study =>
           ingestor.study.run(opts.since, opts.until, opts.dry)
         case Index.Game =>
-          ingestor.game.run(opts.since, opts.until, opts.dry)
+          ingestor.game.run(opts.since, opts.until, opts.all960, opts.dry)
         case Index.Team =>
           ingestor.team.run(opts.since, opts.until, opts.dry)
         case _ =>
@@ -89,7 +89,7 @@ object cli
             ingestor.game.watch(opts.since.some, opts.dry)
 
 object opts:
-  case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, dry: Boolean)
+  case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, all960: Boolean, dry: Boolean)
   case class WatchOpts(index: Index | Unit, since: Instant, dry: Boolean)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
@@ -108,6 +108,12 @@ object opts:
     Opts
       .flag(long = "all", help = "All indexes")
       .void
+
+  val all960Opt =
+    Opts
+      .flag(long = "reingest-all960", help = "Reingest All 960 games", short = "ra")
+      .orNone
+      .map(_.isDefined)
 
   val dryOpt =
     Opts
@@ -131,6 +137,7 @@ object opts:
         metavar = "time in epoch seconds"
       )
       .orElse(Instant.now.pure[Opts]),
+    all960Opt,
     dryOpt
   ).mapN(IndexOpts.apply)
     .mapValidated(x =>
