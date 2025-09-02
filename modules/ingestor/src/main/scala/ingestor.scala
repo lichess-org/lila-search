@@ -53,12 +53,11 @@ object Ingestor:
         .drain
 
     def run(since: Instant, until: Instant, reIngestAll960: Boolean, dryRun: Boolean): IO[Unit] =
-        repo
-          .fetch(since, until, reIngestAll960)
-          .evalMap(updateElastic(_, dryRun))
-          .compile
-          .drain
-      
+      repo
+        .fetch(since, until, reIngestAll960)
+        .evalMap(updateElastic(_, dryRun))
+        .compile
+        .drain
 
     def run(since: Instant, until: Instant, dryRun: Boolean): IO[Unit] =
       repo
