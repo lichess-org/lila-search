@@ -86,11 +86,11 @@ object GameRepo:
             lastEventTimestamp
           )
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
+    override def fetch(since: Instant, until: Instant, extraOpts: Boolean): fs2.Stream[IO, Result[GameSource]] =
       val filter = range(F.createdAt)(since, until.some)
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
-          .find(filter.and(gameFilter(false)))
+          .find(filter.and(gameFilter(extraOpts)))
           .hint("ca_-1")
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
@@ -98,17 +98,7 @@ object GameRepo:
           .metered(1.second) // to avoid overloading the elasticsearch
           .map(ds => Result(ds.map(_.toSource), Nil, none))
 
-    override def fetch960Games(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
-      val filter = range(F.createdAt)(since, until.some)
-      fs2.Stream.eval(info"Fetching Chess960 games from $since to $until") *>
-        games
-          .find(filter.and(gameFilter(true)))
-          .hint("ca_-1")
-          .boundedStream(config.batchSize)
-          .chunkN(config.batchSize)
-          .map(_.toList)
-          .metered(1.second)
-          .map(ds => Result(ds.map(_.toSource), Nil, none))
+    
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =
       val builder = games.watch(aggregate)

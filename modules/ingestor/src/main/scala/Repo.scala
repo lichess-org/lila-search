@@ -7,9 +7,9 @@ import java.time.Instant
 
 trait Repo[A]:
   def watch(since: Option[Instant]): fs2.Stream[IO, Repo.Result[A]]
-  def fetch(since: Instant, until: Instant): fs2.Stream[IO, Repo.Result[A]]
-  def fetch960Games(since: Instant, until: Instant): fs2.Stream[IO, Repo.Result[A]] =
-    val _ = (since, until)
+  def fetch(since: Instant, until: Instant): fs2.Stream[IO, Repo.Result[A]] = fetch(since, until, false)
+  def fetch(since: Instant, until: Instant, extraOpts: Boolean): fs2.Stream[IO, Repo.Result[A]] = 
+    val  _ = (since, until, extraOpts) // to avoid unused parameter warning
     fs2.Stream.empty
 
 object Repo:
