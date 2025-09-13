@@ -5,7 +5,7 @@ REMOTE_DIR="/home/lila-search-ingestor"
 
 echo "Deploy to server $REMOTE:$REMOTE_DIR"
 
-sbt ";ingestor/stage;exit"
+sbt ";ingestor-app/stage;exit"
 if [ $? != 0 ]; then
 	echo "Deploy canceled"
 	exit 1
@@ -23,8 +23,8 @@ RSYNC_OPTIONS=" \
   --exclude RUNNING_PID \
   --exclude '.git/'"
 
-stage="modules/ingestor/target/universal/stage"
-include="bin $stage/bin $stage/lib"
+stage="modules/ingestor-app/target/universal/stage"
+include="$stage/bin $stage/lib"
 rsync_command="rsync $RSYNC_OPTIONS $include $REMOTE:$REMOTE_DIR"
 echo "$rsync_command"
 $rsync_command
