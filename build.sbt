@@ -11,7 +11,12 @@ inThisBuild(
     semanticdbEnabled := true, // for scalafix
     resolvers ++= ourResolvers,
     Compile / doc / sources := Seq.empty,
-    publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", ""))))
+    publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", "")))),
+    dockerBaseImage       := "eclipse-temurin:21-jdk-noble",
+    dockerUpdateLatest    := true,
+    dockerBuildxPlatforms := Seq("linux/amd64", "linux/arm64"),
+    Docker / maintainer       := "lichess.org",
+    Docker / dockerRepository := Some("ghcr.io"),
   )
 )
 
@@ -80,12 +85,12 @@ lazy val elastic = project
 
 lazy val `ingestor-app` = project
   .in(file("modules/ingestor-app"))
-  .enablePlugins(JavaAppPackaging, BuildInfoPlugin)
+  .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
   .settings(
     name := "ingestor-app",
     commonSettings,
     buildInfoSettings,
-    dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
+    Docker / packageName      := "lichess-org/lila-search-ingestor-app",
     publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -102,12 +107,12 @@ lazy val `ingestor-app` = project
 
 lazy val `ingestor-cli` = project
   .in(file("modules/ingestor-cli"))
-  .enablePlugins(JavaAppPackaging, BuildInfoPlugin)
+  .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
   .settings(
     name := "ingestor-cli",
     commonSettings,
     buildInfoSettings,
-    dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
+    Docker / packageName      := "lichess-org/lila-search-ingestor-cli",
     publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -170,13 +175,13 @@ lazy val client = project
   .dependsOn(api, core)
 
 lazy val app = project
-  .enablePlugins(JavaAppPackaging, BuildInfoPlugin)
+  .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
   .in(file("modules/app"))
   .settings(
     name := "lila-search",
     commonSettings,
     buildInfoSettings,
-    dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
+    Docker / packageName      := "lichess-org/lila-search-app",
     publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
