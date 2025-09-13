@@ -9,14 +9,13 @@ object Dependencies {
 
   object V {
     val catsEffect = "3.6.3"
-    val catsMtl    = "1.6-6ad7882-SNAPSHOT"
-    val chess      = "17.9.5"
-    val ciris      = "3.9.0"
+    val catsMtl    = "1.6.0"
+    val chess      = "17.9.6"
+    val ciris      = "3.10.0"
     val decline    = "2.5.0"
     val elastic4s  = "9.1.0"
-    val fs2        = "3.12.0"
+    val fs2        = "3.12.2"
     val http4s     = "0.23.30"
-    val iron       = "2.5.0"
     val mongo4cats = "0.7.13"
     val otel4s     = "0.13.1"
   }
@@ -35,8 +34,6 @@ object Dependencies {
 
   val cirisCore  = "is.cir"             %% "ciris"        % V.ciris
   val cirisHtt4s = "is.cir"             %% "ciris-http4s" % V.ciris
-  val iron       = "io.github.iltotore" %% "iron"         % V.iron
-  val ironCiris  = "io.github.iltotore" %% "iron-ciris"   % V.iron
 
   val http4sServer      = http4s("ember-server")
   val http4sClient      = http4s("client")
@@ -47,10 +44,10 @@ object Dependencies {
   lazy val smithy4sHttp4sSwagger = smithy4s("http4s-swagger")
   lazy val smithy4sJson          = smithy4s("json")
 
-  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.37.6"
-  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.37.6"
+  val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.37.10"
+  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.37.10"
 
-  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.11"
+  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.12"
 
   val elastic4sHttp4sClient = "nl.gn0s1s" %% "elastic4s-client-http4s" % V.elastic4s
 
@@ -67,13 +64,13 @@ object Dependencies {
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.1"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.18"
 
-  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.9"
+  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.10"
 
   val declineCore = "com.monovore" %% "decline" % V.decline
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
   val testContainers    = "com.dimafeng"        %% "testcontainers-scala-core"       % "0.43.0"     % Test
-  val weaver            = "org.typelevel" %% "weaver-cats"                     % "0.9.3"      % Test
+  val weaver            = "org.typelevel" %% "weaver-cats"                     % "0.10.1"      % Test
   val weaverScalaCheck  = "org.typelevel" %% "weaver-scalacheck"               % "0.9.3"      % Test
   val catsEffectTestKit = "org.typelevel"       %% "cats-effect-testkit"             % V.catsEffect % Test
   val scalacheck        = "org.scalacheck"      %% "scalacheck"                      % "1.17.0"     % Test
