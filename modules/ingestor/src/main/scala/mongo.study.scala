@@ -38,9 +38,9 @@ object StudyRepo:
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[StudySource]] =
       intervalStream(since)
         .meteredStartImmediately(config.interval)
-        .flatMap(fetch)
+        .flatMap(fetch(_, _))
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
+    override def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
         pullForIndex(since, until)
           .merge(pullForDelete(since, until))

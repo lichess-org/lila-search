@@ -16,7 +16,13 @@ object CLITest extends weaver.FunSuite:
   test("index command"):
     expect.same(
       testCommand("index", "--index", "team", "--since", "0", "--until", "1", "--dry"),
-      IndexOpts(Index.Team, Instant.ofEpochSecond(0), Instant.ofEpochSecond(1), true).asRight
+      IndexOpts(Index.Team, Instant.ofEpochSecond(0), Instant.ofEpochSecond(1), false, true).asRight
+    )
+
+  test("index command with reingest-all960"):
+    expect.same(
+      testCommand("index", "--index", "team", "--since", "0", "--until", "1", "--reingest-all960", "--dry"),
+      IndexOpts(Index.Team, Instant.ofEpochSecond(0), Instant.ofEpochSecond(1), true, true).asRight
     )
 
   test("watch command"):

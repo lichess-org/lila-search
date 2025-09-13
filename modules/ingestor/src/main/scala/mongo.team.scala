@@ -62,7 +62,7 @@ object TeamRepo:
             lastEventTimestamp
           )
 
-    def fetch(since: Instant, until: Instant) =
+    override def fetch(since: Instant, until: Instant) =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
         .or(range(F.erasedAt)(since, until.some))

@@ -56,7 +56,7 @@ object UblogRepo:
       posts: MongoCollection
   )(using Logger[IO]): Repo[UblogSource] = new:
 
-    def fetch(since: Instant, until: Instant) =
+    override def fetch(since: Instant, until: Instant) =
       val filter = range(F.livedAt)(since, until.some)
       fs2.Stream.eval(info"Fetching blog posts from $since to $until") *>
         posts

@@ -5,6 +5,7 @@ import cats.effect.*
 import cats.syntax.all.*
 import chess.Clock.Config
 import chess.Speed
+import chess.format.FullFen
 import chess.variant.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
@@ -38,15 +39,17 @@ object GameRepo:
   private val eventProjection = Projection.include(interestedEventFields)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/gameSearch/src/main/GameSearchApi.scala#L52
-  val gameFilter: Filter =
+  def gameFilter(all960: Boolean): Filter =
     // Filter games that finished
     // https://github.com/lichess-org/scalachess/blob/18edf46a50445048fdc2ee5a83752e5b3884f490/core/src/main/scala/Status.scala#L18-L27
     val statusFilter = Filter.gte("s", 30)
     val noImportFilter = Filter.ne("so", 7)
+    // Filter 960 games
+    val only960Filter = all960.fold(Filter.eq("v", 2), Filter.empty)
     // us fields is the list of player ids, if it's missing then it's
     // an all anonymous (or anonymous vs stockfish) game
     val noAllAnonFilter = Filter.exists("us")
-    statusFilter.and(noImportFilter).and(noAllAnonFilter)
+    statusFilter.and(noImportFilter).and(only960Filter).and(noAllAnonFilter)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/gameSearch/src/main/GameSearchApi.scala#L52
   val changeFilter: Filter =
@@ -83,11 +86,15 @@ object GameRepo:
             lastEventTimestamp
           )
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
+    override def fetch(
+        since: Instant,
+        until: Instant,
+        extraOpts: Boolean
+    ): fs2.Stream[IO, Result[GameSource]] =
       val filter = range(F.createdAt)(since, until.some)
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
-          .find(filter.and(gameFilter))
+          .find(filter.and(gameFilter(extraOpts)))
           .hint("ca_-1")
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
@@ -137,6 +144,7 @@ case class DbGame(
     rated: Option[Boolean], // ra
     variant: Option[Int], // v
     source: Option[Int], // so
+    startPosition: Option[String], // if
     winnerColor: Option[Boolean] // w
 ):
   def clockConfig: Option[Config] = encodedClock.flatMap(ClockDecoder.read)
@@ -168,6 +176,7 @@ case class DbGame(
         turns = (ply + 1) / 2,
         rated = rated.getOrElse(false),
         perf = DbGame.perfId(variantOrDefault, speed),
+        startPosition = DbGame.startPos(startPosition),
         winnerColor = winnerColor.fold(3)(if _ then 1 else 2),
         date = SearchDateTime.fromInstant(movedAt),
         analysed = analysed.getOrElse(false),
@@ -194,9 +203,9 @@ case class DbGame(
 
 object DbGame:
   // format: off
-  given Decoder[DbGame] = Decoder.forProduct21(
+  given Decoder[DbGame] = Decoder.forProduct22(
     "_id", "us", "wid", "ca", "ua", "t", "an", "p0", "p1", "is", "ps",
-    "hp", "s", "c", "mt", "cw", "cb", "ra", "v", "so", "w")(DbGame.apply)
+    "hp", "s", "c", "mt", "cw", "cb", "ra", "v", "so", "if", "w")(DbGame.apply)
   // format: on
 
   // We don't write to the database so We don't need to implement this
@@ -204,7 +213,7 @@ object DbGame:
     def apply(a: DbGame): Json = ???
 
   def perfId(variant: Variant, speed: Speed): Int =
-    variant.match
+    variant match
       case Standard | FromPosition =>
         speed match
           case Speed.UltraBullet => 0
@@ -221,6 +230,9 @@ object DbGame:
       case Atomic => 14
       case Horde => 16
       case RacingKings => 17
+
+  def startPos(startPosition: Option[String]): Option[Int] =
+    Chess960.positionNumber(FullFen.clean(startPosition.getOrElse("")))
 
 case class DbPlayer(
     rating: Option[Int],

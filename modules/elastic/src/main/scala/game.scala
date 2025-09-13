@@ -22,6 +22,7 @@ case class Game(
     hasAi: Option[Boolean] = None,
     aiLevel: Range[Int] = Range.none,
     rated: Option[Boolean] = None,
+    startPosition: Option[Int] = None,
     date: Range[Instant] = Range.none,
     duration: Range[Int] = Range.none,
     sorting: Sorting = Sorting.default,
@@ -60,6 +61,7 @@ case class Game(
 
     List(
       usernames.map(termQuery(Fields.uids, _)),
+      toQueries(startPosition, Fields.startPosition),
       toQueries(winner, Fields.winner),
       toQueries(loser, Fields.loser),
       toQueries(winnerColor, Fields.winnerColor),
@@ -86,6 +88,7 @@ object Fields:
   val rated = "r"
   val perf = "p"
   val uids = "u"
+  val startPosition = "if"
   val winner = "w"
   val loser = "o"
   val winnerColor = "c"
