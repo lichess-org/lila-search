@@ -47,10 +47,10 @@ ingestor-cli/run --help
 
 ```sh
 # index all documents for specific index
-sbt 'ingestor/runMain lila.search.ingestor.cli index --index team --since 0'
+sbt 'ingestor-cli/run index --index team --since 0'
 
 # index all documents for all indexes
-sbt 'ingestor/runMain lila.search.ingestor.cli index --all --since 0'
+sbt 'ingestor-cli/run index --all --since 0'
 ```
 
 ### release
