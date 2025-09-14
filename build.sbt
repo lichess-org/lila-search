@@ -11,7 +11,12 @@ inThisBuild(
     semanticdbEnabled := true, // for scalafix
     resolvers ++= ourResolvers,
     Compile / doc / sources := Seq.empty,
-    publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", ""))))
+    publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", "")))),
+    dockerBaseImage       := "eclipse-temurin:21-jdk-noble",
+    dockerUpdateLatest    := true,
+    dockerBuildxPlatforms := Seq("linux/amd64", "linux/arm64"),
+    Docker / maintainer       := "lichess.org",
+    Docker / dockerRepository := Some("ghcr.io"),
   )
 )
 
@@ -78,14 +83,56 @@ lazy val elastic = project
   )
   .dependsOn(api, core)
 
-lazy val ingestor = project
-  .in(file("modules/ingestor"))
-  .enablePlugins(JavaAppPackaging, Smithy4sCodegenPlugin, BuildInfoPlugin)
+lazy val `ingestor-app` = project
+  .in(file("modules/ingestor-app"))
+  .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
   .settings(
-    name := "ingestor",
+    name := "ingestor-app",
     commonSettings,
     buildInfoSettings,
-    dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
+    Docker / packageName      := "lichess-org/lila-search-ingestor-app",
+    publish := {},
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      logback % Runtime,
+      otel4sSdk,
+      otel4sMetrics,
+      otel4sPrometheusExporter,
+      otel4sInstrumentationMetrics
+    ),
+    Compile / doc / sources := Seq.empty,
+    Compile / run / fork := true
+  )
+  .dependsOn(`ingestor-core`)
+
+lazy val `ingestor-cli` = project
+  .in(file("modules/ingestor-cli"))
+  .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
+  .settings(
+    name := "ingestor-cli",
+    commonSettings,
+    buildInfoSettings,
+    Docker / packageName      := "lichess-org/lila-search-ingestor-cli",
+    publish := {},
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      declineCore,
+      declineCatsEffect,
+      otel4sCore,
+      logback % Runtime,
+      weaver
+    ),
+    Compile / doc / sources := Seq.empty,
+    Compile / run / fork := true
+  )
+  .dependsOn(elastic, core, `ingestor-core`)
+
+lazy val `ingestor-core` = project
+  .in(file("modules/ingestor-core"))
+  .enablePlugins(Smithy4sCodegenPlugin)
+  .settings(
+    name := "ingestor-core",
+    commonSettings,
     publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -94,31 +141,22 @@ lazy val ingestor = project
       fs2,
       fs2IO,
       catsEffect,
-      declineCore,
-      declineCatsEffect,
-      ducktape,
       cirisCore,
       cirisHtt4s,
+      ducktape,
       smithy4sCore,
       smithy4sJson,
       jsoniterCore,
       jsoniterMacro,
       circe,
-      http4sServer,
-      http4sEmberClient,
       mongo4catsCore,
       mongo4catsCirce,
+      http4sEmberClient,
       log4Cats,
-      logback % Runtime,
-      otel4sSdk,
-      otel4sMetrics,
-      otel4sPrometheusExporter,
-      otel4sInstrumentationMetrics,
       weaver,
       weaverScalaCheck
     ),
-    Compile / doc / sources := Seq.empty,
-    Compile / run / fork := true
+    Compile / doc / sources := Seq.empty
   )
   .dependsOn(elastic, core)
 
@@ -137,13 +175,13 @@ lazy val client = project
   .dependsOn(api, core)
 
 lazy val app = project
-  .enablePlugins(JavaAppPackaging, BuildInfoPlugin)
+  .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
   .in(file("modules/app"))
   .settings(
     name := "lila-search",
     commonSettings,
     buildInfoSettings,
-    dockerBaseImage := "docker.io/library/eclipse-temurin:21-jdk",
+    Docker / packageName      := "lichess-org/lila-search-app",
     publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -177,12 +215,12 @@ val e2e = project
     publish / skip := true,
     libraryDependencies ++= Seq(testContainers, weaver)
   )
-  .dependsOn(client, app, ingestor)
+  .dependsOn(client, app, `ingestor-core`)
 
 lazy val root = project
   .in(file("."))
   .settings(publish := {}, publish / skip := true)
-  .aggregate(core, api, app, client, e2e, elastic, ingestor)
+  .aggregate(core, api, app, client, e2e, elastic, `ingestor-core`, `ingestor-app`, `ingestor-cli`)
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
 addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")

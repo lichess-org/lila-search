@@ -58,6 +58,7 @@ case class IngestorConfig(
 )
 
 object IngestorConfig:
+
   case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Instant], maxPostLength: Int)
   case class Ublog(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
   case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
