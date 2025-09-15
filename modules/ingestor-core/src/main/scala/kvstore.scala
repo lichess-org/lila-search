@@ -19,7 +19,7 @@ object KVStore:
   given JsonValueCodec[Map[String, Long]] = JsonCodecMaker.make
 
   type State = Map[String, Long]
-  def apply(): IO[KVStore] =
+  def apply(file: String): IO[KVStore] =
     Mutex
       .apply[IO]
       .map: mutex =>
