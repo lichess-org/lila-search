@@ -25,7 +25,7 @@ object AppResources:
       makeStudyMongoClient(conf.mongo),
       makeStudyOplogClient(conf.mongo),
       makeElasticClient(conf.elastic),
-      KVStore.apply().toResource
+      KVStore(conf.kvStorePath).toResource
     ).parMapN(AppResources.apply)
 
   private def makeElasticClient(conf: ElasticConfig)(using Meter[IO]): Resource[IO, ESClient[IO]] =

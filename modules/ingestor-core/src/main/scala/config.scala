@@ -17,16 +17,20 @@ object AppConfig:
 
   def load: IO[AppConfig] = appConfig.load[IO]
 
+  private def kvStorePath = env("KV_STORE_PATH").or(prop("kv.store.path")).as[String].default("store.json")
+
   def appConfig = (
     MongoConfig.config,
     ElasticConfig.config,
-    IngestorConfig.config
+    IngestorConfig.config,
+    kvStorePath
   ).parMapN(AppConfig.apply)
 
 case class AppConfig(
     mongo: MongoConfig,
     elastic: ElasticConfig,
-    ingestor: IngestorConfig
+    ingestor: IngestorConfig,
+    kvStorePath: String
 )
 case class MongoConfig(uri: String, name: String, studyUri: String, studyName: String)
 
