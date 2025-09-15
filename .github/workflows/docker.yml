@@ -3,6 +3,8 @@ on:
   push:
     tags:
       - v*
+  pull_request:
+    branches: ['**']
 
 env:
   REGISTRY: ghcr.io
