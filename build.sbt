@@ -12,11 +12,11 @@ inThisBuild(
     resolvers ++= ourResolvers,
     Compile / doc / sources := Seq.empty,
     publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", "")))),
-    dockerBaseImage       := "eclipse-temurin:21-jdk-noble",
-    dockerUpdateLatest    := true,
+    dockerBaseImage := "eclipse-temurin:21-jdk-noble",
+    dockerUpdateLatest := true,
     dockerBuildxPlatforms := Seq("linux/amd64", "linux/arm64"),
-    Docker / maintainer       := "lichess.org",
-    Docker / dockerRepository := Some("ghcr.io"),
+    Docker / maintainer := "lichess.org",
+    Docker / dockerRepository := Some("ghcr.io")
   )
 )
 
@@ -90,7 +90,7 @@ lazy val `ingestor-app` = project
     name := "ingestor-app",
     commonSettings,
     buildInfoSettings,
-    Docker / packageName      := "lichess-org/lila-search-ingestor-app",
+    Docker / packageName := "lichess-org/lila-search-ingestor-app",
     publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -112,7 +112,7 @@ lazy val `ingestor-cli` = project
     name := "ingestor-cli",
     commonSettings,
     buildInfoSettings,
-    Docker / packageName      := "lichess-org/lila-search-ingestor-cli",
+    Docker / packageName := "lichess-org/lila-search-ingestor-cli",
     publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
@@ -181,7 +181,7 @@ lazy val app = project
     name := "lila-search",
     commonSettings,
     buildInfoSettings,
-    Docker / packageName      := "lichess-org/lila-search-app",
+    Docker / packageName := "lichess-org/lila-search-app",
     publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
