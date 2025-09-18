@@ -86,7 +86,9 @@ object CompatSuite extends weaver.IOSuite:
     override def search[A](query: A, from: From, size: Size)(using Queryable[A]) =
       IO.pure(Nil)
 
-    override def status = IO.pure("yellow")
+    override def status = IO("yellow")
+
+    override def indexExists(index: Index) = IO(true)
 
   given system: ActorSystem = ActorSystem()
 
