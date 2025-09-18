@@ -26,6 +26,7 @@ trait ESClient[F[_]]:
   def putMapping(index: Index): RaiseF[Unit]
   def refreshIndex(index: Index): RaiseF[Unit]
   def status: RaiseF[String]
+  def indexExists(index: Index): RaiseF[Boolean]
 
 object ESClient:
 
@@ -163,6 +164,12 @@ object ESClient:
       client
         .execute(ElasticDsl.refreshIndex(index.value))
         .flatMap(_.unitOrFail)
+
+    def indexExists(index: Index): RaiseF[Boolean] =
+      client
+        .execute(ElasticDsl.indexExists(index.value))
+        .flatMap(_.toResult)
+        .map(_.exists)
 
     private def dropIndex(index: Index) =
       client.execute(deleteIndex(index.value))
