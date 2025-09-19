@@ -22,7 +22,13 @@ object App extends IOApp.Simple:
   def app: Resource[IO, Unit] =
     for
       given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
-      given Meter[IO] <- mkMeter
+      otel4s <- SdkMetrics.autoConfigured[IO]:
+        _.addMeterProviderCustomizer((b, _) =>
+          b.registerMetricReader(summon[MetricExporter.Pull[IO]].metricReader)
+        )
+      given MeterProvider[IO] = otel4s.meterProvider
+      _ <- IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default)
+      given Meter[IO] <- MeterProvider[IO].get("lila-search").toResource
       _ <- RuntimeMetrics.register[IO]
       config <- AppConfig.load.toResource
       _ <- Logger[IO].info(s"Starting lila-search with config: ${config.toString}").toResource
@@ -30,20 +36,13 @@ object App extends IOApp.Simple:
       _ <- mkServer(res, config)
     yield ()
 
-  def mkMeter(using exporter: MetricExporter.Pull[IO]) = SdkMetrics
-    .autoConfigured[IO](_.addMeterProviderCustomizer((b, _) => b.registerMetricReader(exporter.metricReader)))
-    .flatMap: sdk =>
-      given meterProvider: MeterProvider[IO] = sdk.meterProvider
-      IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default) *>
-        meterProvider.get("lila-search").toResource
-
   def mkServer(res: AppResources, config: AppConfig)(using
-      Meter[IO],
-      MetricExporter.Pull[IO]
+      MetricExporter.Pull[IO],
+      MeterProvider[IO]
   ): Resource[IO, Unit] =
     for
       apiRoutes <- Routes(res, config.server)
-      httpRoutes = apiRoutes <+> mkPrometheusRoutes
-      _ <- MkHttpServer().newEmber(config.server, httpRoutes.orNotFound)
+      httpRoutes = apiRoutes <+> MkPrometheusRoutes
+      _ <- MkHttpServer.newEmber(config.server, httpRoutes.orNotFound)
       _ <- Logger[IO].info(s"BuildInfo: ${BuildInfo.toString}").toResource
     yield ()

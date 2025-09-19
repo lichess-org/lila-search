@@ -10,16 +10,13 @@ import org.typelevel.log4cats.Logger
 
 import scala.concurrent.duration.*
 
-trait MkHttpServer:
-  def newEmber(cfg: HttpServerConfig, httpApp: HttpApp[IO]): Resource[IO, Server]
-
 object MkHttpServer:
 
-  def apply()(using server: MkHttpServer): MkHttpServer = server
+  def newEmber(cfg: HttpServerConfig, httpApp: HttpApp[IO])(using Logger[IO]): Resource[IO, Server] =
+    def showBanner(s: Server): IO[Unit] =
+      Logger[IO].info(s"lila-search started at ${s.address.toString}")
 
-  given Logger[IO] => MkHttpServer = new:
-
-    def newEmber(cfg: HttpServerConfig, httpApp: HttpApp[IO]): Resource[IO, Server] = EmberServerBuilder
+    EmberServerBuilder
       .default[IO]
       .withHost(cfg.host)
       .withPort(cfg.port)
@@ -27,6 +24,3 @@ object MkHttpServer:
       .withShutdownTimeout(cfg.shutdownTimeout.seconds)
       .build
       .evalTap(showBanner)
-
-    private def showBanner(s: Server): IO[Unit] =
-      Logger[IO].info(s"lila-search started at ${s.address.toString}")

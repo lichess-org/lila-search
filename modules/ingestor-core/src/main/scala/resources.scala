@@ -7,7 +7,8 @@ import com.mongodb.ReadPreference
 import mongo4cats.client.MongoClient
 import mongo4cats.database.MongoDatabase
 import org.http4s.ember.client.EmberClientBuilder
-import org.typelevel.otel4s.metrics.Meter
+import org.http4s.otel4s.middleware.metrics.OtelMetrics
+import org.typelevel.otel4s.metrics.MeterProvider
 
 class AppResources(
     val lichess: MongoDatabase[IO],
@@ -19,7 +20,7 @@ class AppResources(
 
 object AppResources:
 
-  def instance(conf: AppConfig)(using Meter[IO]): Resource[IO, AppResources] =
+  def instance(conf: AppConfig)(using MeterProvider[IO]): Resource[IO, AppResources] =
     (
       makeMongoClient(conf.mongo),
       makeStudyMongoClient(conf.mongo),
@@ -28,8 +29,14 @@ object AppResources:
       KVStore(conf.kvStorePath).toResource
     ).parMapN(AppResources.apply)
 
-  private def makeElasticClient(conf: ElasticConfig)(using Meter[IO]): Resource[IO, ESClient[IO]] =
-    EmberClientBuilder.default[IO].build.evalMap(ESClient(conf.uri))
+  private def makeElasticClient(conf: ElasticConfig)(using MeterProvider[IO]): Resource[IO, ESClient[IO]] =
+    val metrics = OtelMetrics
+      .clientMetricsOps[IO]()
+      .map(org.http4s.client.middleware.Metrics[IO](_, _.uri.renderString.some))
+
+    (metrics.toResource, EmberClientBuilder.default[IO].build)
+      .mapN(_.apply(_))
+      .map(ESClient(conf.uri))
 
   private def makeMongoClient(conf: MongoConfig) =
     MongoClient

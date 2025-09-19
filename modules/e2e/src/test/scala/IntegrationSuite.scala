@@ -13,7 +13,7 @@ import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
-import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.metrics.MeterProvider
 import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
 import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
 import smithy4s.Timestamp
@@ -25,7 +25,7 @@ object IntegrationSuite extends IOSuite:
 
   given Logger[IO] = NoOpLogger[IO]
   given LoggerFactory[IO] = NoOpFactory[IO]
-  given Meter[IO] = Meter.noop[IO]
+  given MeterProvider[IO] = MeterProvider.noop[IO]
   private given Raise[IO, ElasticError]:
     def functor: Functor[IO] = Functor[IO]
     def raise[E <: ElasticError, A](e: E): IO[A] =
