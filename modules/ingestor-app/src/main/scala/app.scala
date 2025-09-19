@@ -2,7 +2,6 @@ package lila.search
 package ingestor
 
 import cats.effect.*
-import cats.syntax.all.*
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.experimental.metrics.*
@@ -20,7 +19,11 @@ object App extends IOApp.Simple:
 
   def app: Resource[IO, Unit] =
     for
-      given Meter[IO] <- mkMeter
+      otel4s <- SdkMetrics.autoConfigured[IO]:
+        _.addExporterConfigurer(PrometheusMetricExporterAutoConfigure[IO])
+      given MeterProvider[IO] = otel4s.meterProvider
+      _ <- IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default)
+      given Meter[IO] <- MeterProvider[IO].get("lila-search-ingestor").toResource
       _ <- RuntimeMetrics.register[IO]
       config <- AppConfig.load.toResource
       _ <- Logger[IO].info(s"Starting lila-search ingestor with config: ${config.toString}").toResource
@@ -28,13 +31,6 @@ object App extends IOApp.Simple:
       res <- AppResources.instance(config)
       _ <- IngestorApp(res, config).run()
     yield ()
-
-  def mkMeter = SdkMetrics
-    .autoConfigured[IO](_.addExporterConfigurer(PrometheusMetricExporterAutoConfigure[IO]))
-    .flatMap: sdk =>
-      given meterProvider: MeterProvider[IO] = sdk.meterProvider
-      IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default) *>
-        meterProvider.get("lila-search-ingestor").toResource
 
 class IngestorApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO]):
   def run(): Resource[IO, Unit] =

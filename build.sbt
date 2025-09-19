@@ -77,8 +77,7 @@ lazy val elastic = project
       catsEffect,
       catsMtl,
       http4sClient,
-      elastic4sHttp4sClient,
-      otel4sCore
+      elastic4sHttp4sClient
     )
   )
   .dependsOn(api, core)
@@ -151,6 +150,9 @@ lazy val `ingestor-core` = project
       circe,
       mongo4catsCore,
       mongo4catsCirce,
+      otel4sCore,
+      otel4sHttp4sCore,
+      otel4sHttp4sMetrics,
       http4sEmberClient,
       log4Cats,
       weaver,
@@ -201,7 +203,9 @@ lazy val app = project
       otel4sSdk,
       otel4sMetrics,
       otel4sPrometheusExporter,
-      otel4sInstrumentationMetrics
+      otel4sInstrumentationMetrics,
+      otel4sHttp4sCore,
+      otel4sHttp4sMetrics
     ),
     Compile / doc / sources := Seq.empty,
     Compile / run / fork := true

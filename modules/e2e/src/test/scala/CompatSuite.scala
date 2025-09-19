@@ -11,7 +11,7 @@ import lila.search.spec.{ CountOutput, Query, SearchOutput }
 import org.http4s.implicits.*
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
-import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.metrics.MeterProvider
 import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
 import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
 import play.api.libs.ws.ahc.*
@@ -22,7 +22,7 @@ object CompatSuite extends weaver.IOSuite:
 
   given Logger[IO] = NoOpLogger[IO]
   given LoggerFactory[IO] = NoOpFactory[IO]
-  given Meter[IO] = Meter.noop[IO]
+  given MeterProvider[IO] = MeterProvider.noop[IO]
 
   override type Res = SearchClient
 
