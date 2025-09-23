@@ -74,7 +74,8 @@ object IntegrationSuite extends IOSuite:
               topicId = "chess",
               troll = false,
               date = Instant.now().toEpochMilli(),
-              author = "nt9".some
+              author = "nt9".some,
+              category = "team-lichess"
             )
           )
           _ <- res.esClient.refreshIndex(Index.Forum)
