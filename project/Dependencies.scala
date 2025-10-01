@@ -10,14 +10,14 @@ object Dependencies {
   object V {
     val catsEffect = "3.6.3"
     val catsMtl    = "1.6.0"
-    val chess      = "17.10.1"
     val ciris      = "3.11.0"
+    val chess      = "17.12.3"
     val decline    = "2.5.0"
     val elastic4s  = "9.1.0"
     val fs2        = "3.12.2"
     val http4s     = "0.23.30"
     val mongo4cats = "0.7.13"
-    val otel4s     = "0.13.1"
+    val otel4s     = "0.13.2"
   }
 
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
@@ -53,7 +53,7 @@ object Dependencies {
 
   val mongo4catsCore = "io.github.kirill5k" %% "mongo4cats-core" % V.mongo4cats
   val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % V.mongo4cats
-  val circe = "io.circe" %% "circe-core" % "0.14.14"
+  val circe = "io.circe" %% "circe-core" % "0.14.15"
 
   val otel4sCore =  "org.typelevel" %% "otel4s-core" % V.otel4s
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
@@ -62,7 +62,7 @@ object Dependencies {
   val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.7.0"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j"  % "2.7.1"
-  val logback = "ch.qos.logback" % "logback-classic" % "1.5.18"
+  val logback = "ch.qos.logback" % "logback-classic" % "1.5.19"
 
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.10"
 
