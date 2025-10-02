@@ -14,14 +14,16 @@ import scala.util.control.NoStackTrace
 /**
  * This error is thrown when a search request fails.
  */
-enum SearchError extends NoStackTrace:
-  case BadRequest(message: String)
-  case InternalServerError(message: String)
+enum SearchError(message: String) extends NoStackTrace:
+  case BadRequest(message: String) extends SearchError(message)
+  case InternalServerError(message: String) extends SearchError(message)
 
   /**
    * This error is thrown when object serialization fails.
    */
-  case JsonWriterError(message: String)
+  case JsonWriterError(message: String) extends SearchError(message)
+
+  override def getMessage: String = message
 
 class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionContext)
     extends SearchClient:
