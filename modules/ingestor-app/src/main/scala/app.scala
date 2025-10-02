@@ -40,7 +40,7 @@ object App extends IOApp.Simple:
     builder
       .addPropertiesCustomizer(_ =>
         Map(
-          "otel.metrics.exporter" -> "none",
+          "otel.metrics.exporter" -> "prometheus",
           "otel.traces.exporter" -> "none"
         )
       )
