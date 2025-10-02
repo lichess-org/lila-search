@@ -19,8 +19,7 @@ object App extends IOApp.Simple:
 
   def app: Resource[IO, Unit] =
     for
-      otel4s <- SdkMetrics.autoConfigured[IO]:
-        _.addExporterConfigurer(PrometheusMetricExporterAutoConfigure[IO])
+      otel4s <- SdkMetrics.autoConfigured[IO](configBuilder)
       given MeterProvider[IO] = otel4s.meterProvider
       _ <- registerRuntimeMetrics
       config <- AppConfig.load.toResource
@@ -36,6 +35,16 @@ object App extends IOApp.Simple:
       given Meter[IO] <- MeterProvider[IO].get("jvm.runtime").toResource
       _ <- RuntimeMetrics.register[IO]
     yield ()
+
+  private def configBuilder(builder: SdkMetrics.AutoConfigured.Builder[IO]) =
+    builder
+      .addPropertiesCustomizer(_ =>
+        Map(
+          "otel.metrics.exporter" -> "none",
+          "otel.traces.exporter" -> "none"
+        )
+      )
+      .addExporterConfigurer(PrometheusMetricExporterAutoConfigure[IO])
 
 class IngestorApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO]):
   def run(): Resource[IO, Unit] =

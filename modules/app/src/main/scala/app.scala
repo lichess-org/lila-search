@@ -10,6 +10,7 @@ import org.typelevel.otel4s.instrumentation.ce.IORuntimeMetrics
 import org.typelevel.otel4s.metrics.{ Meter, MeterProvider }
 import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
 import org.typelevel.otel4s.sdk.metrics.SdkMetrics
+import org.typelevel.otel4s.sdk.metrics.SdkMetrics.AutoConfigured.Builder
 import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
 
 object App extends IOApp.Simple:
@@ -22,10 +23,7 @@ object App extends IOApp.Simple:
   def app: Resource[IO, Unit] =
     for
       given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
-      otel4s <- SdkMetrics.autoConfigured[IO]:
-        _.addMeterProviderCustomizer((b, _) =>
-          b.registerMetricReader(summon[MetricExporter.Pull[IO]].metricReader)
-        )
+      otel4s <- SdkMetrics.autoConfigured[IO](configBuilder)
       given MeterProvider[IO] = otel4s.meterProvider
       _ <- registerRuntimeMetrics
       config <- AppConfig.load.toResource
@@ -51,3 +49,13 @@ object App extends IOApp.Simple:
       given Meter[IO] <- MeterProvider[IO].get("jvm.runtime").toResource
       _ <- RuntimeMetrics.register[IO]
     yield ()
+
+  private def configBuilder(builder: Builder[IO])(using exporter: MetricExporter.Pull[IO]) =
+    builder
+      .addPropertiesCustomizer(_ =>
+        Map(
+          "otel.metrics.exporter" -> "none",
+          "otel.traces.exporter" -> "none"
+        )
+      )
+      .addMeterProviderCustomizer((b, _) => b.registerMetricReader(exporter.metricReader))
