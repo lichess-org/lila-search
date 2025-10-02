@@ -26,6 +26,7 @@ enum SearchError extends NoStackTrace:
 class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionContext)
     extends SearchClient:
 
+  import PlaySearchClient.*
   import implicits.given
 
   override def count(query: Query): Future[CountOutput] =
@@ -46,11 +47,15 @@ class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using Execut
           case res => Future.failed(SearchError.InternalServerError(s"$url ${res.status} ${res.body}"))
     catch case e: JsonWriterException => Future.failed(SearchError.JsonWriterError(e.toString))
 
-final private case class SearchInput(query: Query)
-final private case class IdsInput(ids: List[Id])
+object PlaySearchClient:
+  opaque type SearchInput = Query
+  object SearchInput:
+    inline def apply(query: Query): SearchInput = query
+    extension (s: SearchInput) inline def query: Query = s
 
 object implicits:
 
+  import PlaySearchClient.*
   import smithy4s.schema.Schema.struct
 
   given Schema[SearchInput] = struct(
