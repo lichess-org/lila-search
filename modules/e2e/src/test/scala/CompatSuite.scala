@@ -27,14 +27,11 @@ object CompatSuite extends weaver.IOSuite:
   override type Res = SearchClient
 
   override def sharedResource: Resource[IO, Res] =
-    val res = AppResources(fakeClient)
     for
       given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
-      res <- App
-        .mkServer(res, testAppConfig)
-        .flatMap(_ => wsClient)
-        .map(SearchClient.play(_, "http://localhost:9999/api"))
-    yield res
+      _ <- App.mkServer(AppResources(fakeESClient), testAppConfig)
+      wsClient <- makeWSClient
+    yield SearchClient.play(wsClient, "http://localhost:9999/api")
 
   val from = From(0)
   val size = Size(12)
@@ -53,7 +50,7 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.search(query, from, size)))
       .handleErrorWith:
         case e: SearchError.JsonWriterError =>
-          IO.pure(SearchOutput(Nil))
+          IO(SearchOutput(Nil))
       .map(expect.same(_, SearchOutput(Nil)))
 
   test("count endpoint"): client =>
@@ -65,7 +62,7 @@ object CompatSuite extends weaver.IOSuite:
     elastic = ElasticConfig(uri"http://0.0.0.0:9200")
   )
 
-  def fakeClient: ESClient[IO] = new:
+  def fakeESClient: ESClient[IO] = new:
 
     override def store[A](index: Index, id: Id, obj: A)(using Indexable[A]) = IO.unit
 
@@ -92,6 +89,6 @@ object CompatSuite extends weaver.IOSuite:
 
   given system: ActorSystem = ActorSystem()
 
-  def wsClient = Resource.make(IO(StandaloneAhcWSClient()))(x =>
+  private def makeWSClient = Resource.make(IO(StandaloneAhcWSClient()))(x =>
     IO(x.close()).flatMap(_ => IO.fromFuture(IO(system.terminate())).void)
   )
