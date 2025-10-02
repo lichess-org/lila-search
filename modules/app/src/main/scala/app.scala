@@ -27,9 +27,7 @@ object App extends IOApp.Simple:
           b.registerMetricReader(summon[MetricExporter.Pull[IO]].metricReader)
         )
       given MeterProvider[IO] = otel4s.meterProvider
-      _ <- IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default)
-      given Meter[IO] <- MeterProvider[IO].get("lila-search").toResource
-      _ <- RuntimeMetrics.register[IO]
+      _ <- registerRuntimeMetrics
       config <- AppConfig.load.toResource
       _ <- Logger[IO].info(s"Starting lila-search with config: ${config.toString}").toResource
       res <- AppResources.instance(config)
@@ -45,4 +43,11 @@ object App extends IOApp.Simple:
       httpRoutes = apiRoutes <+> MkPrometheusRoutes
       _ <- MkHttpServer.newEmber(config.server, httpRoutes.orNotFound)
       _ <- Logger[IO].info(s"BuildInfo: ${BuildInfo.toString}").toResource
+    yield ()
+
+  private def registerRuntimeMetrics(using MeterProvider[IO]): Resource[IO, Unit] =
+    for
+      _ <- IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default)
+      given Meter[IO] <- MeterProvider[IO].get("jvm.runtime").toResource
+      _ <- RuntimeMetrics.register[IO]
     yield ()

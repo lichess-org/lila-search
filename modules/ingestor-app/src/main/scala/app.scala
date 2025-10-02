@@ -22,14 +22,19 @@ object App extends IOApp.Simple:
       otel4s <- SdkMetrics.autoConfigured[IO]:
         _.addExporterConfigurer(PrometheusMetricExporterAutoConfigure[IO])
       given MeterProvider[IO] = otel4s.meterProvider
-      _ <- IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default)
-      given Meter[IO] <- MeterProvider[IO].get("lila-search-ingestor").toResource
-      _ <- RuntimeMetrics.register[IO]
+      _ <- registerRuntimeMetrics
       config <- AppConfig.load.toResource
       _ <- Logger[IO].info(s"Starting lila-search ingestor with config: ${config.toString}").toResource
       _ <- Logger[IO].info(s"BuildInfo: ${BuildInfo.toString}").toResource
       res <- AppResources.instance(config)
       _ <- IngestorApp(res, config).run()
+    yield ()
+
+  private def registerRuntimeMetrics(using MeterProvider[IO]): Resource[IO, Unit] =
+    for
+      _ <- IORuntimeMetrics.register[IO](runtime.metrics, IORuntimeMetrics.Config.default)
+      given Meter[IO] <- MeterProvider[IO].get("jvm.runtime").toResource
+      _ <- RuntimeMetrics.register[IO]
     yield ()
 
 class IngestorApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO]):
