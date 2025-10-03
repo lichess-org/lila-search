@@ -15,8 +15,8 @@ on:
           - sirch
 
 jobs:
-
   compile:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +29,7 @@ jobs:
       - run: sbt compile
 
   lint:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +42,7 @@ jobs:
       - run: sbt check
 
   test:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +55,7 @@ jobs:
       - run: sbt test
 
   stage:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     needs: test
     steps:
@@ -78,26 +81,43 @@ jobs:
           path: modules/ingestor-cli/target/universal/stage
 
   # todo
-  # - split between lila-search / lila-search-ingestor
-  # - only build when have success build
   # - auto matically run on tag or workflow_dispatch
   # - tpolecat release mode
-  deploy-lila-search-app:
+
+  # Matrix deploy job (runs ONLY on workflow_dispatch). Without stage artifacts this assumes
+  # previously uploaded artifacts from another run OR that you will later add build logic here.
+  deploy-components:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact: lila-search-app
+            remote_dir: /home/lila-search
+            restart_cmd: systemctl restart lila-search
+          - artifact: lila-search-ingestor
+            remote_dir: /home/lila-search-ingestor
+            restart_cmd: systemctl restart lila-search-ingestor
+          - artifact: lila-search-cli
+            remote_dir: /home/lila-search-cli
+            restart_cmd: ""   # no restart needed
     concurrency:
-      group: ${{ inputs.environment }}
-    needs: stage
-    if: github.event_name == 'workflow_dispatch'
+      group: deploy-${{ inputs.environment }}-${{ matrix.artifact }}
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifact (will fail if artifact not present from a prior run)
+        uses: actions/download-artifact@v4
         with:
-          name: lila-search-app
+          name: ${{ matrix.artifact }}
           path: stage
+
       - name: Configure SSH
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           touch ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           echo "$SSH_KEY" > ~/.ssh/id_deploy
@@ -114,31 +134,27 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST_KEY: ${{ secrets.SSH_HOST_KEY }}
-      - name: Debug
-        run: |
-          ls -R
-          echo "hello"
+
       - name: Deploy via SSH
         run: |
-          RSYNC_OPTIONS=" \
-            --archive \
-            --no-o --no-g \
-            --force \
-            --delete \
-            --progress \
-            --compress \
-            --checksum \
-            --verbose \
-            --exclude RUNNING_PID \
-            --exclude '.git/'"
-
+          set -euo pipefail
+          if [ ! -d stage/bin ]; then
+            echo "ERROR: Expected staged artifact (stage/bin) not found. You skipped build jobs via workflow_dispatch."
+            echo "Either (a) run a normal CI build first, or (b) modify deploy job to build artifacts."
+            exit 1
+          fi
+          RSYNC_OPTIONS="--archive --no-o --no-g --force --delete --progress --compress --checksum --verbose --exclude RUNNING_PID --exclude '.git/'"
           include="stage/bin stage/lib"
-          rsync_command="rsync $RSYNC_OPTIONS $include deploy-host:$REMOTE_DIR"
-          echo "$rsync_command"
-          $rsync_command
-          echo "rsync complete"
+          echo "Deploying ${{ matrix.artifact }} to ${{ matrix.remote_dir }}"
+          rsync $RSYNC_OPTIONS $include deploy-host:${{ matrix.remote_dir }}
+          echo "rsync complete (${{ matrix.artifact }})"
 
-          echo "Restart lila-search (not yet)"
-          # ssh deploy-host "chown -R lila-search:lila-search /home/lila-search && systemctl restart lila-search"
+          if [ -n "${{ matrix.restart_cmd }}" ]; then
+            echo "Would run restart: ${{ matrix.restart_cmd }}"
+            # Uncomment when ready:
+            # ssh deploy-host "chown -R lila-search:lila-search ${{ matrix.remote_dir }} && ${{ matrix.restart_cmd }}"
+          else
+            echo "No restart command defined for ${{ matrix.artifact }}."
+          fi
 
-          echo "Deploy complete"
+          echo "Deploy complete (${{ matrix.artifact }})"
