@@ -133,12 +133,12 @@ jobs:
             --exclude '.git/'"
 
           include="stage/bin stage/lib"
-          rsync_command="rsync $RSYNC_OPTIONS $include deploy-host:$REMOTE_DIR"
+          rsync_command="rsync $RSYNC_OPTIONS $include deploy-host:/home/lila-search"
           echo "$rsync_command"
           $rsync_command
           echo "rsync complete"
 
-          echo "Restart lila-search (not yet)"
+          echo "Restart lila-search not yet"
           # ssh deploy-host "chown -R lila-search:lila-search /home/lila-search && systemctl restart lila-search"
 
           echo "Deploy complete"
