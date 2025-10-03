@@ -16,6 +16,7 @@ on:
 
 jobs:
   compile:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,6 +29,7 @@ jobs:
       - run: sbt compile
 
   lint:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +42,7 @@ jobs:
       - run: sbt check
 
   test:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +55,7 @@ jobs:
       - run: sbt test
 
   stage:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     needs: test
     steps:
@@ -79,15 +83,13 @@ jobs:
   # todo
   # - auto matically run on tag or workflow_dispatch
   # - tpolecat release mode
-
-  # Matrix deploy job for all components.
-  # Adjust remote_dir and restart_cmd as needed.
+  # Matrix deploy job (runs ONLY on workflow_dispatch). Without stage artifacts this assumes
+  # previously uploaded artifacts from another run OR that you will later add build logic here.
   deploy-components:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
-    needs: stage
-    if: github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -101,11 +103,11 @@ jobs:
           - artifact: lila-search-cli
             remote_dir: /home/lila-search/cli
             restart_cmd: ""   # no restart needed
-    # Separate concurrency slot per artifact+environment so they don't block each other
     concurrency:
       group: deploy-${{ inputs.environment }}-${{ matrix.artifact }}
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifact (will fail if artifact not present from a prior run)
+        uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: stage
@@ -115,11 +117,9 @@ jobs:
           set -euo pipefail
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-            # Key file
           touch ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           echo "$SSH_KEY" > ~/.ssh/id_deploy
-            # Known hosts (expecting "hostname key" format)
           echo "$SSH_HOST $SSH_HOST_KEY" > ~/.ssh/known_hosts
           cat >>~/.ssh/config <<END
           Host deploy-host
@@ -137,6 +137,11 @@ jobs:
       - name: Deploy via SSH
         run: |
           set -euo pipefail
+          if [ ! -d stage/bin ]; then
+            echo "ERROR: Expected staged artifact (stage/bin) not found. You skipped build jobs via workflow_dispatch."
+            echo "Either (a) run a normal CI build first, or (b) modify deploy job to build artifacts."
+            exit 1
+          fi
           RSYNC_OPTIONS="--archive --no-o --no-g --force --delete --progress --compress --checksum --verbose --exclude RUNNING_PID --exclude '.git/'"
           include="stage/bin stage/lib"
           echo "Deploying ${{ matrix.artifact }} to ${{ matrix.remote_dir }}"
