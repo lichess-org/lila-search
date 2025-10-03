@@ -52,7 +52,7 @@ jobs:
         include:
           - artifact: lila-search-app
             remote_dir: /home/lila-search
-            user: lila-search-app
+            user: lila-search
             restart_cmd: systemctl restart lila-search
           - artifact: lila-search-ingestor
             remote_dir: /home/lila-search-ingestor
@@ -60,12 +60,12 @@ jobs:
             restart_cmd: systemctl restart lila-search-ingestor
           - artifact: lila-search-cli
             remote_dir: /home/lila-search-cli
-            user: lila-search-cli
+            user: ""
             restart_cmd: ""   # no restart needed
     concurrency:
       group: deploy-${{ inputs.env }}-${{ matrix.artifact }}
     steps:
-      - name: Download artifact (will fail if artifact not present from a prior run)
+      - name: Download artifact
         uses: actions/download-artifact@v5
         with:
           name: ${{ matrix.artifact }}
