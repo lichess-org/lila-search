@@ -83,6 +83,7 @@ jobs:
   # todo
   # - auto matically run on tag or workflow_dispatch
   # - tpolecat release mode
+
   # Matrix deploy job (runs ONLY on workflow_dispatch). Without stage artifacts this assumes
   # previously uploaded artifacts from another run OR that you will later add build logic here.
   deploy-components:
@@ -95,13 +96,13 @@ jobs:
       matrix:
         include:
           - artifact: lila-search-app
-            remote_dir: /home/lila-search/app
+            remote_dir: /home/lila-search
             restart_cmd: systemctl restart lila-search
           - artifact: lila-search-ingestor
-            remote_dir: /home/lila-search/ingestor
+            remote_dir: /home/lila-search-ingestor
             restart_cmd: systemctl restart lila-search-ingestor
           - artifact: lila-search-cli
-            remote_dir: /home/lila-search/cli
+            remote_dir: /home/lila-search-cli
             restart_cmd: ""   # no restart needed
     concurrency:
       group: deploy-${{ inputs.environment }}-${{ matrix.artifact }}
