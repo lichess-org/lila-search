@@ -86,7 +86,7 @@ lazy val `ingestor-app` = project
   .in(file("modules/ingestor-app"))
   .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
   .settings(
-    name := "ingestor-app",
+    name := "lila-search-ingestor",
     commonSettings,
     buildInfoSettings,
     Docker / packageName := "lichess-org/lila-search-ingestor-app",
@@ -108,7 +108,7 @@ lazy val `ingestor-cli` = project
   .in(file("modules/ingestor-cli"))
   .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
   .settings(
-    name := "ingestor-cli",
+    name := "lila-search-cli",
     commonSettings,
     buildInfoSettings,
     Docker / packageName := "lichess-org/lila-search-ingestor-cli",
@@ -180,7 +180,7 @@ lazy val app = project
   .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
   .in(file("modules/app"))
   .settings(
-    name := "lila-search",
+    name := "lila-search-app",
     commonSettings,
     buildInfoSettings,
     Docker / packageName := "lichess-org/lila-search-app",
