@@ -55,9 +55,8 @@ jobs:
       - run: sbt test
 
   stage:
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    needs: test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -84,11 +83,10 @@ jobs:
   # - auto matically run on tag or workflow_dispatch
   # - tpolecat release mode
 
-  # Matrix deploy job (runs ONLY on workflow_dispatch). Without stage artifacts this assumes
-  # previously uploaded artifacts from another run OR that you will later add build logic here.
   deploy-components:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    needs: stage
     environment:
       name: ${{ inputs.environment }}
     strategy:
@@ -97,12 +95,15 @@ jobs:
         include:
           - artifact: lila-search-app
             remote_dir: /home/lila-search
+            user: lila-search-app
             restart_cmd: systemctl restart lila-search
           - artifact: lila-search-ingestor
             remote_dir: /home/lila-search-ingestor
+            user: lila-search-ingestor
             restart_cmd: systemctl restart lila-search-ingestor
           - artifact: lila-search-cli
             remote_dir: /home/lila-search-cli
+            user: lila-search-cli
             restart_cmd: ""   # no restart needed
     concurrency:
       group: deploy-${{ inputs.environment }}-${{ matrix.artifact }}
@@ -150,9 +151,8 @@ jobs:
           echo "rsync complete (${{ matrix.artifact }})"
 
           if [ -n "${{ matrix.restart_cmd }}" ]; then
-            echo "Would run restart: ${{ matrix.restart_cmd }}"
-            # Uncomment when ready:
-            # ssh deploy-host "chown -R lila-search:lila-search ${{ matrix.remote_dir }} && ${{ matrix.restart_cmd }}"
+            echo "run restart: ${{ matrix.restart_cmd }}"
+            ssh deploy-host "chown -R ${{ matrix.user }}:${{ matrix.user }} ${{ matrix.remote_dir }} && ${{ matrix.restart_cmd }}"
           else
             echo "No restart command defined for ${{ matrix.artifact }}."
           fi
