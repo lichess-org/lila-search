@@ -109,7 +109,7 @@ jobs:
 
           if [ -n "${{ matrix.restart_cmd }}" ]; then
             echo "run restart: ${{ matrix.restart_cmd }}"
-            ssh deploy-host "chown -R ${{ matrix.user }}:${{ matrix.user }} ${{ matrix.remote_dir }} && ${{ matrix.restart_cmd }}"
+            ssh deploy-host "chmod +x ${{ matrix.remote_dir }}/bin/${{ matrix.artifact }} && chown -R ${{ matrix.user }}:${{ matrix.user }} ${{ matrix.remote_dir }} && ${{ matrix.restart_cmd }}"
           else
             echo "No restart command defined for ${{ matrix.artifact }}."
           fi
