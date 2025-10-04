@@ -48,6 +48,7 @@ jobs:
       name: ${{ inputs.env }}
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
           - artifact: lila-search-app
@@ -63,7 +64,7 @@ jobs:
             user: ""
             restart_cmd: ""   # no restart needed
     concurrency:
-      group: deploy-${{ inputs.env }}-${{ matrix.artifact }}
+      group: deploy-${{ inputs.env }}
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v5
