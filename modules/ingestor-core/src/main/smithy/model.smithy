@@ -32,6 +32,9 @@ structure ForumSource {
   @required
   @jsonName("da")
   date: Long
+  @required
+  @jsonName("ca")
+  category: String
 }
 
 structure GameSource {
