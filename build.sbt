@@ -12,7 +12,7 @@ inThisBuild(
     resolvers ++= ourResolvers,
     Compile / doc / sources := Seq.empty,
     publishTo := Option(Resolver.file("file", new File(sys.props.getOrElse("publishTo", "")))),
-    dockerBaseImage := "eclipse-temurin:21-jdk-noble",
+    dockerBaseImage := "eclipse-temurin:25-jdk-noble",
     dockerUpdateLatest := true,
     dockerBuildxPlatforms := Seq("linux/amd64", "linux/arm64"),
     Docker / maintainer := "lichess.org",
