@@ -13,41 +13,27 @@ concurrency:
 
 jobs:
 
-  compile:
+  ci:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        script:
+          - compile
+          - check
+          - test
+        java:
+          - 21
+          - 25
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 21
+          java-version: ${{ matrix.java }}
       - name: Setup sbt
         uses: sbt/setup-sbt@v1
-      - run: sbt compile
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-      - name: Setup sbt
-        uses: sbt/setup-sbt@v1
-      - run: sbt check
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-      - name: Setup sbt
-        uses: sbt/setup-sbt@v1
-      - run: sbt test
+      - run: sbt ${{ matrix.script }}
 
   deploy:
     uses: ./.github/workflows/deploy.yml
@@ -56,4 +42,4 @@ jobs:
     secrets: inherit
     if: github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v')
     needs:
-      - test
+      - ci
