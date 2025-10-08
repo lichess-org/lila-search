@@ -4,7 +4,7 @@ package forum
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 
-case class Forum(text: String, troll: Boolean):
+case class Forum(text: String, troll: Boolean, categIds: List[String] = Nil):
 
   def searchDef(from: From, size: Size) =
     search(Forum.index)
@@ -21,7 +21,8 @@ case class Forum(text: String, troll: Boolean):
     List(
       parsed.terms.map(term => multiMatchQuery(term).fields(Forum.searchableFields*)),
       parsed("user").map(termQuery(Fields.author, _)).toList,
-      Option.unless(troll)(termQuery(Fields.troll, false)).toList
+      Option.unless(troll)(termQuery(Fields.troll, false)).toList,
+      Option.when(categIds.nonEmpty)(termsQuery(Fields.category, categIds)).toList
     ).flatten.compile
 
 object Forum:
@@ -35,6 +36,7 @@ object Fields:
   val author = "au"
   val troll = "tr"
   val date = "da"
+  val category = "ca"
 
 object Mapping:
   import Fields.*
@@ -44,6 +46,7 @@ object Mapping:
       textField(topic).copy(boost = Some(5), analyzer = Some("english")),
       keywordField(author).copy(docValues = Some(false)),
       keywordField(topicId).copy(docValues = Some(false)),
+      keywordField(category).copy(docValues = Some(false)),
       booleanField(troll).copy(docValues = Some(false)),
       dateField(date)
     )
