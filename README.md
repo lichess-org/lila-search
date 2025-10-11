@@ -6,11 +6,6 @@
 
 ### Start sbt
 
-Copy default settings
-```sh
-cp .sbtops.example .sbtopts
-```
-
 Start sbt:
 ```sh
 sbt
