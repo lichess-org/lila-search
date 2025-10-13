@@ -67,6 +67,7 @@ object cli
             ingestor.study.run(opts.since, opts.until, opts.dry) *>
             ingestor.game.run(opts.since, opts.until, opts.dry) *>
             ingestor.team.run(opts.since, opts.until, opts.dry)
+      *> refreshIndexes(elastic, opts.index).whenA(opts.refresh)
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index | Unit): IO[Unit] =
     def go(index: Index) =
@@ -79,6 +80,19 @@ object cli
           Logger[IO].error(e.asException)(s"Failed to check or put mapping for ${index.value}") *>
             e.asException.raiseError
     index match
+      case i: Index => go(i)
+      case _ => Index.values.toList.traverse_(go)
+
+  private def refreshIndexes(elastic: ESClient[IO], index: Index | Unit): IO[Unit] =
+    def go(index: Index) =
+      Handle
+        .allow:
+          elastic
+            .refreshIndex(index)
+        .rescue: e =>
+          Logger[IO].error(e.asException)(s"Failed to check or put mapping for ${index.value}") *>
+            e.asException.raiseError
+    index.match
       case i: Index => go(i)
       case _ => Index.values.toList.traverse_(go)
 
@@ -102,7 +116,7 @@ object cli
           ingestor.game.watch(opts.since.some, opts.dry)
 
 object opts:
-  case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, dry: Boolean)
+  case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, refresh: Boolean, dry: Boolean)
   case class WatchOpts(index: Index | Unit, since: Instant, dry: Boolean)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
@@ -128,6 +142,12 @@ object opts:
       .orNone
       .map(_.isDefined)
 
+  val refreshOpt =
+    Opts
+      .flag(long = "refresh", help = "Refresh index(ex) after finishing index", short = "r")
+      .orNone
+      .map(_.isDefined)
+
   val indexOpt = (
     singleIndexOpt orElse allIndexOpt,
     Opts.option[Instant](
@@ -144,6 +164,7 @@ object opts:
         metavar = "time in epoch seconds"
       )
       .orElse(Instant.now.pure[Opts]),
+    refreshOpt,
     dryOpt
   ).mapN(IndexOpts.apply)
     .mapValidated(x =>
