@@ -80,7 +80,7 @@ lazy val elastic = project
       elastic4sHttp4sClient
     )
   )
-  .dependsOn(api, core)
+  .dependsOn(core)
 
 lazy val `ingestor-app` = project
   .in(file("modules/ingestor-app"))
