@@ -98,6 +98,8 @@ structure StudySource {
   @required
   public: Boolean
   rank: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 structure TeamSource {
