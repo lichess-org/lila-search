@@ -89,16 +89,15 @@ object StudyRepo:
         .map((since, until) => since -> until.get)
 
     extension (docs: List[Document])
-      private def toSources: IO[List[StudySourceWithId]] =
+      private def toSources: IO[List[SourceWithId[StudySource]]] =
         val studyIds = docs.flatMap(_.id).distinct
         chapters
           .byStudyIds(studyIds)
           .flatMap: chapters =>
             docs.traverseFilter(_.toSource(chapters))
 
-    type StudySourceWithId = (String, StudySource)
     extension (doc: Document)
-      private def toSource(chapters: Map[String, StudyData]): IO[Option[StudySourceWithId]] =
+      private def toSource(chapters: Map[String, StudyData]): IO[Option[SourceWithId[StudySource]]] =
         doc.id
           .flatMap: id =>
             (
