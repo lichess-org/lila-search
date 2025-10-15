@@ -15,7 +15,8 @@ import Repo.*
 
 object StudyRepo:
 
-  private val interestedfields = List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics, F.likes)
+  private val interestedfields =
+    List("_id", F.name, F.members, F.ownerId, F.visibility, F.topics, F.likes, F.rank)
 
   private val indexDocProjection = Projection.include(interestedfields)
   private val deleteDocProjection = Projection.include(F.oplogId)
@@ -88,30 +89,35 @@ object StudyRepo:
         .map((since, until) => since -> until.get)
 
     extension (docs: List[Document])
-      private def toSources: IO[List[StudySourceWithId]] =
+      private def toSources: IO[List[SourceWithId[StudySource]]] =
         val studyIds = docs.flatMap(_.id).distinct
         chapters
           .byStudyIds(studyIds)
           .flatMap: chapters =>
             docs.traverseFilter(_.toSource(chapters))
 
-    type StudySourceWithId = (String, StudySource)
     extension (doc: Document)
-      private def toSource(chapters: Map[String, StudyData]): IO[Option[StudySourceWithId]] =
+      private def toSource(chapters: Map[String, StudyData]): IO[Option[SourceWithId[StudySource]]] =
         doc.id
           .flatMap: id =>
             (
               doc.getName,
               doc.getOwnerId,
-              doc.getMembers.some,
               doc.getChapterNames(chapters),
-              doc.getChapterTexts(chapters),
-              doc.getLikes.some,
-              doc.getPublic.some,
-              doc.getTopics.some
-            )
-              .mapN(StudySource.apply)
-              .map(id -> _)
+              doc.getChapterTexts(chapters)
+            ).mapN: (name, ownerId, chapterNames, chapterTexts) =>
+              StudySource(
+                name,
+                ownerId,
+                doc.getMembers,
+                chapterNames,
+                chapterTexts,
+                doc.getLikes,
+                doc.getPublic,
+                doc.getTopics,
+                doc.getRank
+              )
+            .map(id -> _)
           .pure[IO]
           .flatTap: source =>
             def reason =
@@ -127,6 +133,7 @@ object StudyRepo:
       private def getMembers = doc.getDocument(F.members).fold(Nil)(_.toMap.keys.toList)
       private def getTopics = doc.getList(F.topics).map(_.flatMap(_.asString)).getOrElse(Nil)
       private def getLikes = doc.getInt(F.likes).getOrElse(0)
+      private def getRank = doc.get(F.rank).flatMap(_.asInstant).map(SearchDateTime.fromInstant)
       private def getChapterTexts(chapters: Map[String, StudyData]) =
         chapters.get(doc.id.getOrElse("")).map(_.chapterTexts)
       private def getChapterNames(chapters: Map[String, StudyData]) =
@@ -143,3 +150,4 @@ object StudyRepo:
     val createdAt = "createdAt"
     val updatedAt = "updatedAt"
     val oplogId = "o._id"
+    val rank = "rank"

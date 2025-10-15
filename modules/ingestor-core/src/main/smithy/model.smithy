@@ -89,7 +89,6 @@ structure StudySource {
   members: PlayerIds
   @required
   chapterNames: String
-
   @required
   chapterTexts: String
   @default
@@ -98,6 +97,7 @@ structure StudySource {
   likes: Integer
   @required
   public: Boolean
+  rank: DateTime
 }
 
 structure TeamSource {
