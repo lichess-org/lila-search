@@ -3,12 +3,11 @@ package ublog
 
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
-
-import spec.SortBlogsBy
+import lila.search.ublog.Ublog.SortBy
 
 case class Ublog(
     queryText: String,
-    by: SortBlogsBy,
+    by: SortBy,
     minQuality: Option[Int],
     language: Option[String]
 ):
@@ -27,12 +26,12 @@ case class Ublog(
 
   def searchDef(from: From, size: Size) =
     val sortFields =
-      (if by == SortBlogsBy.score then Seq(scoreSort().order(SortOrder.DESC))
-       else if by == SortBlogsBy.likes then Seq(fieldSort("likes").order(SortOrder.DESC))
+      (if by == SortBy.score then Seq(scoreSort().order(SortOrder.DESC))
+       else if by == SortBy.likes then Seq(fieldSort("likes").order(SortOrder.DESC))
        else Nil) ++ Seq(
         fieldSort("quality").order(SortOrder.DESC).missing("_last"),
         fieldSort("date")
-          .order(if by == SortBlogsBy.oldest then SortOrder.ASC else SortOrder.DESC)
+          .order(if by == SortBy.oldest then SortOrder.ASC else SortOrder.DESC)
           .missing("_last")
       )
     search(Ublog.index)
@@ -56,6 +55,9 @@ case class Ublog(
 
 object Ublog:
   val index = "ublog"
+
+  enum SortBy:
+    case newest, oldest, score, likes
 
 object Fields:
   val text = "text"
