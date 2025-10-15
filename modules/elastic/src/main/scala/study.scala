@@ -4,8 +4,10 @@ package study
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
+import com.sksamuel.elastic4s.requests.searches.sort.FieldSort
+import lila.search.study.Study.Sorting
 
-case class Study(text: String, userId: Option[String]):
+case class Study(text: String, sorting: Sorting, userId: Option[String]):
 
   def searchDef(from: From, size: Size) =
     search(Study.index)
@@ -13,7 +15,7 @@ case class Study(text: String, userId: Option[String]):
       .fetchSource(false)
       .sortBy(
         fieldSort("_score").order(SortOrder.DESC),
-        fieldSort(Fields.likes).order(SortOrder.DESC)
+        sorting.toElastic
       )
       .start(from.value)
       .size(size.value)
@@ -90,3 +92,21 @@ object Study:
     Fields.chapterNames,
     Fields.chapterTexts
   )
+
+  enum SortBy(val field: String):
+    case Likes extends SortBy(Fields.likes)
+    case CreatedAt extends SortBy(Fields.createdAt)
+    case UpdatedAt extends SortBy(Fields.updatedAt)
+    case Hot extends SortBy(Fields.rank)
+
+  enum Order:
+    case Asc, Desc
+
+  extension (o: Order)
+    def toElastic: SortOrder = o match
+      case Order.Asc => SortOrder.ASC
+      case Order.Desc => SortOrder.DESC
+
+  case class Sorting(by: SortBy, order: Order):
+    def toElastic: FieldSort =
+      fieldSort(by.field).order(order.toElastic)

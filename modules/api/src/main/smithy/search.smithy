@@ -87,6 +87,8 @@ structure Team {
 structure Study {
   @required
   text: String
+  @required
+  sorting: StudySorting
   userId: String
 }
 
@@ -147,6 +149,25 @@ enum SortBlogsBy {
   oldest
   score
   likes
+}
+
+enum Order {
+  Asc
+  Desc
+}
+
+enum StudyOrderBy {
+  Likes
+  CreatedAt
+  UpdatedAt
+  Hot
+}
+
+structure StudySorting {
+  @required
+  by: StudyOrderBy
+  @required
+  order: Order
 }
 
 @adt
