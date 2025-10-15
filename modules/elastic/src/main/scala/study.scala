@@ -14,8 +14,8 @@ case class Study(text: String, sorting: Sorting, userId: Option[String]):
       .query(makeQuery())
       .fetchSource(false)
       .sortBy(
-        fieldSort("_score").order(SortOrder.DESC),
-        sorting.toElastic
+        sorting.toElastic,
+        fieldSort("_score").order(SortOrder.DESC)
       )
       .start(from.value)
       .size(size.value)

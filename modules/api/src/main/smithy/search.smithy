@@ -152,15 +152,15 @@ enum SortBlogsBy {
 }
 
 enum Order {
-  Asc
-  Desc
+  Asc = "asc"
+  Desc = "desc"
 }
 
 enum StudyOrderBy {
-  Likes
-  CreatedAt
-  UpdatedAt
-  Hot
+  Likes = "likes"
+  CreatedAt = "createdAt"
+  UpdatedAt = "updatedAt"
+  Hot = "hot"
 }
 
 structure StudySorting {
