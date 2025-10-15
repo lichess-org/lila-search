@@ -98,7 +98,9 @@ structure StudySource {
   @required
   public: Boolean
   rank: DateTime
+  @jsonName("createdAt_date")
   createdAt: DateTime
+  @jsonName("updatedAt_date")
   updatedAt: DateTime
 }
 
