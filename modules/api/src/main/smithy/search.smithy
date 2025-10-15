@@ -113,7 +113,7 @@ structure Game {
   @required
   duration: IntRange
   @required
-  sorting: Sorting
+  sorting: GameSorting
   analysed: Boolean
   whiteUser: String
   blackUser: String
@@ -131,7 +131,7 @@ structure DateRange {
   b: Timestamp
 }
 
-structure Sorting {
+structure GameSorting {
   @required
   f: String
   @required

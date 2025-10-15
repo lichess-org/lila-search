@@ -7,6 +7,7 @@ import com.sksamuel.elastic4s.requests.searches.term.TermQuery
 
 import java.time.Instant
 import scala.concurrent.duration.*
+import com.sksamuel.elastic4s.requests.searches.sort.FieldSort
 
 case class Game(
     user1: Option[String] = None,
@@ -129,7 +130,7 @@ object Game:
 
 case class Sorting(f: String, order: String):
   import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
-  def definition =
+  def definition: FieldSort =
     fieldSort(Sorting.fieldKeys.contains(f).fold(f, Sorting.default.f))
       .order((order.toLowerCase == "asc").fold(SortOrder.ASC, SortOrder.DESC))
 
