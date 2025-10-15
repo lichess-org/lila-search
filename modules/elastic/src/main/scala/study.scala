@@ -56,8 +56,8 @@ object Fields:
   val chapterNames = "chapterNames"
   val chapterTexts = "chapterTexts"
   val topics = "topics"
-  // val createdAt = "createdAt"
-  // val updatedAt = "updatedAt"
+  val createdAt = "createdAt"
+  val updatedAt = "updatedAt"
   val rank = "rank"
   val likes = "likes"
   val public = "public"
@@ -74,7 +74,9 @@ object Mapping:
       textField(topics).copy(boost = Some(5), analyzer = Some("english")),
       shortField(likes).copy(docValues = Some(true)), // sort by likes
       booleanField(public).copy(docValues = Some(false)),
-      dateField(rank).copy(format = Some(SearchDateTime.format))
+      dateField(rank).copy(format = Some(SearchDateTime.format)),
+      dateField(createdAt).copy(format = Some(SearchDateTime.format)),
+      dateField(updatedAt).copy(format = Some(SearchDateTime.format))
     )
 
 object Study:
