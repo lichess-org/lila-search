@@ -104,16 +104,21 @@ object StudyRepo:
             (
               doc.getName,
               doc.getOwnerId,
-              doc.getMembers.some,
               doc.getChapterNames(chapters),
-              doc.getChapterTexts(chapters),
-              doc.getLikes.some,
-              doc.getPublic.some,
-              doc.getTopics.some,
-              doc.getRank.some
-            )
-              .mapN(StudySource.apply)
-              .map(id -> _)
+              doc.getChapterTexts(chapters)
+            ).mapN: (name, ownerId, chapterNames, chapterTexts) =>
+              StudySource(
+                name,
+                ownerId,
+                doc.getMembers,
+                chapterNames,
+                chapterTexts,
+                doc.getLikes,
+                doc.getPublic,
+                doc.getTopics,
+                doc.getRank
+              )
+            .map(id -> _)
           .pure[IO]
           .flatTap: source =>
             def reason =
