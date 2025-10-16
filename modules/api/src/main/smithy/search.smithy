@@ -87,7 +87,6 @@ structure Team {
 structure Study {
   @required
   text: String
-  @required
   sorting: StudySorting
   userId: String
 }

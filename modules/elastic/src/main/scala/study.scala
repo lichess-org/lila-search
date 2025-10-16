@@ -7,16 +7,13 @@ import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 import com.sksamuel.elastic4s.requests.searches.sort.FieldSort
 import lila.search.study.Study.Sorting
 
-case class Study(text: String, sorting: Sorting, userId: Option[String]):
+case class Study(text: String, sorting: Option[Sorting], userId: Option[String]):
 
   def searchDef(from: From, size: Size) =
     search(Study.index)
       .query(makeQuery())
       .fetchSource(false)
-      .sortBy(
-        sorting.toElastic,
-        fieldSort("_score").order(SortOrder.DESC)
-      )
+      .sortBy(sorting.map(_.toElastic) ++ Seq(fieldSort("_score").order(SortOrder.DESC)))
       .start(from.value)
       .size(size.value)
 
