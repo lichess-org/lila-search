@@ -156,8 +156,9 @@ enum Order {
   Desc = "desc"
 }
 
-enum StudyOrderBy {
-  Likes = "likes"
+enum StudySortField {
+  Name = "name"
+  Likes = "like"
   CreatedAt = "createdAt"
   UpdatedAt = "updatedAt"
   Hot = "hot"
@@ -165,7 +166,7 @@ enum StudyOrderBy {
 
 structure StudySorting {
   @required
-  by: StudyOrderBy
+  field: StudySortField
   @required
   order: Order
 }

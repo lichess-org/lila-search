@@ -53,6 +53,7 @@ case class Study(text: String, sorting: Sorting, userId: Option[String]):
 
 object Fields:
   val name = "name"
+  val nameRaw = "raw"
   val owner = "owner"
   val members = "members"
   val chapterNames = "chapterNames"
@@ -68,7 +69,9 @@ object Mapping:
   import Fields.*
   def fields =
     Seq(
-      textField(name).copy(boost = Some(10), analyzer = Some("english")),
+      textField(name)
+        .copy(boost = Some(10), analyzer = Some("english"))
+        .copy(fields = List(keywordField(nameRaw))),
       keywordField(owner).copy(boost = Some(2), docValues = Some(false)),
       keywordField(members).copy(boost = Some(1), docValues = Some(false)),
       textField(chapterNames).copy(boost = Some(4), analyzer = Some("english")),
@@ -93,11 +96,12 @@ object Study:
     Fields.chapterTexts
   )
 
-  enum SortBy(val field: String):
-    case Likes extends SortBy(Fields.likes)
-    case CreatedAt extends SortBy(Fields.createdAt)
-    case UpdatedAt extends SortBy(Fields.updatedAt)
-    case Hot extends SortBy(Fields.rank)
+  enum Field(val field: String):
+    case Name extends Field(s"${Fields.name}.${Fields.nameRaw}")
+    case Likes extends Field(Fields.likes)
+    case CreatedAt extends Field(Fields.createdAt)
+    case UpdatedAt extends Field(Fields.updatedAt)
+    case Hot extends Field(Fields.rank)
 
   enum Order:
     case Asc, Desc
@@ -107,6 +111,6 @@ object Study:
       case Order.Asc => SortOrder.ASC
       case Order.Desc => SortOrder.DESC
 
-  case class Sorting(by: SortBy, order: Order):
+  case class Sorting(field: Field, order: Order):
     def toElastic: FieldSort =
-      fieldSort(by.field).order(order.toElastic)
+      fieldSort(field.field).order(order.toElastic)
