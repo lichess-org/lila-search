@@ -3,11 +3,11 @@ package game
 
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
+import com.sksamuel.elastic4s.requests.searches.sort.FieldSort
 import com.sksamuel.elastic4s.requests.searches.term.TermQuery
 
 import java.time.Instant
 import scala.concurrent.duration.*
-import com.sksamuel.elastic4s.requests.searches.sort.FieldSort
 
 case class Game(
     user1: Option[String] = None,

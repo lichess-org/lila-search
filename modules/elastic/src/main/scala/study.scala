@@ -3,8 +3,7 @@ package study
 
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
-import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
-import com.sksamuel.elastic4s.requests.searches.sort.FieldSort
+import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
 import lila.search.study.Study.Sorting
 
 case class Study(text: String, sorting: Option[Sorting], userId: Option[String]):
