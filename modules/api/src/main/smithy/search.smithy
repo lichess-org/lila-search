@@ -68,6 +68,8 @@ structure Forum {
   text: String
   @required
   troll: Boolean = false
+  @default
+  categIds: Strings
 }
 
 structure Ublog {
