@@ -27,7 +27,8 @@ object cli
 
   override def main: Opts[IO[ExitCode]] =
     opts.parse.map: opts =>
-      makeIngestor.use(execute(opts)).as(ExitCode.Success)
+      Logger[IO].info(s"Starting lila-search-cli with ${opts.toString}") *>
+        makeIngestor.use(execute(opts)).as(ExitCode.Success)
 
   private def makeIngestor =
     for
