@@ -3,6 +3,7 @@ package game
 
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
+import com.sksamuel.elastic4s.requests.searches.sort.FieldSort
 import com.sksamuel.elastic4s.requests.searches.term.TermQuery
 
 import java.time.Instant
@@ -129,7 +130,7 @@ object Game:
 
 case class Sorting(f: String, order: String):
   import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
-  def definition =
+  def definition: FieldSort =
     fieldSort(Sorting.fieldKeys.contains(f).fold(f, Sorting.default.f))
       .order((order.toLowerCase == "asc").fold(SortOrder.ASC, SortOrder.DESC))
 

@@ -3,18 +3,16 @@ package study
 
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
-import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
+import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
+import lila.search.study.Study.Sorting
 
-case class Study(text: String, userId: Option[String]):
+case class Study(text: String, sorting: Option[Sorting], userId: Option[String]):
 
   def searchDef(from: From, size: Size) =
     search(Study.index)
       .query(makeQuery())
       .fetchSource(false)
-      .sortBy(
-        fieldSort("_score").order(SortOrder.DESC),
-        fieldSort(Fields.likes).order(SortOrder.DESC)
-      )
+      .sortBy(sorting.map(_.toElastic) ++ Seq(fieldSort("_score").order(SortOrder.DESC)))
       .start(from.value)
       .size(size.value)
 
@@ -51,6 +49,7 @@ case class Study(text: String, userId: Option[String]):
 
 object Fields:
   val name = "name"
+  val nameRaw = "raw"
   val owner = "owner"
   val members = "members"
   val chapterNames = "chapterNames"
@@ -66,7 +65,9 @@ object Mapping:
   import Fields.*
   def fields =
     Seq(
-      textField(name).copy(boost = Some(10), analyzer = Some("english")),
+      textField(name)
+        .copy(boost = Some(10), analyzer = Some("english"))
+        .copy(fields = List(keywordField(nameRaw))),
       keywordField(owner).copy(boost = Some(2), docValues = Some(false)),
       keywordField(members).copy(boost = Some(1), docValues = Some(false)),
       textField(chapterNames).copy(boost = Some(4), analyzer = Some("english")),
@@ -90,3 +91,22 @@ object Study:
     Fields.chapterNames,
     Fields.chapterTexts
   )
+
+  enum Field(val field: String):
+    case Name extends Field(s"${Fields.name}.${Fields.nameRaw}")
+    case Likes extends Field(Fields.likes)
+    case CreatedAt extends Field(Fields.createdAt)
+    case UpdatedAt extends Field(Fields.updatedAt)
+    case Hot extends Field(Fields.rank)
+
+  enum Order:
+    case Asc, Desc
+
+  extension (o: Order)
+    def toElastic: SortOrder = o match
+      case Order.Asc => SortOrder.ASC
+      case Order.Desc => SortOrder.DESC
+
+  case class Sorting(field: Field, order: Order):
+    def toElastic: FieldSort =
+      fieldSort(field.field).order(order.toElastic)

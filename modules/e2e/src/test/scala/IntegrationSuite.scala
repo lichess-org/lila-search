@@ -158,7 +158,7 @@ object IntegrationSuite extends IOSuite:
     aiLevel = defaultIntRange,
     date = defaultDateRange,
     duration = defaultIntRange,
-    sorting = Sorting("field", "asc")
+    sorting = GameSorting("field", "asc")
   )
   test("game"): res =>
     Clients

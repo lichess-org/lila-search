@@ -87,6 +87,7 @@ structure Team {
 structure Study {
   @required
   text: String
+  sorting: StudySorting
   userId: String
 }
 
@@ -113,7 +114,7 @@ structure Game {
   @required
   duration: IntRange
   @required
-  sorting: Sorting
+  sorting: GameSorting
   analysed: Boolean
   whiteUser: String
   blackUser: String
@@ -131,7 +132,7 @@ structure DateRange {
   b: Timestamp
 }
 
-structure Sorting {
+structure GameSorting {
   @required
   f: String
   @required
@@ -147,6 +148,26 @@ enum SortBlogsBy {
   oldest
   score
   likes
+}
+
+enum Order {
+  Asc = "asc"
+  Desc = "desc"
+}
+
+enum StudySortField {
+  Name = "name"
+  Likes = "like"
+  CreatedAt = "createdAt"
+  UpdatedAt = "updatedAt"
+  Hot = "hot"
+}
+
+structure StudySorting {
+  @required
+  field: StudySortField
+  @required
+  order: Order
 }
 
 @adt
