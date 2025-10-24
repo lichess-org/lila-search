@@ -48,7 +48,7 @@ object Dependencies {
   val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.37.10"
   val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.37.10"
 
-  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.12"
+  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.13"
 
   val elastic4sHttp4sClient = "nl.gn0s1s" %% "elastic4s-client-http4s" % V.elastic4s
 
