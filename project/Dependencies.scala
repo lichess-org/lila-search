@@ -72,7 +72,7 @@ object Dependencies {
   val declineCore = "com.monovore" %% "decline" % V.decline
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
-  val testContainers    = "com.dimafeng"        %% "testcontainers-scala-core"       % "0.43.0"     % Test
+  val testContainers    = "com.dimafeng"        %% "testcontainers-scala-core"       % "0.43.6"     % Test
   val weaver            = "org.typelevel" %% "weaver-cats"                     % "0.10.1"      % Test
   val weaverScalaCheck  = "org.typelevel" %% "weaver-scalacheck"               % "0.10.1"      % Test
   val catsEffectTestKit = "org.typelevel"       %% "cats-effect-testkit"             % V.catsEffect % Test
