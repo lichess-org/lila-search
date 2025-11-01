@@ -28,15 +28,15 @@ jobs:
       - name: Setup sbt
         uses: sbt/setup-sbt@v1
       - run: sbt stage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: lila-search-app
           path: modules/app/target/universal/stage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: lila-search-ingestor
           path: modules/ingestor-app/target/universal/stage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: lila-search-cli
           path: modules/ingestor-cli/target/universal/stage
@@ -67,7 +67,7 @@ jobs:
       group: deploy-${{ inputs.env }}
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: ${{ matrix.artifact }}
           path: stage
