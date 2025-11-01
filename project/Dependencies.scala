@@ -13,12 +13,12 @@ object Dependencies {
     val ciris      = "3.11.1"
     val chess      = "17.12.3"
     val decline    = "2.5.0"
-    val elastic4s  = "9.1.0"
+    val elastic4s  = "9.1.1"
     val fs2        = "3.12.2"
-    val http4s     = "0.23.32"
+    val http4s     = "0.23.33"
     val mongo4cats = "0.7.13"
-    val otel4s     = "0.13.2"
-    val otel4sHttp4s = "0.14.1"
+    val otel4s     = "0.14.0"
+    val otel4sHttp4s = "0.15.0"
   }
 
   def http4s(artifact: String)   = "org.http4s"                   %% s"http4s-$artifact"   % V.http4s
@@ -48,7 +48,7 @@ object Dependencies {
   val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.37.10"
   val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.37.10"
 
-  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.12"
+  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.13"
 
   val elastic4sHttp4sClient = "nl.gn0s1s" %% "elastic4s-client-http4s" % V.elastic4s
 
@@ -64,7 +64,7 @@ object Dependencies {
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
   val otel4sSdk = "org.typelevel" %% "otel4s-sdk" % V.otel4s
   val otel4sInstrumentationMetrics =   "org.typelevel" %% "otel4s-instrumentation-metrics" % V.otel4s
-  val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.7.0"
+  val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.8.0"
 
   val otel4sHttp4sCore = "org.http4s" %% "http4s-otel4s-middleware-core" % V.otel4sHttp4s
   val otel4sHttp4sMetrics = "org.http4s" %% "http4s-otel4s-middleware-metrics" % V.otel4sHttp4s
@@ -72,7 +72,7 @@ object Dependencies {
   val declineCore = "com.monovore" %% "decline" % V.decline
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
-  val testContainers    = "com.dimafeng"        %% "testcontainers-scala-core"       % "0.43.0"     % Test
+  val testContainers    = "com.dimafeng"        %% "testcontainers-scala-core"       % "0.43.6"     % Test
   val weaver            = "org.typelevel" %% "weaver-cats"                     % "0.10.1"      % Test
   val weaverScalaCheck  = "org.typelevel" %% "weaver-scalacheck"               % "0.10.1"      % Test
   val catsEffectTestKit = "org.typelevel"       %% "cats-effect-testkit"             % V.catsEffect % Test
