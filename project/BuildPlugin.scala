@@ -1,7 +1,7 @@
-import sbt._, Keys._
-import sbt.ScriptedPlugin.autoImport._
-import sbtrelease.ReleasePlugin, ReleasePlugin.autoImport._, ReleaseTransformations._, ReleaseKeys._
-import sbt.ScriptedPlugin.autoImport._
+import sbt.*, Keys.*
+import sbt.ScriptedPlugin.autoImport.*
+import sbtrelease.ReleasePlugin, ReleasePlugin.autoImport.*, ReleaseTransformations.*, ReleaseKeys.*
+import sbt.ScriptedPlugin.autoImport.*
 
 import sbt.plugins.{ JvmPlugin, SbtPlugin }
 
