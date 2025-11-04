@@ -16,11 +16,25 @@ object CLITest extends weaver.FunSuite:
   test("index command"):
     expect.same(
       testCommand("index", "--index", "team", "--since", "0", "--until", "1", "--dry"),
-      IndexOpts(Index.Team, Instant.ofEpochSecond(0), Instant.ofEpochSecond(1), false, true).asRight
+      IndexOpts(Index.Team, Instant.ofEpochSecond(0), Instant.ofEpochSecond(1), false, true, false).asRight
     )
 
-  test("watch command"):
+  test("index command with watch flag"):
+    val result = testCommand("index", "--index", "team", "--since", "0", "--watch", "--dry")
+    result match
+      case Right(opts: IndexOpts) =>
+        expect(opts.watch == true && opts.dry == true && opts.index == Index.Team)
+      case _ => failure("Expected IndexOpts")
+
+  test("export command"):
     expect.same(
-      testCommand("watch", "--index", "team", "--since", "0", "--dry"),
-      WatchOpts(Index.Team, Instant.ofEpochSecond(0), true).asRight
+      testCommand("export", "--index", "game", "--output", "games.csv", "--since", "0", "--until", "1"),
+      ExportOpts(
+        Index.Game,
+        "csv",
+        "games.csv",
+        Instant.ofEpochSecond(0),
+        Instant.ofEpochSecond(1),
+        false
+      ).asRight
     )

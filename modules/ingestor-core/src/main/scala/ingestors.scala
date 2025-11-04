@@ -15,7 +15,7 @@ class Ingestors(
     val team: Ingestor
 ):
   def run(): IO[Unit] =
-    List(forum.watch, ublog.watch, team.watch, study.watch, game.watch).parSequence_
+    List(forum.run(), ublog.run(), team.run(), study.run(), game.run()).parSequence_
 
 object Ingestors:
 
@@ -35,7 +35,7 @@ object Ingestors:
       TeamRepo(lichess, config.team)
     ).mapN: (forums, ublogs, studies, games, teams) =>
       new Ingestors(
-        Ingestor.applyPartial(
+        Ingestor.watchPartial(
           Index.Forum,
           forums,
           Translate.forum.tupled,
@@ -43,8 +43,8 @@ object Ingestors:
           elastic,
           config.forum.startAt
         ),
-        Ingestor.applyPartial(Index.Ublog, ublogs, Translate.ublog, store, elastic, config.ublog.startAt),
-        Ingestor.applyPartial(
+        Ingestor.watchPartial(Index.Ublog, ublogs, Translate.ublog, store, elastic, config.ublog.startAt),
+        Ingestor.watchPartial(
           Index.Study,
           studies,
           Translate.study.tupled,
@@ -52,6 +52,6 @@ object Ingestors:
           elastic,
           config.study.startAt
         ),
-        Ingestor(Index.Game, games, Translate.game, store, elastic, config.game.startAt),
-        Ingestor.applyPartial(Index.Team, teams, Translate.team, store, elastic, config.team.startAt)
+        Ingestor.watch(Index.Game, games, Translate.game, store, elastic, config.game.startAt),
+        Ingestor.watchPartial(Index.Team, teams, Translate.team, store, elastic, config.team.startAt)
       )

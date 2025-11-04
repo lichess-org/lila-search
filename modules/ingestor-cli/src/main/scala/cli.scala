@@ -8,6 +8,7 @@ import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
 import lila.search.ingestor.opts.{ ExportOpts, IndexOpts }
+import mongo4cats.bson.Document
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.MeterProvider
@@ -28,72 +29,177 @@ object cli
   override def main: Opts[IO[ExitCode]] =
     opts.parse.map: opts =>
       Logger[IO].info(s"Starting lila-search-cli with ${opts.toString}") *>
-        makeIngestor.use(execute(opts)).as(ExitCode.Success)
+        makeResources.use(execute(opts)).as(ExitCode.Success)
 
-  private def makeIngestor =
+  private def makeResources =
     for
       config <- AppConfig.load.toResource
       res <- AppResources.instance(config)
-      ingestors <- Ingestors(
-        res.lichess,
-        res.study,
-        res.studyLocal,
-        res.store,
-        res.elastic,
-        config.ingestor
-      ).toResource
-    yield (ingestors, res.elastic)
+      repos <- (
+        ForumRepo(res.lichess, config.ingestor.forum),
+        UblogRepo(res.lichess, config.ingestor.ublog),
+        StudyRepo(res.study, res.studyLocal, config.ingestor.study),
+        GameRepo(res.lichess, config.ingestor.game),
+        TeamRepo(res.lichess, config.ingestor.team)
+      ).mapN((_, _, _, _, _)).toResource
+    yield (repos, res.elastic)
 
-  def execute(
-      opts: IndexOpts | ExportOpts
-  )(ingestor: Ingestors, elastic: ESClient[IO]): IO[Unit] =
+  def execute(opts: IndexOpts | ExportOpts)(
+      repos: (
+          Repo[(Document, String, String)],
+          Repo[Document],
+          Repo[(Document, StudyData)],
+          Repo[DbGame],
+          Repo[Document]
+      ),
+      elastic: ESClient[IO]
+  ): IO[Unit] =
+    val (forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo) = repos
     opts match
-      case opts: IndexOpts  => index(ingestor, elastic)(opts)
+      case opts: IndexOpts =>
+        index(forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo, elastic)(opts)
       case opts: ExportOpts => `export`(opts)
 
-  def index(ingestor: Ingestors, elastic: ESClient[IO])(opts: IndexOpts): IO[Unit] =
-    if opts.watch then indexWatch(ingestor)(opts)
-    else indexBatch(ingestor, elastic)(opts)
+  def index(
+      forumRepo: Repo[(Document, String, String)],
+      ublogRepo: Repo[Document],
+      studyRepo: Repo[(Document, StudyData)],
+      gameRepo: Repo[DbGame],
+      teamRepo: Repo[Document],
+      elastic: ESClient[IO]
+  )(opts: IndexOpts): IO[Unit] =
+    if opts.watch then indexWatch(forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo, elastic, opts)
+    else indexBatch(forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo, elastic, opts)
 
-  private def indexBatch(ingestor: Ingestors, elastic: ESClient[IO])(opts: IndexOpts): IO[Unit] =
+  private def indexBatch(
+      forumRepo: Repo[(Document, String, String)],
+      ublogRepo: Repo[Document],
+      studyRepo: Repo[(Document, StudyData)],
+      gameRepo: Repo[DbGame],
+      teamRepo: Repo[Document],
+      elastic: ESClient[IO],
+      opts: IndexOpts
+  ): IO[Unit] =
     putMappingsIfNotExists(elastic, opts.index) *>
       opts.index.match
         case Index.Forum =>
-          ingestor.forum.run(opts.since, opts.until, opts.dry)
+          Ingestor
+            .indexPartial(
+              Index.Forum,
+              forumRepo,
+              Translate.forum.tupled,
+              elastic,
+              opts.since,
+              opts.until,
+              opts.dry
+            )
+            .run()
         case Index.Ublog =>
-          ingestor.ublog.run(opts.since, opts.until, opts.dry)
+          Ingestor
+            .indexPartial(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since, opts.until, opts.dry)
+            .run()
         case Index.Study =>
-          ingestor.study.run(opts.since, opts.until, opts.dry)
+          Ingestor
+            .indexPartial(
+              Index.Study,
+              studyRepo,
+              Translate.study.tupled,
+              elastic,
+              opts.since,
+              opts.until,
+              opts.dry
+            )
+            .run()
         case Index.Game =>
-          ingestor.game.run(opts.since, opts.until, opts.dry)
+          Ingestor
+            .index(Index.Game, gameRepo, Translate.game, elastic, opts.since, opts.until, opts.dry)
+            .run()
         case Index.Team =>
-          ingestor.team.run(opts.since, opts.until, opts.dry)
+          Ingestor
+            .indexPartial(Index.Team, teamRepo, Translate.team, elastic, opts.since, opts.until, opts.dry)
+            .run()
         case _ =>
-          ingestor.forum.run(opts.since, opts.until, opts.dry) *>
-            ingestor.ublog.run(opts.since, opts.until, opts.dry) *>
-            ingestor.study.run(opts.since, opts.until, opts.dry) *>
-            ingestor.game.run(opts.since, opts.until, opts.dry) *>
-            ingestor.team.run(opts.since, opts.until, opts.dry)
+          Ingestor
+            .indexPartial(
+              Index.Forum,
+              forumRepo,
+              Translate.forum.tupled,
+              elastic,
+              opts.since,
+              opts.until,
+              opts.dry
+            )
+            .run() *>
+            Ingestor
+              .indexPartial(
+                Index.Ublog,
+                ublogRepo,
+                Translate.ublog,
+                elastic,
+                opts.since,
+                opts.until,
+                opts.dry
+              )
+              .run() *>
+            Ingestor
+              .indexPartial(
+                Index.Study,
+                studyRepo,
+                Translate.study.tupled,
+                elastic,
+                opts.since,
+                opts.until,
+                opts.dry
+              )
+              .run() *>
+            Ingestor
+              .index(Index.Game, gameRepo, Translate.game, elastic, opts.since, opts.until, opts.dry)
+              .run() *>
+            Ingestor
+              .indexPartial(Index.Team, teamRepo, Translate.team, elastic, opts.since, opts.until, opts.dry)
+              .run()
       *> refreshIndexes(elastic, opts.index).whenA(opts.refresh)
 
-  private def indexWatch(ingestor: Ingestors)(opts: IndexOpts): IO[Unit] =
+  private def indexWatch(
+      forumRepo: Repo[(Document, String, String)],
+      ublogRepo: Repo[Document],
+      studyRepo: Repo[(Document, StudyData)],
+      gameRepo: Repo[DbGame],
+      teamRepo: Repo[Document],
+      elastic: ESClient[IO],
+      opts: IndexOpts
+  ): IO[Unit] =
     opts.index match
       case Index.Game =>
-        ingestor.game.watch(opts.since.some, opts.dry)
+        Ingestor.watch(Index.Game, gameRepo, Translate.game, elastic, opts.since.some, opts.dry).run()
       case Index.Forum =>
-        ingestor.forum.watch(opts.since.some, opts.dry)
+        Ingestor
+          .watchPartial(Index.Forum, forumRepo, Translate.forum.tupled, elastic, opts.since.some, opts.dry)
+          .run()
       case Index.Ublog =>
-        ingestor.ublog.watch(opts.since.some, opts.dry)
+        Ingestor
+          .watchPartial(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since.some, opts.dry)
+          .run()
       case Index.Team =>
-        ingestor.team.watch(opts.since.some, opts.dry)
+        Ingestor.watchPartial(Index.Team, teamRepo, Translate.team, elastic, opts.since.some, opts.dry).run()
       case Index.Study =>
-        ingestor.study.watch(opts.since.some, opts.dry)
+        Ingestor
+          .watchPartial(Index.Study, studyRepo, Translate.study.tupled, elastic, opts.since.some, opts.dry)
+          .run()
       case _ =>
-        ingestor.forum.watch(opts.since.some, opts.dry) *>
-          ingestor.ublog.watch(opts.since.some, opts.dry) *>
-          ingestor.team.watch(opts.since.some, opts.dry) *>
-          ingestor.study.watch(opts.since.some, opts.dry) *>
-          ingestor.game.watch(opts.since.some, opts.dry)
+        Ingestor
+          .watchPartial(Index.Forum, forumRepo, Translate.forum.tupled, elastic, opts.since.some, opts.dry)
+          .run() *>
+          Ingestor
+            .watchPartial(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since.some, opts.dry)
+            .run() *>
+          Ingestor
+            .watchPartial(Index.Team, teamRepo, Translate.team, elastic, opts.since.some, opts.dry)
+            .run() *>
+          Ingestor
+            .watchPartial(Index.Study, studyRepo, Translate.study.tupled, elastic, opts.since.some, opts.dry)
+            .run() *>
+          Ingestor.watch(Index.Game, gameRepo, Translate.game, elastic, opts.since.some, opts.dry).run()
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index | Unit): IO[Unit] =
     def go(index: Index) =
