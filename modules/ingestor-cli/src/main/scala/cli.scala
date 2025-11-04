@@ -47,7 +47,7 @@ object cli
   def execute(opts: IndexOpts | ExportOpts)(
       repos: (
           Repo[DbForum],
-          Repo[Document],
+          Repo[DbUblog],
           Repo[(Document, StudyData)],
           Repo[DbGame],
           Repo[DbTeam]
@@ -62,7 +62,7 @@ object cli
 
   def index(
       forumRepo: Repo[DbForum],
-      ublogRepo: Repo[Document],
+      ublogRepo: Repo[DbUblog],
       studyRepo: Repo[(Document, StudyData)],
       gameRepo: Repo[DbGame],
       teamRepo: Repo[DbTeam],
@@ -73,7 +73,7 @@ object cli
 
   private def indexBatch(
       forumRepo: Repo[DbForum],
-      ublogRepo: Repo[Document],
+      ublogRepo: Repo[DbUblog],
       studyRepo: Repo[(Document, StudyData)],
       gameRepo: Repo[DbGame],
       teamRepo: Repo[DbTeam],
@@ -96,7 +96,7 @@ object cli
             .run()
         case Index.Ublog =>
           Ingestor
-            .indexPartial(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since, opts.until, opts.dry)
+            .index(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since, opts.until, opts.dry)
             .run()
         case Index.Study =>
           Ingestor
@@ -131,7 +131,7 @@ object cli
             )
             .run() *>
             Ingestor
-              .indexPartial(
+              .index(
                 Index.Ublog,
                 ublogRepo,
                 Translate.ublog,
@@ -162,7 +162,7 @@ object cli
 
   private def indexWatch(
       forumRepo: Repo[DbForum],
-      ublogRepo: Repo[Document],
+      ublogRepo: Repo[DbUblog],
       studyRepo: Repo[(Document, StudyData)],
       gameRepo: Repo[DbGame],
       teamRepo: Repo[DbTeam],
@@ -178,7 +178,7 @@ object cli
           .run()
       case Index.Ublog =>
         Ingestor
-          .watchPartial(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since.some, opts.dry)
+          .watch(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since.some, opts.dry)
           .run()
       case Index.Team =>
         Ingestor.watch(Index.Team, teamRepo, Translate.team, elastic, opts.since.some, opts.dry).run()
@@ -191,7 +191,7 @@ object cli
           .watch(Index.Forum, forumRepo, Translate.forum, elastic, opts.since.some, opts.dry)
           .run() *>
           Ingestor
-            .watchPartial(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since.some, opts.dry)
+            .watch(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since.some, opts.dry)
             .run() *>
           Ingestor
             .watch(Index.Team, teamRepo, Translate.team, elastic, opts.since.some, opts.dry)

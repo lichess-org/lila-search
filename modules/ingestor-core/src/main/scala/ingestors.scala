@@ -43,7 +43,7 @@ object Ingestors:
           elastic,
           config.forum.startAt
         ),
-        Ingestor.watchPartial(Index.Ublog, ublogs, Translate.ublog, store, elastic, config.ublog.startAt),
+        Ingestor.watch(Index.Ublog, ublogs, Translate.ublog, store, elastic, config.ublog.startAt),
         Ingestor.watchPartial(
           Index.Study,
           studies,

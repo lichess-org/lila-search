@@ -109,17 +109,15 @@ object Translate:
   def team(team: DbTeam): TeamSource =
     TeamSource(team.name, team.description, team.nbMembers)
 
-  // Pure function for ublog: Document => Option[UblogSource]
-  def ublog(doc: Document): Option[UblogSource] =
-    for
-      title <- doc.getString("title")
-      intro <- doc.getString("intro")
-      body <- doc.getString("markdown")
-      author <- doc.getString("blog").map(_.split(":")(1))
-      language <- doc.getString("language")
-      likes <- doc.getAs[Int]("likes")
-      topics <- doc.getAs[List[String]]("topics").map(_.mkString(" ").replaceAll("Chess", ""))
-      text = s"$title\n$topics\n$author\n$intro\n$body"
-      date <- doc.getNested("lived.at").flatMap(_.asInstant).map(_.toEpochMilli)
-      quality = doc.getNestedAs[Int]("automod.quality")
-    yield UblogSource(text, language, likes, date, quality)
+  // Pure function for ublog: DbUblog => UblogSource
+  // todo maybe return Option[UblogSource] and filter out low quality blogs or non-live?
+  def ublog(ublog: DbUblog): UblogSource =
+    val topics = ublog.topics.mkString(" ").replaceAll("Chess", "")
+    val text = s"${ublog.title}\n$topics\n${ublog.author}\n${ublog.intro}\n${ublog.markdown}"
+    UblogSource(
+      text = text,
+      language = ublog.language,
+      likes = ublog.likes,
+      date = ublog.livedAt.fold(0L)(_.toEpochMilli),
+      quality = ublog.quality
+    )
