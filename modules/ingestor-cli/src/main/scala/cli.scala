@@ -44,10 +44,12 @@ object cli
       ).toResource
     yield (ingestors, res.elastic)
 
-  def execute(opts: IndexOpts | WatchOpts | ExportOpts)(ingestor: Ingestors, elastic: ESClient[IO]): IO[Unit] =
+  def execute(
+      opts: IndexOpts | WatchOpts | ExportOpts
+  )(ingestor: Ingestors, elastic: ESClient[IO]): IO[Unit] =
     opts match
-      case opts: IndexOpts  => index(ingestor, elastic)(opts)
-      case opts: WatchOpts  => watch(ingestor)(opts)
+      case opts: IndexOpts => index(ingestor, elastic)(opts)
+      case opts: WatchOpts => watch(ingestor)(opts)
       case opts: ExportOpts => `export`(opts)
 
   def index(ingestor: Ingestors, elastic: ESClient[IO])(opts: IndexOpts): IO[Unit] =
@@ -122,14 +124,17 @@ object cli
     Logger[IO].info(s"Exporting ${opts.index.value} from ${opts.since} to ${opts.until} to ${opts.output}") *>
       (opts.index match
         case Index.Game => exportGames(opts)
-        case _          => IO.raiseError(new UnsupportedOperationException(s"Export not supported for ${opts.index.value}"))
-      )
+        case _ =>
+          IO.raiseError(new UnsupportedOperationException(s"Export not supported for ${opts.index.value}")))
 
   private def exportGames(opts: ExportOpts): IO[Unit] =
     AppConfig.load.flatMap: config =>
-      AppResources.instance(config).use: res =>
-        GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
-          CsvExport(repo, GameCsv.fromDbGame).run(opts.since, opts.until, opts.output)
+      AppResources
+        .instance(config)
+        .use: res =>
+          GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
+            Exporter(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output))
+              .run(opts.since, opts.until)
 
 object opts:
   case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, refresh: Boolean, dry: Boolean)

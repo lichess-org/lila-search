@@ -8,41 +8,22 @@ import fs2.io.file.{ Files, Path }
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
-import java.time.Instant
+// CSV file sink - writes stream of data to CSV file
+object CsvSink:
 
-// Generic CSV export trait, independent of CLI
-trait CsvExport:
-  def run(since: Instant, until: Instant, output: String): IO[Unit]
-
-object CsvExport:
-
-  // Factory method for creating CSV exporters
-  // Takes a Repo and transformation functions to convert DB models to CSV rows
-  def apply[A, B](
-      repo: Repo[B],
-      toCsv: (String, B) => A
-  )(using
+  def apply[A](output: String)(using
       encoder: CsvRowEncoder[A, String],
       lf: LoggerFactory[IO]
-  ): CsvExport = new:
+  ): fs2.Pipe[IO, (String, A), Unit] =
     given logger: Logger[IO] = lf.getLogger
-
-    def run(since: Instant, until: Instant, output: String): IO[Unit] =
-      info"Starting CSV export from $since to $until to file: $output" *>
-        repo
-          .fetch(since, until)
-          .flatMap: result =>
-            fs2.Stream.emits(result.toIndex)
-          .map { case (id, dbModel) =>
-            toCsv(id, dbModel)
-          }
+    stream =>
+      fs2.Stream.eval(info"Writing to CSV file: $output") ++
+        stream
+          .map { case (_, a) => a }
           .through(encodeUsingFirstHeaders(fullRows = true))
           .intersperse("\n")
           .through(fs2.text.utf8.encode)
           .through(Files[IO].writeAll(Path(output)))
-          .compile
-          .drain
-          *> info"CSV export completed: $output"
 
 // CSV representation of GameSource for export
 case class GameCsv(
@@ -96,8 +77,8 @@ object GameCsv:
   private def averageUsersRating(g: DbGame): Option[Int] =
     List(g.whitePlayer.flatMap(_.rating), g.blackPlayer.flatMap(_.rating)).flatten match
       case a :: b :: Nil => Some((a + b) / 2)
-      case a :: Nil      => Some((a + 1500) / 2)
-      case _             => None
+      case a :: Nil => Some((a + 1500) / 2)
+      case _ => None
 
   private def durationSeconds(g: DbGame): Option[Int] =
     val seconds = (g.movedAt.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
@@ -108,17 +89,17 @@ object GameCsv:
     variant.match
       case Standard | FromPosition =>
         speed match
-          case chess.Speed.UltraBullet    => 0
-          case chess.Speed.Bullet         => 1
-          case chess.Speed.Blitz          => 2
-          case chess.Speed.Rapid          => 6
-          case chess.Speed.Classical      => 3
+          case chess.Speed.UltraBullet => 0
+          case chess.Speed.Bullet => 1
+          case chess.Speed.Blitz => 2
+          case chess.Speed.Rapid => 6
+          case chess.Speed.Classical => 3
           case chess.Speed.Correspondence => 4
-      case Crazyhouse    => 18
-      case Chess960      => 11
+      case Crazyhouse => 18
+      case Chess960 => 11
       case KingOfTheHill => 12
-      case ThreeCheck    => 15
-      case Antichess     => 13
-      case Atomic        => 14
-      case Horde         => 16
-      case RacingKings   => 17
+      case ThreeCheck => 15
+      case Antichess => 13
+      case Atomic => 14
+      case Horde => 16
+      case RacingKings => 17
