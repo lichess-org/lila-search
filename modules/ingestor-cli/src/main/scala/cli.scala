@@ -41,7 +41,7 @@ object cli
         GameRepo(res.lichess, config.ingestor.game),
         TeamRepo(res.lichess, config.ingestor.team)
       ).mapN((_, _, _, _, _)).toResource
-    yield (repos, res.elastic)
+    yield (repos, res)
 
   def execute(opts: IndexOpts | ExportOpts)(
       repos: (
@@ -51,55 +51,41 @@ object cli
           Repo[DbGame],
           Repo[DbTeam]
       ),
-      elastic: ESClient[IO]
+      resources: AppResources
   ): IO[Unit] =
     val (forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo) = repos
     opts match
       case opts: IndexOpts =>
-        index(forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo, elastic)(opts)
+        run(forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo, resources.store, resources.elastic)(opts)
       case opts: ExportOpts => `export`(opts)
 
-  def index(
+  def run(
       forumRepo: Repo[DbForum],
       ublogRepo: Repo[DbUblog],
       studyRepo: Repo[(DbStudy, StudyChapterData)],
       gameRepo: Repo[DbGame],
       teamRepo: Repo[DbTeam],
+      store: KVStore,
       elastic: ESClient[IO]
   )(opts: IndexOpts): IO[Unit] =
-    if opts.watch then indexWatch(forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo, elastic, opts)
-    else indexBatch(forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo, elastic, opts)
-
-  private def indexBatch(
-      forumRepo: Repo[DbForum],
-      ublogRepo: Repo[DbUblog],
-      studyRepo: Repo[(DbStudy, StudyChapterData)],
-      gameRepo: Repo[DbGame],
-      teamRepo: Repo[DbTeam],
-      elastic: ESClient[IO],
-      store: KVStore,
-      opts: IndexOpts
-  ): IO[Unit] =
-    putMappingsIfNotExists(elastic, opts.index) *>
-      opts.index.match
-        case Index.Forum =>
+    val ingestors =
+      if opts.watch then
+        new Ingestors(
           Ingestor
-            .index(
-              Index.Forum,
-              forumRepo,
-              Translate.forum,
-              store,
-              elastic,
-              opts.since,
-              opts.until,
-              opts.dry
-            )
-            .run()
-        case Index.Ublog =>
+            .watch(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since.some, opts.dry),
           Ingestor
-            .index(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since, opts.until, opts.dry)
-            .run()
-        case Index.Study =>
+            .watch(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since.some, opts.dry),
+          Ingestor
+            .watch(Index.Study, studyRepo, Translate.study.tupled, store, elastic, opts.since.some, opts.dry),
+          Ingestor.watch(Index.Game, gameRepo, Translate.game, store, elastic, opts.since.some, opts.dry),
+          Ingestor.watch(Index.Team, teamRepo, Translate.team, store, elastic, opts.since.some, opts.dry)
+        )
+      else
+        new Ingestors(
+          Ingestor
+            .index(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since, opts.until, opts.dry),
+          Ingestor
+            .index(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since, opts.until, opts.dry),
           Ingestor
             .index(
               Index.Study,
@@ -110,104 +96,36 @@ object cli
               opts.since,
               opts.until,
               opts.dry
-            )
-            .run()
-        case Index.Game =>
+            ),
           Ingestor
-            .index(Index.Game, gameRepo, Translate.game, store, elastic, opts.since, opts.until, opts.dry)
-            .run()
-        case Index.Team =>
-          Ingestor
-            .index(Index.Team, teamRepo, Translate.team, store, elastic, opts.since, opts.until, opts.dry)
-            .run()
-        case _ =>
-          Ingestor
-            .index(
-              Index.Forum,
-              forumRepo,
-              Translate.forum,
-              store,
-              elastic,
-              opts.since,
-              opts.until,
-              opts.dry
-            )
-            .run() *>
-            Ingestor
-              .index(
-                Index.Ublog,
-                ublogRepo,
-                Translate.ublog,
-                store,
-                elastic,
-                opts.since,
-                opts.until,
-                opts.dry
-              )
-              .run() *>
-            Ingestor
-              .index(
-                Index.Study,
-                studyRepo,
-                Translate.study.tupled,
-                store,
-                elastic,
-                opts.since,
-                opts.until,
-                opts.dry
-              )
-              .run() *>
-            Ingestor
-              .index(Index.Game, gameRepo, Translate.game, store, elastic, opts.since, opts.until, opts.dry)
-              .run() *>
-            Ingestor
-              .index(Index.Team, teamRepo, Translate.team, store, elastic, opts.since, opts.until, opts.dry)
-              .run()
-      *> refreshIndexes(elastic, opts.index).whenA(opts.refresh)
+            .index(Index.Game, gameRepo, Translate.game, store, elastic, opts.since, opts.until, opts.dry),
+          Ingestor.index(
+            Index.Team,
+            teamRepo,
+            Translate.team,
+            store,
+            elastic,
+            opts.since,
+            opts.until,
+            opts.dry
+          )
+        )
+    index(ingestors, elastic, opts)
 
-  private def indexWatch(
-      forumRepo: Repo[DbForum],
-      ublogRepo: Repo[DbUblog],
-      studyRepo: Repo[(DbStudy, StudyChapterData)],
-      gameRepo: Repo[DbGame],
-      teamRepo: Repo[DbTeam],
-      store: KVStore,
+  private def index(
+      ingestors: Ingestors,
       elastic: ESClient[IO],
       opts: IndexOpts
   ): IO[Unit] =
-    opts.index match
-      case Index.Game =>
-        Ingestor.watch(Index.Game, gameRepo, Translate.game, store, elastic, opts.since.some, opts.dry).run()
-      case Index.Forum =>
-        Ingestor
-          .watch(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since.some, opts.dry)
-          .run()
-      case Index.Ublog =>
-        Ingestor
-          .watch(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since.some, opts.dry)
-          .run()
-      case Index.Team =>
-        Ingestor.watch(Index.Team, teamRepo, Translate.team, store, elastic, opts.since.some, opts.dry).run()
-      case Index.Study =>
-        Ingestor
-          .watch(Index.Study, studyRepo, Translate.study.tupled, store, elastic, opts.since.some, opts.dry)
-          .run()
-      case _ =>
-        Ingestor
-          .watch(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since.some, opts.dry)
-          .run() *>
-          Ingestor
-            .watch(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since.some, opts.dry)
-            .run() *>
-          Ingestor
-            .watch(Index.Team, teamRepo, Translate.team, store, elastic, opts.since.some, opts.dry)
-            .run() *>
-          Ingestor
-            .watch(Index.Study, studyRepo, Translate.study.tupled, store, elastic, opts.since.some, opts.dry)
-            .run() *>
-          Ingestor
-            .watch(Index.Game, gameRepo, Translate.game, store, elastic, opts.since.some, opts.dry)
-            .run()
+    putMappingsIfNotExists(elastic, opts.index) *>
+      opts.index.match
+        case Index.Forum => ingestors.forum.run()
+        case Index.Ublog => ingestors.ublog.run()
+        case Index.Study => ingestors.study.run()
+        case Index.Game => ingestors.game.run()
+        case Index.Team => ingestors.team.run()
+        case _ => ingestors.run()
+      *> refreshIndexes(elastic, opts.index).whenA(opts.refresh)
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index | Unit): IO[Unit] =
     def go(index: Index) =
@@ -230,7 +148,7 @@ object cli
           elastic
             .refreshIndex(index)
         .rescue: e =>
-          Logger[IO].error(e.asException)(s"Failed to check or put mapping for ${index.value}") *>
+          Logger[IO].error(e.asException)(s"Failed to refresh index: ${index.value}") *>
             e.asException.raiseError
     index.match
       case i: Index => go(i)
