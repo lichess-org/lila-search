@@ -53,5 +53,5 @@ object Ingestors:
           config.study.startAt
         ),
         Ingestor.watch(Index.Game, games, Translate.game, store, elastic, config.game.startAt),
-        Ingestor.watchPartial(Index.Team, teams, Translate.team, store, elastic, config.team.startAt)
+        Ingestor.watch(Index.Team, teams, Translate.team, store, elastic, config.team.startAt)
       )

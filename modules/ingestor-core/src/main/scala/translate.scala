@@ -104,13 +104,9 @@ object Translate:
         updatedAt
       )
 
-  // Pure function for team: Document => Option[TeamSource]
-  def team(doc: Document): Option[TeamSource] =
-    (
-      doc.getString("name"),
-      doc.getString("description"),
-      doc.getInt("nbMembers")
-    ).mapN(TeamSource.apply)
+  // Pure function for team: DbTeam => TeamSource
+  def team(team: DbTeam): TeamSource =
+    TeamSource(team.name, team.description, team.nbMembers)
 
   // Pure function for ublog: Document => Option[UblogSource]
   def ublog(doc: Document): Option[UblogSource] =
