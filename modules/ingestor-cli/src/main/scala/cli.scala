@@ -34,30 +34,25 @@ object cli
     for
       config <- AppConfig.load.toResource
       res <- AppResources.instance(config)
-      repos <- (
-        ForumRepo(res.lichess, config.ingestor.forum),
-        UblogRepo(res.lichess, config.ingestor.ublog),
-        StudyRepo(res.study, res.studyLocal, config.ingestor.study),
-        GameRepo(res.lichess, config.ingestor.game),
-        TeamRepo(res.lichess, config.ingestor.team)
-      ).mapN((_, _, _, _, _)).toResource
-    yield (repos, res)
+      forum <- ForumRepo(res.lichess, config.ingestor.forum).toResource
+      ublog <- UblogRepo(res.lichess, config.ingestor.ublog).toResource
+      study <- StudyRepo(res.study, res.studyLocal, config.ingestor.study).toResource
+      game <- GameRepo(res.lichess, config.ingestor.game).toResource
+      team <- TeamRepo(res.lichess, config.ingestor.team).toResource
+    yield (forum, ublog, study, game, team, res)
 
   def execute(opts: IndexOpts | ExportOpts)(
-      repos: (
-          Repo[DbForum],
-          Repo[DbUblog],
-          Repo[(DbStudy, StudyChapterData)],
-          Repo[DbGame],
-          Repo[DbTeam]
-      ),
+      forumRepo: Repo[DbForum],
+      ublogRepo: Repo[DbUblog],
+      studyRepo: Repo[(DbStudy, StudyChapterData)],
+      gameRepo: Repo[DbGame],
+      teamRepo: Repo[DbTeam],
       resources: AppResources
   ): IO[Unit] =
-    val (forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo) = repos
     opts match
       case opts: IndexOpts =>
         run(forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo, resources.store, resources.elastic)(opts)
-      case opts: ExportOpts => `export`(opts)
+      case opts: ExportOpts => `export`(gameRepo, opts)
 
   def run(
       forumRepo: Repo[DbForum],
@@ -151,25 +146,20 @@ object cli
       case i: Index => go(i)
       case _ => Index.values.toList.traverse_(go)
 
-  def `export`(opts: ExportOpts): IO[Unit] =
+  def `export`(repo: Repo[DbGame], opts: ExportOpts): IO[Unit] =
     val mode = if opts.watch then "watch mode" else s"from ${opts.since.toString} to ${opts.until.toString}"
     Logger[IO].info(s"Exporting ${opts.index.value} $mode to ${opts.output}") *>
       (opts.index match
-        case Index.Game => exportGames(opts)
+        case Index.Game => exportGames(repo, opts)
         case _ =>
           IO.raiseError(new UnsupportedOperationException(s"Export not supported for ${opts.index.value}")))
 
-  private def exportGames(opts: ExportOpts): IO[Unit] =
-    AppConfig.load.flatMap: config =>
-      AppResources
-        .instance(config)
-        .use: res =>
-          GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
-            val ingestor =
-              if opts.watch then
-                CsvExport.watch(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since.some)
-              else CsvExport(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since, opts.until)
-            ingestor.run()
+  private def exportGames(repo: Repo[DbGame], opts: ExportOpts): IO[Unit] =
+    val ingestor =
+      if opts.watch then
+        CsvExport.watch(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since.some)
+      else CsvExport(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since, opts.until)
+    ingestor.run()
 
 object opts:
   case class IndexOpts(
