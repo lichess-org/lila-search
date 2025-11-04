@@ -4,7 +4,6 @@ package ingestor
 import cats.syntax.all.*
 import chess.Speed
 import chess.variant.Variant
-import mongo4cats.bson.Document
 
 // Pure translation functions from MongoDB models to Smithy models
 object Translate:
@@ -76,34 +75,21 @@ object Translate:
       date = forum.post.createdAt.toEpochMilli
     )
 
-  // Pure function for study: (Document, StudyData) => Option[StudySource]
-  def study(doc: Document, data: StudyData): Option[StudySource] =
-    (
-      doc.getString("name"),
-      doc.getString("ownerId"),
-      data.chapterNames.some,
-      data.chapterTexts.some
-    ).mapN: (name, ownerId, chapterNames, chapterTexts) =>
-      val members = doc.getDocument("members").fold(Nil)(_.toMap.keys.toList)
-      val topics = doc.getList("topics").map(_.flatMap(_.asString)).getOrElse(Nil)
-      val likes = doc.getInt("likes").getOrElse(0)
-      val isPublic = doc.getString("visibility").map(_ == "public").getOrElse(true)
-      val rank = doc.get("rank").flatMap(_.asInstant).map(SearchDateTime.fromInstant)
-      val createdAt = doc.get("createdAt").flatMap(_.asInstant).map(SearchDateTime.fromInstant)
-      val updatedAt = doc.get("updatedAt").flatMap(_.asInstant).map(SearchDateTime.fromInstant)
-      StudySource(
-        name,
-        ownerId,
-        members,
-        chapterNames,
-        chapterTexts,
-        likes,
-        isPublic,
-        topics,
-        rank,
-        createdAt,
-        updatedAt
-      )
+  // Pure function for study: (DbStudy, StudyChapterData) => StudySource
+  def study(study: DbStudy, data: StudyChapterData): StudySource =
+    StudySource(
+      name = study.name,
+      owner = study.ownerId,
+      members = study.memberIds,
+      chapterNames = data.chapterNames,
+      chapterTexts = data.chapterTexts,
+      likes = study.likes.getOrElse(0),
+      public = study.visibility.fold(true)(_ == "public"),
+      topics = study.topics.getOrElse(Nil),
+      rank = study.rank.map(SearchDateTime.fromInstant),
+      createdAt = study.createdAt.map(SearchDateTime.fromInstant),
+      updatedAt = study.updatedAt.map(SearchDateTime.fromInstant)
+    )
 
   // Pure function for team: DbTeam => TeamSource
   def team(team: DbTeam): TeamSource =

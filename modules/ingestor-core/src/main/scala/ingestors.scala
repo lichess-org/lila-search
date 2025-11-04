@@ -3,7 +3,6 @@ package ingestor
 
 import cats.effect.*
 import cats.syntax.all.*
-import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.LoggerFactory
 
@@ -44,7 +43,7 @@ object Ingestors:
           config.forum.startAt
         ),
         Ingestor.watch(Index.Ublog, ublogs, Translate.ublog, store, elastic, config.ublog.startAt),
-        Ingestor.watchPartial(
+        Ingestor.watch(
           Index.Study,
           studies,
           Translate.study.tupled,

@@ -8,7 +8,6 @@ import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
 import lila.search.ingestor.opts.{ ExportOpts, IndexOpts }
-import mongo4cats.bson.Document
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.MeterProvider
@@ -48,7 +47,7 @@ object cli
       repos: (
           Repo[DbForum],
           Repo[DbUblog],
-          Repo[(Document, StudyData)],
+          Repo[(DbStudy, StudyChapterData)],
           Repo[DbGame],
           Repo[DbTeam]
       ),
@@ -63,7 +62,7 @@ object cli
   def index(
       forumRepo: Repo[DbForum],
       ublogRepo: Repo[DbUblog],
-      studyRepo: Repo[(Document, StudyData)],
+      studyRepo: Repo[(DbStudy, StudyChapterData)],
       gameRepo: Repo[DbGame],
       teamRepo: Repo[DbTeam],
       elastic: ESClient[IO]
@@ -74,7 +73,7 @@ object cli
   private def indexBatch(
       forumRepo: Repo[DbForum],
       ublogRepo: Repo[DbUblog],
-      studyRepo: Repo[(Document, StudyData)],
+      studyRepo: Repo[(DbStudy, StudyChapterData)],
       gameRepo: Repo[DbGame],
       teamRepo: Repo[DbTeam],
       elastic: ESClient[IO],
@@ -100,7 +99,7 @@ object cli
             .run()
         case Index.Study =>
           Ingestor
-            .indexPartial(
+            .index(
               Index.Study,
               studyRepo,
               Translate.study.tupled,
@@ -142,7 +141,7 @@ object cli
               )
               .run() *>
             Ingestor
-              .indexPartial(
+              .index(
                 Index.Study,
                 studyRepo,
                 Translate.study.tupled,
@@ -163,7 +162,7 @@ object cli
   private def indexWatch(
       forumRepo: Repo[DbForum],
       ublogRepo: Repo[DbUblog],
-      studyRepo: Repo[(Document, StudyData)],
+      studyRepo: Repo[(DbStudy, StudyChapterData)],
       gameRepo: Repo[DbGame],
       teamRepo: Repo[DbTeam],
       elastic: ESClient[IO],
@@ -184,7 +183,7 @@ object cli
         Ingestor.watch(Index.Team, teamRepo, Translate.team, elastic, opts.since.some, opts.dry).run()
       case Index.Study =>
         Ingestor
-          .watchPartial(Index.Study, studyRepo, Translate.study.tupled, elastic, opts.since.some, opts.dry)
+          .watch(Index.Study, studyRepo, Translate.study.tupled, elastic, opts.since.some, opts.dry)
           .run()
       case _ =>
         Ingestor
@@ -197,7 +196,7 @@ object cli
             .watch(Index.Team, teamRepo, Translate.team, elastic, opts.since.some, opts.dry)
             .run() *>
           Ingestor
-            .watchPartial(Index.Study, studyRepo, Translate.study.tupled, elastic, opts.since.some, opts.dry)
+            .watch(Index.Study, studyRepo, Translate.study.tupled, elastic, opts.since.some, opts.dry)
             .run() *>
           Ingestor.watch(Index.Game, gameRepo, Translate.game, elastic, opts.since.some, opts.dry).run()
 
