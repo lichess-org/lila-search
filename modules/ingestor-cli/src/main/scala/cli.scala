@@ -7,7 +7,10 @@ import cats.mtl.Handle
 import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
-import lila.search.ingestor.opts.{ IndexOpts, WatchOpts }
+import fs2.data.csv.*
+import fs2.data.csv.generic.semiauto.*
+import fs2.io.file.{ Files, Path }
+import lila.search.ingestor.opts.{ ExportOpts, IndexOpts, WatchOpts }
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.MeterProvider
@@ -44,10 +47,11 @@ object cli
       ).toResource
     yield (ingestors, res.elastic)
 
-  def execute(opts: IndexOpts | WatchOpts)(ingestor: Ingestors, elastic: ESClient[IO]): IO[Unit] =
+  def execute(opts: IndexOpts | WatchOpts | ExportOpts)(ingestor: Ingestors, elastic: ESClient[IO]): IO[Unit] =
     opts match
-      case opts: IndexOpts => index(ingestor, elastic)(opts)
-      case opts: WatchOpts => watch(ingestor)(opts)
+      case opts: IndexOpts  => index(ingestor, elastic)(opts)
+      case opts: WatchOpts  => watch(ingestor)(opts)
+      case opts: ExportOpts => `export`(ingestor)(opts)
 
   def index(ingestor: Ingestors, elastic: ESClient[IO])(opts: IndexOpts): IO[Unit] =
     putMappingsIfNotExists(elastic, opts.index) *>
@@ -116,12 +120,39 @@ object cli
           ingestor.study.watch(opts.since.some, opts.dry) *>
           ingestor.game.watch(opts.since.some, opts.dry)
 
+  def `export`(ingestor: Ingestors)(opts: ExportOpts): IO[Unit] =
+    Logger[IO].info(s"Exporting ${opts.index.value} from ${opts.since} to ${opts.until} to ${opts.output}") *>
+      (opts.index match
+        case Index.Game => exportGames(opts)
+        case _          => IO.raiseError(new UnsupportedOperationException(s"Export not supported for ${opts.index.value}"))
+      ) *> Logger[IO].info(s"Export completed: ${opts.output}")
+
+  private def exportGames(opts: ExportOpts): IO[Unit] =
+    AppConfig.load.flatMap: config =>
+      AppResources.instance(config).use: res =>
+        GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
+          repo
+            .fetch(opts.since, opts.until)
+            .flatMap: result =>
+              fs2.Stream.emits(result.toIndex)
+            .map { case (id, game) =>
+              GameCsv.fromDbGame(id, game)
+            }
+            .through(encodeUsingFirstHeaders(fullRows = true))
+            .intersperse("\n")
+            .through(fs2.text.utf8.encode)
+            .through(Files[IO].writeAll(Path(opts.output)))
+            .compile
+            .drain
+
 object opts:
   case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, refresh: Boolean, dry: Boolean)
   case class WatchOpts(index: Index | Unit, since: Instant, dry: Boolean)
+  case class ExportOpts(index: Index, format: String, output: String, since: Instant, until: Instant)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
-    Opts.subcommand("watch", "watch change events and index documents")(watchOpt)
+    Opts.subcommand("watch", "watch change events and index documents")(watchOpt) <+>
+    Opts.subcommand("export", "export documents to file")(exportOpt)
 
   val singleIndexOpt =
     Opts
@@ -186,6 +217,43 @@ object opts:
     dryOpt
   ).mapN(WatchOpts.apply)
 
+  val exportOpt = (
+    singleIndexOpt,
+    Opts
+      .option[String](
+        long = "format",
+        help = "Export format (csv)",
+        short = "f",
+        metavar = "csv"
+      )
+      .withDefault("csv"),
+    Opts
+      .option[String](
+        long = "output",
+        help = "Output file path",
+        short = "o",
+        metavar = "path/to/file.csv"
+      ),
+    Opts
+      .option[Instant](
+        long = "since",
+        help = "Export documents since",
+        short = "s",
+        metavar = "time in epoch seconds"
+      ),
+    Opts
+      .option[Instant](
+        long = "until",
+        help = "Export documents until",
+        short = "u",
+        metavar = "time in epoch seconds"
+      )
+      .orElse(Instant.now.pure[Opts])
+  ).mapN(ExportOpts.apply)
+    .mapValidated: x =>
+      if x.until.isAfter(x.since) then Validated.valid(x)
+      else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
+
   given Argument[Index] =
     Argument.from("index")(x => Validated.fromEither(Index.fromString(x)).toValidatedNel)
 
@@ -194,3 +262,82 @@ object opts:
       str.toLongOption.fold(Validated.invalidNel(s"Invalid epoch seconds: $str"))(x =>
         Validated.valid(Instant.ofEpochSecond(x))
       )
+
+// CSV representation of GameSource for export
+case class GameCsv(
+    id: String,
+    status: Int,
+    turns: Int,
+    rated: Boolean,
+    perf: Int,
+    winnerColor: Int,
+    date: Long,
+    analysed: Boolean,
+    uids: String,
+    winner: String,
+    loser: String,
+    averageRating: String,
+    ai: String,
+    duration: String,
+    clockInit: String,
+    clockInc: String,
+    whiteUser: String,
+    blackUser: String,
+    source: String
+)
+
+object GameCsv:
+  given CsvRowEncoder[GameCsv, String] = deriveCsvRowEncoder
+
+  def fromDbGame(id: String, game: DbGame): GameCsv =
+    GameCsv(
+      id = id,
+      status = game.status,
+      turns = (game.ply + 1) / 2,
+      rated = game.rated.getOrElse(false),
+      perf = perfId(game.variantOrDefault, game.speed),
+      winnerColor = game.winnerColor.fold(3)(if _ then 1 else 2),
+      date = game.movedAt.toEpochMilli,
+      analysed = game.analysed.getOrElse(false),
+      uids = game.players.mkString(","),
+      winner = game.winnerId.getOrElse(""),
+      loser = game.loser.getOrElse(""),
+      averageRating = averageUsersRating(game).fold("")(_.toString),
+      ai = game.aiLevel.fold("")(_.toString),
+      duration = durationSeconds(game).fold("")(_.toString),
+      clockInit = game.clockInit.fold("")(_.toString),
+      clockInc = game.clockInc.fold("")(_.toString),
+      whiteUser = game.whiteId.getOrElse(""),
+      blackUser = game.blackId.getOrElse(""),
+      source = game.source.fold("")(_.toString)
+    )
+
+  private def averageUsersRating(g: DbGame): Option[Int] =
+    List(g.whitePlayer.flatMap(_.rating), g.blackPlayer.flatMap(_.rating)).flatten match
+      case a :: b :: Nil => Some((a + b) / 2)
+      case a :: Nil      => Some((a + 1500) / 2)
+      case _             => None
+
+  private def durationSeconds(g: DbGame): Option[Int] =
+    val seconds = (g.movedAt.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
+    Option.when(seconds < 60 * 60 * 12)(seconds.toInt)
+
+  private def perfId(variant: chess.variant.Variant, speed: chess.Speed): Int =
+    import chess.variant.*
+    variant.match
+      case Standard | FromPosition =>
+        speed match
+          case chess.Speed.UltraBullet    => 0
+          case chess.Speed.Bullet         => 1
+          case chess.Speed.Blitz          => 2
+          case chess.Speed.Rapid          => 6
+          case chess.Speed.Classical      => 3
+          case chess.Speed.Correspondence => 4
+      case Crazyhouse    => 18
+      case Chess960      => 11
+      case KingOfTheHill => 12
+      case ThreeCheck    => 15
+      case Antichess     => 13
+      case Atomic        => 14
+      case Horde         => 16
+      case RacingKings   => 17

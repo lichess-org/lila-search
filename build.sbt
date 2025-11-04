@@ -118,6 +118,8 @@ lazy val `ingestor-cli` = project
       declineCore,
       declineCatsEffect,
       otel4sCore,
+      fs2DataCsv,
+      fs2DataCsvGeneric,
       logback % Runtime,
       weaver
     ),
