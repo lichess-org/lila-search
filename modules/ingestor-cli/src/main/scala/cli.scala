@@ -71,10 +71,8 @@ object cli
     val ingestors =
       if opts.watch then
         new Ingestors(
-          Ingestor
-            .watch(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since.some, opts.dry),
-          Ingestor
-            .watch(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since.some, opts.dry),
+          Ingestor.watch(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since.some, opts.dry),
+          Ingestor.watch(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since.some, opts.dry),
           Ingestor
             .watch(Index.Study, studyRepo, Translate.study.tupled, store, elastic, opts.since.some, opts.dry),
           Ingestor.watch(Index.Game, gameRepo, Translate.game, store, elastic, opts.since.some, opts.dry),
@@ -86,17 +84,16 @@ object cli
             .index(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since, opts.until, opts.dry),
           Ingestor
             .index(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since, opts.until, opts.dry),
-          Ingestor
-            .index(
-              Index.Study,
-              studyRepo,
-              Translate.study.tupled,
-              store,
-              elastic,
-              opts.since,
-              opts.until,
-              opts.dry
-            ),
+          Ingestor.index(
+            Index.Study,
+            studyRepo,
+            Translate.study.tupled,
+            store,
+            elastic,
+            opts.since,
+            opts.until,
+            opts.dry
+          ),
           Ingestor
             .index(Index.Game, gameRepo, Translate.game, store, elastic, opts.since, opts.until, opts.dry),
           Ingestor.index(
@@ -168,12 +165,11 @@ object cli
         .instance(config)
         .use: res =>
           GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
-            if opts.watch then
-              Exporter(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output))
-                .watch(opts.since.some)
-            else
-              Exporter(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output))
-                .run(opts.since, opts.until)
+            val ingestor =
+              if opts.watch then
+                CsvExport.watch(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since.some)
+              else CsvExport(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since, opts.until)
+            ingestor.run()
 
 object opts:
   case class IndexOpts(
@@ -184,6 +180,7 @@ object opts:
       dry: Boolean,
       watch: Boolean
   )
+
   case class ExportOpts(
       index: Index,
       format: String,

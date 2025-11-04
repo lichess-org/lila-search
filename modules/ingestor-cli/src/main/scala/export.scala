@@ -104,3 +104,56 @@ object GameCsv:
       case Atomic => 14
       case Horde => 16
       case RacingKings => 17
+
+// CSV export factory methods that return Ingestor
+object CsvExport:
+
+  import java.time.Instant
+
+  // Batch export mode - fetch documents in [since, until] and write to sink
+  def apply[A, B](
+      repo: Repo[B],
+      transform: (String, B) => A,
+      sink: fs2.Pipe[IO, (String, A), Unit],
+      since: Instant,
+      until: Instant
+  )(using LoggerFactory[IO]): Ingestor =
+    given logger: Logger[IO] = LoggerFactory[IO].getLogger
+
+    new:
+      def run(): IO[Unit] =
+        info"Starting export from $since to $until" *>
+          repo
+            .fetch(since, until)
+            .flatMap: result =>
+              fs2.Stream.emits(result.toIndex)
+            .map { case (id, dbModel) =>
+              (id, transform(id, dbModel))
+            }
+            .through(sink)
+            .compile
+            .drain
+          *> info"Export completed"
+
+  // Watch mode export - continuously export documents as they arrive
+  def watch[A, B](
+      repo: Repo[B],
+      transform: (String, B) => A,
+      sink: fs2.Pipe[IO, (String, A), Unit],
+      since: Option[Instant]
+  )(using LoggerFactory[IO]): Ingestor =
+    given logger: Logger[IO] = LoggerFactory[IO].getLogger
+
+    new:
+      def run(): IO[Unit] =
+        info"Starting watch mode export from ${since.getOrElse("now")}" *>
+          repo
+            .watch(since)
+            .flatMap: result =>
+              fs2.Stream.emits(result.toIndex)
+            .map { case (id, dbModel) =>
+              (id, transform(id, dbModel))
+            }
+            .through(sink)
+            .compile
+            .drain
