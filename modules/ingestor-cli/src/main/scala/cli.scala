@@ -120,7 +120,6 @@ object cli
           ingestor.game.watch(opts.since.some, opts.dry)
 
   def `export`(opts: ExportOpts): IO[Unit] =
-    given MeterProvider[IO] = MeterProvider.noop[IO]
     Logger[IO].info(s"Exporting ${opts.index.value} from ${opts.since} to ${opts.until} to ${opts.output}") *>
       (opts.index match
         case Index.Game => exportGames(opts)
@@ -171,14 +170,7 @@ object opts:
       .orNone
       .map(_.isDefined)
 
-  val indexOpt = (
-    singleIndexOpt orElse allIndexOpt,
-    Opts.option[Instant](
-      long = "since",
-      help = "Index all documents since",
-      short = "s",
-      metavar = "time in epoch seconds"
-    ),
+  val untilOpt =
     Opts
       .option[Instant](
         long = "until",
@@ -186,7 +178,19 @@ object opts:
         short = "u",
         metavar = "time in epoch seconds"
       )
-      .orElse(Instant.now.pure[Opts]),
+
+  val sinceOpt =
+    Opts.option[Instant](
+      long = "since",
+      help = "Index all documents since",
+      short = "s",
+      metavar = "time in epoch seconds"
+    )
+
+  val indexOpt = (
+    singleIndexOpt.orElse(allIndexOpt),
+    sinceOpt,
+    untilOpt.orElse(Instant.now.pure[Opts]),
     refreshOpt,
     dryOpt
   ).mapN(IndexOpts.apply)
@@ -196,15 +200,8 @@ object opts:
     )
 
   val watchOpt = (
-    singleIndexOpt orElse allIndexOpt,
-    Opts
-      .option[Instant](
-        long = "since",
-        help = "Watch all documents since",
-        short = "s",
-        metavar = "time in epoch seconds"
-      )
-      .orElse(Instant.now.pure[Opts]),
+    singleIndexOpt.orElse(allIndexOpt),
+    sinceOpt.orElse(Instant.now.pure[Opts]),
     dryOpt
   ).mapN(WatchOpts.apply)
 
@@ -225,21 +222,8 @@ object opts:
         short = "o",
         metavar = "path/to/file.csv"
       ),
-    Opts
-      .option[Instant](
-        long = "since",
-        help = "Export documents since",
-        short = "s",
-        metavar = "time in epoch seconds"
-      ),
-    Opts
-      .option[Instant](
-        long = "until",
-        help = "Export documents until",
-        short = "u",
-        metavar = "time in epoch seconds"
-      )
-      .orElse(Instant.now.pure[Opts])
+    sinceOpt,
+    untilOpt.orElse(Instant.now.pure[Opts])
   ).mapN(ExportOpts.apply)
     .mapValidated: x =>
       if x.until.isAfter(x.since) then Validated.valid(x)
