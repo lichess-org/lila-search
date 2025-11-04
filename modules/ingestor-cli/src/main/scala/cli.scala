@@ -7,7 +7,7 @@ import cats.mtl.Handle
 import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
-import lila.search.ingestor.opts.{ ExportOpts, IndexOpts, WatchOpts }
+import lila.search.ingestor.opts.{ ExportOpts, IndexOpts }
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.MeterProvider
@@ -45,14 +45,17 @@ object cli
     yield (ingestors, res.elastic)
 
   def execute(
-      opts: IndexOpts | WatchOpts | ExportOpts
+      opts: IndexOpts | ExportOpts
   )(ingestor: Ingestors, elastic: ESClient[IO]): IO[Unit] =
     opts match
-      case opts: IndexOpts => index(ingestor, elastic)(opts)
-      case opts: WatchOpts => watch(ingestor)(opts)
+      case opts: IndexOpts  => index(ingestor, elastic)(opts)
       case opts: ExportOpts => `export`(opts)
 
   def index(ingestor: Ingestors, elastic: ESClient[IO])(opts: IndexOpts): IO[Unit] =
+    if opts.watch then indexWatch(ingestor)(opts)
+    else indexBatch(ingestor, elastic)(opts)
+
+  private def indexBatch(ingestor: Ingestors, elastic: ESClient[IO])(opts: IndexOpts): IO[Unit] =
     putMappingsIfNotExists(elastic, opts.index) *>
       opts.index.match
         case Index.Forum =>
@@ -72,6 +75,25 @@ object cli
             ingestor.game.run(opts.since, opts.until, opts.dry) *>
             ingestor.team.run(opts.since, opts.until, opts.dry)
       *> refreshIndexes(elastic, opts.index).whenA(opts.refresh)
+
+  private def indexWatch(ingestor: Ingestors)(opts: IndexOpts): IO[Unit] =
+    opts.index match
+      case Index.Game =>
+        ingestor.game.watch(opts.since.some, opts.dry)
+      case Index.Forum =>
+        ingestor.forum.watch(opts.since.some, opts.dry)
+      case Index.Ublog =>
+        ingestor.ublog.watch(opts.since.some, opts.dry)
+      case Index.Team =>
+        ingestor.team.watch(opts.since.some, opts.dry)
+      case Index.Study =>
+        ingestor.study.watch(opts.since.some, opts.dry)
+      case _ =>
+        ingestor.forum.watch(opts.since.some, opts.dry) *>
+          ingestor.ublog.watch(opts.since.some, opts.dry) *>
+          ingestor.team.watch(opts.since.some, opts.dry) *>
+          ingestor.study.watch(opts.since.some, opts.dry) *>
+          ingestor.game.watch(opts.since.some, opts.dry)
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index | Unit): IO[Unit] =
     def go(index: Index) =
@@ -100,25 +122,6 @@ object cli
       case i: Index => go(i)
       case _ => Index.values.toList.traverse_(go)
 
-  def watch(ingestor: Ingestors)(opts: WatchOpts): IO[Unit] =
-    opts.index match
-      case Index.Game =>
-        ingestor.game.watch(opts.since.some, opts.dry)
-      case Index.Forum =>
-        ingestor.forum.watch(opts.since.some, opts.dry)
-      case Index.Ublog =>
-        ingestor.ublog.watch(opts.since.some, opts.dry)
-      case Index.Team =>
-        ingestor.team.watch(opts.since.some, opts.dry)
-      case Index.Study =>
-        ingestor.study.watch(opts.since.some, opts.dry)
-      case _ =>
-        ingestor.forum.watch(opts.since.some, opts.dry) *>
-          ingestor.ublog.watch(opts.since.some, opts.dry) *>
-          ingestor.team.watch(opts.since.some, opts.dry) *>
-          ingestor.study.watch(opts.since.some, opts.dry) *>
-          ingestor.game.watch(opts.since.some, opts.dry)
-
   def `export`(opts: ExportOpts): IO[Unit] =
     Logger[IO].info(s"Exporting ${opts.index.value} from ${opts.since} to ${opts.until} to ${opts.output}") *>
       (opts.index match
@@ -136,12 +139,17 @@ object cli
               .run(opts.since, opts.until)
 
 object opts:
-  case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, refresh: Boolean, dry: Boolean)
-  case class WatchOpts(index: Index | Unit, since: Instant, dry: Boolean)
+  case class IndexOpts(
+      index: Index | Unit,
+      since: Instant,
+      until: Instant,
+      refresh: Boolean,
+      dry: Boolean,
+      watch: Boolean
+  )
   case class ExportOpts(index: Index, format: String, output: String, since: Instant, until: Instant)
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
-    Opts.subcommand("watch", "watch change events and index documents")(watchOpt) <+>
     Opts.subcommand("export", "export documents to file")(exportOpt)
 
   val singleIndexOpt =
@@ -170,6 +178,12 @@ object opts:
       .orNone
       .map(_.isDefined)
 
+  val watchOpt =
+    Opts
+      .flag(long = "watch", help = "Watch change events and continuously index", short = "w")
+      .orNone
+      .map(_.isDefined)
+
   val untilOpt =
     Opts
       .option[Instant](
@@ -192,18 +206,13 @@ object opts:
     sinceOpt,
     untilOpt.orElse(Instant.now.pure[Opts]),
     refreshOpt,
-    dryOpt
+    dryOpt,
+    watchOpt
   ).mapN(IndexOpts.apply)
     .mapValidated(x =>
-      if x.until.isAfter(x.since) then Validated.valid(x)
+      if x.watch || x.until.isAfter(x.since) then Validated.valid(x)
       else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
     )
-
-  val watchOpt = (
-    singleIndexOpt.orElse(allIndexOpt),
-    sinceOpt.orElse(Instant.now.pure[Opts]),
-    dryOpt
-  ).mapN(WatchOpts.apply)
 
   val exportOpt = (
     singleIndexOpt,
