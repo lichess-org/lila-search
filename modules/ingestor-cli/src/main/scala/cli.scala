@@ -77,6 +77,7 @@ object cli
       gameRepo: Repo[DbGame],
       teamRepo: Repo[DbTeam],
       elastic: ESClient[IO],
+      store: KVStore,
       opts: IndexOpts
   ): IO[Unit] =
     putMappingsIfNotExists(elastic, opts.index) *>
@@ -87,6 +88,7 @@ object cli
               Index.Forum,
               forumRepo,
               Translate.forum,
+              store,
               elastic,
               opts.since,
               opts.until,
@@ -103,6 +105,7 @@ object cli
               Index.Study,
               studyRepo,
               Translate.study.tupled,
+              store,
               elastic,
               opts.since,
               opts.until,
@@ -111,11 +114,11 @@ object cli
             .run()
         case Index.Game =>
           Ingestor
-            .index(Index.Game, gameRepo, Translate.game, elastic, opts.since, opts.until, opts.dry)
+            .index(Index.Game, gameRepo, Translate.game, store, elastic, opts.since, opts.until, opts.dry)
             .run()
         case Index.Team =>
           Ingestor
-            .index(Index.Team, teamRepo, Translate.team, elastic, opts.since, opts.until, opts.dry)
+            .index(Index.Team, teamRepo, Translate.team, store, elastic, opts.since, opts.until, opts.dry)
             .run()
         case _ =>
           Ingestor
@@ -123,6 +126,7 @@ object cli
               Index.Forum,
               forumRepo,
               Translate.forum,
+              store,
               elastic,
               opts.since,
               opts.until,
@@ -134,6 +138,7 @@ object cli
                 Index.Ublog,
                 ublogRepo,
                 Translate.ublog,
+                store,
                 elastic,
                 opts.since,
                 opts.until,
@@ -145,6 +150,7 @@ object cli
                 Index.Study,
                 studyRepo,
                 Translate.study.tupled,
+                store,
                 elastic,
                 opts.since,
                 opts.until,
@@ -152,10 +158,10 @@ object cli
               )
               .run() *>
             Ingestor
-              .index(Index.Game, gameRepo, Translate.game, elastic, opts.since, opts.until, opts.dry)
+              .index(Index.Game, gameRepo, Translate.game, store, elastic, opts.since, opts.until, opts.dry)
               .run() *>
             Ingestor
-              .index(Index.Team, teamRepo, Translate.team, elastic, opts.since, opts.until, opts.dry)
+              .index(Index.Team, teamRepo, Translate.team, store, elastic, opts.since, opts.until, opts.dry)
               .run()
       *> refreshIndexes(elastic, opts.index).whenA(opts.refresh)
 
@@ -165,40 +171,43 @@ object cli
       studyRepo: Repo[(DbStudy, StudyChapterData)],
       gameRepo: Repo[DbGame],
       teamRepo: Repo[DbTeam],
+      store: KVStore,
       elastic: ESClient[IO],
       opts: IndexOpts
   ): IO[Unit] =
     opts.index match
       case Index.Game =>
-        Ingestor.watch(Index.Game, gameRepo, Translate.game, elastic, opts.since.some, opts.dry).run()
+        Ingestor.watch(Index.Game, gameRepo, Translate.game, store, elastic, opts.since.some, opts.dry).run()
       case Index.Forum =>
         Ingestor
-          .watch(Index.Forum, forumRepo, Translate.forum, elastic, opts.since.some, opts.dry)
+          .watch(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since.some, opts.dry)
           .run()
       case Index.Ublog =>
         Ingestor
-          .watch(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since.some, opts.dry)
+          .watch(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since.some, opts.dry)
           .run()
       case Index.Team =>
-        Ingestor.watch(Index.Team, teamRepo, Translate.team, elastic, opts.since.some, opts.dry).run()
+        Ingestor.watch(Index.Team, teamRepo, Translate.team, store, elastic, opts.since.some, opts.dry).run()
       case Index.Study =>
         Ingestor
-          .watch(Index.Study, studyRepo, Translate.study.tupled, elastic, opts.since.some, opts.dry)
+          .watch(Index.Study, studyRepo, Translate.study.tupled, store, elastic, opts.since.some, opts.dry)
           .run()
       case _ =>
         Ingestor
-          .watch(Index.Forum, forumRepo, Translate.forum, elastic, opts.since.some, opts.dry)
+          .watch(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since.some, opts.dry)
           .run() *>
           Ingestor
-            .watch(Index.Ublog, ublogRepo, Translate.ublog, elastic, opts.since.some, opts.dry)
+            .watch(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since.some, opts.dry)
             .run() *>
           Ingestor
-            .watch(Index.Team, teamRepo, Translate.team, elastic, opts.since.some, opts.dry)
+            .watch(Index.Team, teamRepo, Translate.team, store, elastic, opts.since.some, opts.dry)
             .run() *>
           Ingestor
-            .watch(Index.Study, studyRepo, Translate.study.tupled, elastic, opts.since.some, opts.dry)
+            .watch(Index.Study, studyRepo, Translate.study.tupled, store, elastic, opts.since.some, opts.dry)
             .run() *>
-          Ingestor.watch(Index.Game, gameRepo, Translate.game, elastic, opts.since.some, opts.dry).run()
+          Ingestor
+            .watch(Index.Game, gameRepo, Translate.game, store, elastic, opts.since.some, opts.dry)
+            .run()
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index | Unit): IO[Unit] =
     def go(index: Index) =

@@ -54,6 +54,7 @@ object Ingestor:
       index: Index,
       repo: Repo[B],
       translate: B => A,
+      store: KVStore,
       elastic: ESClient[IO],
       since: Option[Instant],
       dryRun: Boolean
@@ -65,7 +66,8 @@ object Ingestor:
         repo
           .watch(since)
           .evalMap: result =>
-            updateElastic(index, elastic, result.map(translate), dryRun)
+            updateElastic(index, elastic, result.map(translate), dryRun) *>
+              saveLastIndexedTimestamp(index, store, result.timestamp)
           .compile
           .drain
 
@@ -74,6 +76,7 @@ object Ingestor:
       index: Index,
       repo: Repo[B],
       translate: B => A,
+      store: KVStore,
       elastic: ESClient[IO],
       since: Instant,
       until: Instant,
@@ -86,7 +89,8 @@ object Ingestor:
         repo
           .fetch(since, until)
           .evalMap: result =>
-            updateElastic(index, elastic, result.map(translate), dryRun)
+            updateElastic(index, elastic, result.map(translate), dryRun) *>
+              saveLastIndexedTimestamp(index, store, result.timestamp)
           .compile
           .drain
 
@@ -139,72 +143,3 @@ object Ingestor:
       store.put(index.value, time) *>
         Logger[IO].info(s"Stored last indexed time ${time.getEpochSecond} for ${index.value}")
     )
-
-  // Watch mode with default start time (for partial translations: B => Option[A])
-  def watchPartial[A: Schema, B](
-      index: Index,
-      repo: Repo[B],
-      translate: B => Option[A],
-      store: KVStore,
-      elastic: ESClient[IO],
-      defaultStartAt: Option[Instant]
-  )(using LoggerFactory[IO]): Ingestor =
-    given logger: Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
-
-    new:
-      def run(): IO[Unit] =
-        val startAt: IO[Option[Instant]] =
-          defaultStartAt
-            .fold(store.get(index.value))(_.some.pure[IO])
-            .flatTap(since => info"Starting ${index.value} ingestor from $since")
-
-        fs2.Stream
-          .eval(startAt)
-          .flatMap(repo.watch)
-          .evalMap: result =>
-            val translated = result.flatMap(translate)
-            updateElastic(index, elastic, translated, false) *>
-              saveLastIndexedTimestamp(index, store, result.timestamp)
-          .compile
-          .drain
-
-  // Watch mode with specific start time (for partial translations)
-  def watchPartial[A: Schema, B](
-      index: Index,
-      repo: Repo[B],
-      translate: B => Option[A],
-      elastic: ESClient[IO],
-      since: Option[Instant],
-      dryRun: Boolean
-  )(using LoggerFactory[IO]): Ingestor =
-    given logger: Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
-
-    new:
-      def run(): IO[Unit] =
-        repo
-          .watch(since)
-          .evalMap: result =>
-            updateElastic(index, elastic, result.flatMap(translate), dryRun)
-          .compile
-          .drain
-
-  // Batch indexing mode (for partial translations)
-  def indexPartial[A: Schema, B](
-      index: Index,
-      repo: Repo[B],
-      translate: B => Option[A],
-      elastic: ESClient[IO],
-      since: Instant,
-      until: Instant,
-      dryRun: Boolean
-  )(using LoggerFactory[IO]): Ingestor =
-    given logger: Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
-
-    new:
-      def run(): IO[Unit] =
-        repo
-          .fetch(since, until)
-          .evalMap: result =>
-            updateElastic(index, elastic, result.flatMap(translate), dryRun)
-          .compile
-          .drain
