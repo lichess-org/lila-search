@@ -3,6 +3,7 @@ package ingestor
 
 import cats.effect.*
 import cats.syntax.all.*
+import mongo4cats.bson.Document
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.LoggerFactory
 
@@ -34,9 +35,23 @@ object Ingestors:
       TeamRepo(lichess, config.team)
     ).mapN: (forums, ublogs, studies, games, teams) =>
       new Ingestors(
-        Ingestor(Index.Forum, forums, store, elastic, config.forum.startAt),
-        Ingestor(Index.Ublog, ublogs, store, elastic, config.ublog.startAt),
-        Ingestor(Index.Study, studies, store, elastic, config.study.startAt),
-        Ingestor(Index.Game, games, store, elastic, config.game.startAt),
-        Ingestor(Index.Team, teams, store, elastic, config.team.startAt)
+        Ingestor.applyPartial(
+          Index.Forum,
+          forums,
+          Translate.forum.tupled,
+          store,
+          elastic,
+          config.forum.startAt
+        ),
+        Ingestor.applyPartial(Index.Ublog, ublogs, Translate.ublog, store, elastic, config.ublog.startAt),
+        Ingestor.applyPartial(
+          Index.Study,
+          studies,
+          Translate.study.tupled,
+          store,
+          elastic,
+          config.study.startAt
+        ),
+        Ingestor(Index.Game, games, Translate.game, store, elastic, config.game.startAt),
+        Ingestor.applyPartial(Index.Team, teams, Translate.team, store, elastic, config.team.startAt)
       )

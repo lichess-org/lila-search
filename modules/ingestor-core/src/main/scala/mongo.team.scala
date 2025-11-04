@@ -33,11 +33,11 @@ object TeamRepo:
 
   def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Team)(using
       LoggerFactory[IO]
-  ): IO[Repo[TeamSource]] =
+  ): IO[Repo[Document]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
     mongo.getCollection("team").map(apply(config))
 
-  def apply(config: IngestorConfig.Team)(teams: MongoCollection)(using Logger[IO]): Repo[TeamSource] = new:
+  def apply(config: IngestorConfig.Team)(teams: MongoCollection)(using Logger[IO]): Repo[Document] = new:
 
     def watch(since: Option[Instant]) =
       // skip the first event if we're starting from a specific timestamp
@@ -57,7 +57,7 @@ object TeamRepo:
           val lastEventTimestamp = docs.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
           val (toDelete, toIndex) = docs.partition(_.isDelete)
           Result(
-            toIndex.flatten(using _.fullDocument).toSources,
+            toIndex.flatten(using _.fullDocument).map(doc => doc.id.get -> doc),
             toDelete.flatten(using _.docId.map(Id.apply)),
             lastEventTimestamp
           )
@@ -77,23 +77,12 @@ object TeamRepo:
           .map: docs =>
             val (toDelete, toIndex) = docs.partition(!_.isEnabled)
             Result(
-              toIndex.toSources,
+              toIndex.map(doc => doc.id.get -> doc),
               toDelete.flatten(using _.id.map(Id.apply)),
               none
             )
 
-    extension (docs: List[Document])
-      private def toSources: List[(String, TeamSource)] =
-        docs.flatten(using doc => (doc.id, doc.toSource).mapN(_ -> _))
-
     extension (doc: Document)
-      private def toSource: Option[TeamSource] =
-        (
-          doc.getString(F.name),
-          doc.getString(F.description),
-          doc.getInt(F.nbMembers)
-        ).mapN(TeamSource.apply)
-
       private def isEnabled =
         doc.getBoolean(F.enabled).getOrElse(true)
 

@@ -36,7 +36,7 @@ object StudyRepo:
       study: MongoDatabase[IO],
       local: MongoDatabase[IO],
       config: IngestorConfig.Study
-  )(using LoggerFactory[IO]): IO[Repo[StudySource]] =
+  )(using LoggerFactory[IO]): IO[Repo[(Document, StudyData)]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
     (study.getCollection("study"), ChapterRepo(study), local.getCollection("oplog.rs"))
       .mapN(apply(config))
@@ -45,20 +45,20 @@ object StudyRepo:
       studies: MongoCollection,
       chapters: ChapterRepo,
       oplogs: MongoCollection
-  )(using Logger[IO]): Repo[StudySource] = new:
+  )(using Logger[IO]): Repo[(Document, StudyData)] = new:
 
-    def watch(since: Option[Instant]): fs2.Stream[IO, Result[StudySource]] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[(Document, StudyData)]] =
       intervalStream(since)
         .meteredStartImmediately(config.interval)
         .flatMap(fetch)
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
+    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[(Document, StudyData)]] =
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
         pullForIndex(since, until)
           .merge(pullForDelete(since, until))
         ++ fs2.Stream(Result(Nil, Nil, until.some))
 
-    def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
+    def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, Result[(Document, StudyData)]] =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
       studies
@@ -68,10 +68,10 @@ object StudyRepo:
         .chunkN(config.batchSize)
         .map(_.toList)
         // .evalTap(_.traverse_(x => debug"received $x"))
-        .evalMap(_.toSources)
+        .evalMap(_.toData)
         .map(Result(_, Nil, none))
 
-    def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, Result[StudySource]] =
+    def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, Result[(Document, StudyData)]] =
       val filter =
         Filter
           .gte("ts", since.asBsonTimestamp)
@@ -100,60 +100,26 @@ object StudyRepo:
         .map((since, until) => since -> until.get)
 
     extension (docs: List[Document])
-      private def toSources: IO[List[SourceWithId[StudySource]]] =
+      private def toData: IO[List[SourceWithId[(Document, StudyData)]]] =
         val studyIds = docs.flatMap(_.id).distinct
         chapters
           .byStudyIds(studyIds)
-          .flatMap: chapters =>
-            docs.traverseFilter(_.toSource(chapters))
+          .flatMap: chapterMap =>
+            docs.traverseFilter(_.toData(chapterMap))
 
     extension (doc: Document)
-      private def toSource(chapters: Map[String, StudyData]): IO[Option[SourceWithId[StudySource]]] =
+      private def toData(
+          chapterMap: Map[String, StudyData]
+      ): IO[Option[SourceWithId[(Document, StudyData)]]] =
         doc.id
           .flatMap: id =>
-            (
-              doc.getName,
-              doc.getOwnerId,
-              doc.getChapterNames(chapters),
-              doc.getChapterTexts(chapters)
-            ).mapN: (name, ownerId, chapterNames, chapterTexts) =>
-              StudySource(
-                name,
-                ownerId,
-                doc.getMembers,
-                chapterNames,
-                chapterTexts,
-                doc.getLikes,
-                doc.getPublic,
-                doc.getTopics,
-                doc.getRank,
-                doc.getCreatedAt,
-                doc.getUpdatedAt
-              )
-            .map(id -> _)
+            chapterMap.get(id).map(data => id -> (doc, data))
           .pure[IO]
-          .flatTap: source =>
+          .flatTap: data =>
             def reason =
               doc.id.fold("missing doc._id; ")(_ => "")
-                + doc.getName.fold("missing doc.name; ")(_ => "")
-                + doc.getOwnerId.fold("missing doc.ownerId; ")(_ => "")
-                + doc.getChapterNames(chapters).fold("missing doc.chapterNames; ")(_ => "")
-                + doc.getChapterTexts(chapters).fold("missing doc.chapterTexts; ")(_ => "")
-            info"failed to convert document to source: $doc because $reason".whenA(source.isEmpty)
-
-      private def getName = doc.getString(F.name)
-      private def getOwnerId = doc.getString(F.ownerId)
-      private def getMembers = doc.getDocument(F.members).fold(Nil)(_.toMap.keys.toList)
-      private def getTopics = doc.getList(F.topics).map(_.flatMap(_.asString)).getOrElse(Nil)
-      private def getLikes = doc.getInt(F.likes).getOrElse(0)
-      private def getChapterTexts(chapters: Map[String, StudyData]) =
-        chapters.get(doc.id.getOrElse("")).map(_.chapterTexts)
-      private def getChapterNames(chapters: Map[String, StudyData]) =
-        chapters.get(doc.id.getOrElse("")).map(_.chapterNames)
-      private def getPublic = doc.getString(F.visibility).map(_ == "public").getOrElse(true)
-      private def getRank = doc.get(F.rank).flatMap(_.asInstant).map(SearchDateTime.fromInstant)
-      private def getCreatedAt = doc.get(F.createdAt).flatMap(_.asInstant).map(SearchDateTime.fromInstant)
-      private def getUpdatedAt = doc.get(F.updatedAt).flatMap(_.asInstant).map(SearchDateTime.fromInstant)
+                + (if chapterMap.contains(doc.id.getOrElse("")) then "" else "missing chapter data; ")
+            info"failed to prepare document data: $doc because $reason".whenA(data.isEmpty)
 
   object F:
     val name = "name"

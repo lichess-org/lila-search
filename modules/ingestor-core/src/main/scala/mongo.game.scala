@@ -64,26 +64,26 @@ object GameRepo:
 
   def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Game)(using
       LoggerFactory[IO]
-  ): IO[Repo[GameSource]] =
+  ): IO[Repo[DbGame]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
     mongo.getCollectionWithCodec[DbGame]("game5").map(apply(config))
 
   def apply(config: IngestorConfig.Game)(games: MongoCollection[IO, DbGame])(using
       Logger[IO]
-  ): Repo[GameSource] = new:
+  ): Repo[DbGame] = new:
 
-    def watch(since: Option[Instant]): fs2.Stream[IO, Result[GameSource]] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbGame]] =
       changes(since)
         .map: events =>
           val lastEventTimestamp = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
           val (toDelete, toIndex) = events.partition(_.operationType == DELETE)
           Result(
-            toIndex.flatten(using _.fullDocument.map(_.toSource)),
+            toIndex.flatten(using _.fullDocument.map(g => g.id -> g)),
             toDelete.flatten(using _.docId.map(Id.apply)),
             lastEventTimestamp
           )
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[GameSource]] =
+    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[DbGame]] =
       val filter = range(F.createdAt)(since, until.some)
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
@@ -93,7 +93,7 @@ object GameRepo:
           .chunkN(config.batchSize)
           .map(_.toList)
           .metered(1.second) // to avoid overloading the elasticsearch
-          .map(ds => Result(ds.map(_.toSource), Nil, none))
+          .map(ds => Result(ds.map(g => g.id -> g), Nil, none))
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =
       val builder = games.watch(aggregate)
@@ -109,7 +109,6 @@ object GameRepo:
           )
         )
         .map(_.toList.distincByDocId)
-        .evalTap(_.traverse_(x => x.fullDocument.traverse_(x => debug"${x.debug}")))
 
   object F:
     val createdAt = "ca"
@@ -149,48 +148,8 @@ case class DbGame(
   def loser: Option[PlayerId] = players.find(_.some != winnerId)
   def aiLevel: Option[Int] = whitePlayer.flatMap(_.aiLevel).orElse(blackPlayer.flatMap(_.aiLevel))
 
-  // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/core/src/main/game/Game.scala#L261
-  private def averageUsersRating =
-    List(whitePlayer.flatMap(_.rating), blackPlayer.flatMap(_.rating)).flatten match
-      case a :: b :: Nil => Some((a + b) / 2)
-      case a :: Nil => Some((a + 1500) / 2)
-      case _ => None
-
-  // https://github.com/lichess-org/lila/blob/02ac57c4584b89a0df8f343f34074c0135c2d2b4/modules/core/src/main/game/Game.scala#L90-L97
-  def durationSeconds: Option[Int] =
-    val seconds = (movedAt.toEpochMilli / 1000 - createdAt.toEpochMilli / 1000)
-    Option.when(seconds < 60 * 60 * 12)(seconds.toInt)
-
-  def toSource: SourceWithId[GameSource] =
-    id ->
-      GameSource(
-        status = status,
-        turns = (ply + 1) / 2,
-        rated = rated.getOrElse(false),
-        perf = DbGame.perfId(variantOrDefault, speed),
-        winnerColor = winnerColor.fold(3)(if _ then 1 else 2),
-        date = SearchDateTime.fromInstant(movedAt),
-        analysed = analysed.getOrElse(false),
-        uids = players.some, // make usid not optional
-        winner = winnerId,
-        loser = loser,
-        averageRating = averageUsersRating,
-        ai = aiLevel,
-        duration = durationSeconds,
-        clockInit = clockInit,
-        clockInc = clockInc,
-        whiteUser = whiteId,
-        blackUser = blackId,
-        source = source
-      )
-
   def shouldDebug =
     whitePlayer.isEmpty || blackPlayer.isEmpty
-
-  def debug =
-    import smithy4s.json.Json.given
-    import com.github.plokhotnyuk.jsoniter_scala.core.*
-    id -> writeToString(toSource.source)
 
 object DbGame:
   // format: off
@@ -202,25 +161,6 @@ object DbGame:
   // We don't write to the database so We don't need to implement this
   given Encoder[DbGame] = new Encoder[DbGame]:
     def apply(a: DbGame): Json = ???
-
-  def perfId(variant: Variant, speed: Speed): Int =
-    variant.match
-      case Standard | FromPosition =>
-        speed match
-          case Speed.UltraBullet => 0
-          case Speed.Bullet => 1
-          case Speed.Blitz => 2
-          case Speed.Rapid => 6
-          case Speed.Classical => 3
-          case Speed.Correspondence => 4
-      case Crazyhouse => 18
-      case Chess960 => 11
-      case KingOfTheHill => 12
-      case ThreeCheck => 15
-      case Antichess => 13
-      case Atomic => 14
-      case Horde => 16
-      case RacingKings => 17
 
 case class DbPlayer(
     rating: Option[Int],

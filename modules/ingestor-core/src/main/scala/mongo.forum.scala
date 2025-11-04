@@ -39,14 +39,14 @@ object ForumRepo:
 
   def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Forum)(using
       LoggerFactory[IO]
-  ): IO[Repo[ForumSource]] =
+  ): IO[Repo[(Document, String, String)]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
     (mongo.getCollection("f_topic"), mongo.getCollection("f_post")).mapN(apply(config))
 
   def apply(config: IngestorConfig.Forum)(
       topics: MongoCollection,
       posts: MongoCollection
-  )(using Logger[IO]): Repo[ForumSource] = new:
+  )(using Logger[IO]): Repo[(Document, String, String)] = new:
 
     def fetch(since: Instant, until: Instant) =
       val filter = range(F.createdAt)(since, until.some)
@@ -63,11 +63,11 @@ object ForumRepo:
           .metered(1.second)
           .evalMap: events =>
             val (toDelete, toIndex) = events.partition(_.isErased)
-            toIndex.toSources
-              .map: sources =>
-                Result(sources, toDelete.flatten(using _.id.map(Id.apply)), none)
+            toIndex.toData
+              .map: data =>
+                Result(data, toDelete.flatten(using _.id.map(Id.apply)), none)
 
-    def watch(since: Option[Instant]): fs2.Stream[IO, Result[ForumSource]] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[(Document, String, String)]] =
       val builder = posts.watch(aggregate(config.maxPostLength))
       // skip the first event if we're starting from a specific timestamp
       // since the event at that timestamp is already indexed
@@ -86,9 +86,9 @@ object ForumRepo:
           val (toDelete, toIndex) = events.partition(_.isDelete)
           toIndex
             .flatten(using _.fullDocument)
-            .toSources
-            .map: sources =>
-              Result(sources, toDelete.flatten(using _.docId.map(Id.apply)), lastEventTimestamp)
+            .toData
+            .map: data =>
+              Result(data, toDelete.flatten(using _.docId.map(Id.apply)), lastEventTimestamp)
 
     // Fetches topic names by their ids
     private def topicByIds(ids: Seq[String]): IO[Map[String, String]] =
@@ -99,40 +99,33 @@ object ForumRepo:
         .map(_.map(doc => (doc.id, doc.getString(Topic.name)).mapN(_ -> _)).flatten.toMap)
 
     extension (events: List[Document])
-      private def toSources: IO[List[SourceWithId[ForumSource]]] =
+      private def toData: IO[List[SourceWithId[(Document, String, String)]]] =
         val topicIds = events.flatMap(_.topicId).distinct
         topicIds.isEmpty.fold(
           info"no topics found for posts: $events".as(Nil),
           topicByIds(topicIds)
             .flatMap: topicMap =>
               events
-                .traverse(_.toSource(topicMap))
+                .traverse(_.toData(topicMap))
                 .map(_.flatten)
         )
 
     extension (doc: Document)
 
-      private def toSource(topicMap: Map[String, String]): IO[Option[SourceWithId[ForumSource]]] =
+      private def toData(
+          topicMap: Map[String, String]
+      ): IO[Option[SourceWithId[(Document, String, String)]]] =
         (doc.id, doc.topicId)
           .flatMapN: (id, topicId) =>
-            doc.toSource(topicMap.get(topicId), topicId).map(id -> _)
+            topicMap.get(topicId).map(topicName => id -> (doc, topicId, topicName))
           .pure[IO]
-          .flatTap: source =>
+          .flatTap: data =>
             def reason = doc.id.fold("missing doc._id; ")(_ => "")
               + doc.topicId.fold("missing doc.topicId; ")(_ => "")
               + doc.topicId
                 .map(id => topicMap.get(id).fold("topic or topic.name is missing")(_ => ""))
                 .getOrElse("")
-            info"failed to convert document to source: $doc because $reason".whenA(source.isEmpty)
-
-      private def toSource(topicName: Option[String], topicId: String): Option[ForumSource] =
-        (
-          doc.getString(F.text),
-          topicName,
-          doc.getBoolean(F.troll),
-          doc.getNested(F.createdAt).flatMap(_.asInstant).map(_.toEpochMilli),
-          doc.getString(F.userId).some
-        ).mapN(ForumSource.apply(_, _, topicId, _, _, _))
+            info"failed to prepare document data: $doc because $reason".whenA(data.isEmpty)
 
       private def isErased: Boolean =
         doc.get("erasedAt").isDefined

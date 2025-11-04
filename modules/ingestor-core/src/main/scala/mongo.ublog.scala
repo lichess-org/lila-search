@@ -48,13 +48,13 @@ object UblogRepo:
 
   def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Ublog)(using
       LoggerFactory[IO]
-  ): IO[Repo[UblogSource]] =
+  ): IO[Repo[Document]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
     mongo.getCollection("ublog_post").map(apply(config))
 
   def apply(config: IngestorConfig.Ublog)(
       posts: MongoCollection
-  )(using Logger[IO]): Repo[UblogSource] = new:
+  )(using Logger[IO]): Repo[Document] = new:
 
     def fetch(since: Instant, until: Instant) =
       val filter = range(F.livedAt)(since, until.some)
@@ -68,9 +68,9 @@ object UblogRepo:
           .metered(1.second)
           .map: docs =>
             val (toDelete, toIndex) = docs.partition(!_.isLive)
-            Result(toIndex.toSources, toDelete.flatten(using _.id.map(Id.apply)), none)
+            Result(toIndex.map(doc => doc.id.get -> doc), toDelete.flatten(using _.id.map(Id.apply)), none)
 
-    def watch(since: Option[Instant]): fs2.Stream[IO, Result[UblogSource]] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[Document]] =
       val builder = posts.watch(aggregate())
       // skip the first event if we're starting from a specific timestamp
       // since the event at that timestamp is already indexed
@@ -88,30 +88,12 @@ object UblogRepo:
           val lastEventTimestamp = docs.flatten(using _.clusterTime.flatMap(_.asInstant)).maxOption
           val (toDelete, toIndex) = docs.partition(_.isDelete)
           Result(
-            toIndex.flatten(using _.fullDocument).toSources,
+            toIndex.flatten(using _.fullDocument).map(doc => doc.id.get -> doc),
             toDelete.flatten(using _.docId.map(Id.apply)),
             lastEventTimestamp
           )
 
-    extension (docs: List[Document])
-      private def toSources: List[(String, UblogSource)] =
-        docs.flatten(using doc => (doc.id, doc.toSource).mapN(_ -> _))
-
     extension (doc: Document)
-      private def toSource: Option[UblogSource] =
-        for
-          title <- doc.getString(F.title)
-          intro <- doc.getString(F.intro)
-          body <- doc.getString(F.markdown)
-          author <- doc.getString(F.blog).map(_.split(":")(1))
-          language <- doc.getString(F.language)
-          likes <- doc.getAs[Int](F.likes)
-          topics <- doc.getAs[List[String]](F.topics).map(_.mkString(" ").replaceAll("Chess", ""))
-          text = s"$title\n$topics\n$author\n$intro\n$body"
-          date <- doc.getNested(F.livedAt).flatMap(_.asInstant).map(_.toEpochMilli)
-          quality = doc.getNestedAs[Int](F.quality)
-        yield UblogSource(text, language, likes, date, quality)
-
       private def isLive: Boolean =
         doc.getBoolean("live").contains(true) && !doc.getNestedAs[Int](F.quality).exists(_ == 0)
 
