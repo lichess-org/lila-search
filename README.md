@@ -40,13 +40,36 @@ ingestor-cli/run --help
 
 #### CLI tool
 
+##### Index commands
+
 ```sh
-# index all documents for specific index
+# Index all documents for specific index (batch mode)
 sbt 'ingestor-cli/run index --index team --since 0'
 
-# index all documents for all indexes
+# Index all documents for all indexes (batch mode)
 sbt 'ingestor-cli/run index --all --since 0'
+
+# Index with time range
+sbt 'ingestor-cli/run index --index game --since 1704067200 --until 1704153600'
+
+# Watch mode: continuously index documents as they arrive
+sbt 'ingestor-cli/run index --index game --since 1704067200 --watch'
+
+# Watch mode for all indexes
+sbt 'ingestor-cli/run index --all --since 1704067200 --watch'
 ```
+
+##### Export commands
+
+```sh
+# Batch export: export games from a time range to CSV
+sbt 'ingestor-cli/run export --index game --format csv --output games.csv --since 1704067200 --until 1704153600'
+
+# Watch mode: continuously export games as they arrive
+sbt 'ingestor-cli/run export --index game --format csv --output games.csv --since 1704067200 --watch'
+```
+
+**Note:** Currently only `game` index is supported for CSV export.
 
 ### release
 
