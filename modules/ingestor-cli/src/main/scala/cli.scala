@@ -123,7 +123,8 @@ object cli
       case _ => Index.values.toList.traverse_(go)
 
   def `export`(opts: ExportOpts): IO[Unit] =
-    Logger[IO].info(s"Exporting ${opts.index.value} from ${opts.since} to ${opts.until} to ${opts.output}") *>
+    val mode = if opts.watch then "watch mode" else s"from ${opts.since.toString} to ${opts.until.toString}"
+    Logger[IO].info(s"Exporting ${opts.index.value} $mode to ${opts.output}") *>
       (opts.index match
         case Index.Game => exportGames(opts)
         case _ =>
@@ -135,8 +136,12 @@ object cli
         .instance(config)
         .use: res =>
           GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
-            Exporter(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output))
-              .run(opts.since, opts.until)
+            if opts.watch then
+              Exporter(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output))
+                .watch(opts.since.some)
+            else
+              Exporter(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output))
+                .run(opts.since, opts.until)
 
 object opts:
   case class IndexOpts(
@@ -147,7 +152,14 @@ object opts:
       dry: Boolean,
       watch: Boolean
   )
-  case class ExportOpts(index: Index, format: String, output: String, since: Instant, until: Instant)
+  case class ExportOpts(
+      index: Index,
+      format: String,
+      output: String,
+      since: Instant,
+      until: Instant,
+      watch: Boolean
+  )
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
     Opts.subcommand("export", "export documents to file")(exportOpt)
@@ -232,10 +244,11 @@ object opts:
         metavar = "path/to/file.csv"
       ),
     sinceOpt,
-    untilOpt.orElse(Instant.now.pure[Opts])
+    untilOpt.orElse(Instant.now.pure[Opts]),
+    watchOpt
   ).mapN(ExportOpts.apply)
     .mapValidated: x =>
-      if x.until.isAfter(x.since) then Validated.valid(x)
+      if x.watch || x.until.isAfter(x.since) then Validated.valid(x)
       else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
 
   given Argument[Index] =

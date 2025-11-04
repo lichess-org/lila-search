@@ -88,7 +88,7 @@ object GameRepo:
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
           .find(filter.and(gameFilter))
-          .hint("ca_-1")
+          // .hint("ca_-1")
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList)

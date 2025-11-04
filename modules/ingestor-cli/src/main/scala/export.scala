@@ -11,6 +11,9 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 // CSV file sink - writes stream of data to CSV file
 object CsvSink:
 
+  import fs2.io.file.{ Flags, Flag }
+
+  // For batch export - write with headers, overwrite file
   def apply[A](output: String)(using
       encoder: CsvRowEncoder[A, String],
       lf: LoggerFactory[IO]
@@ -24,6 +27,25 @@ object CsvSink:
           .intersperse("\n")
           .through(fs2.text.utf8.encode)
           .through(Files[IO].writeAll(Path(output)))
+
+  // For watch mode - continuously append data
+  // Writes headers only for the first element in the stream, then appends data
+  def appendMode[A](output: String)(using
+      encoder: CsvRowEncoder[A, String],
+      lf: LoggerFactory[IO]
+  ): fs2.Pipe[IO, (String, A), Unit] =
+    given logger: Logger[IO] = lf.getLogger
+
+    stream =>
+      // encodeUsingFirstHeaders will add headers to first element only
+      // We write everything with append flag to accumulate data over time
+      fs2.Stream.eval(info"Starting CSV export to $output in append mode") ++
+        stream
+          .map { case (_, a) => a }
+          .through(encodeUsingFirstHeaders(fullRows = true))
+          .intersperse("\n")
+          .through(fs2.text.utf8.encode)
+          .through(Files[IO].writeAll(Path(output), Flags(Flag.Append)))
 
 // CSV representation of GameSource for export
 case class GameCsv(

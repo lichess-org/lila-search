@@ -9,7 +9,10 @@ import java.time.Instant
 
 // Generic exporter abstraction - fetch from Repo, transform, write to sink
 trait Exporter:
+  // Batch export: fetch documents in [since, until] and write to sink
   def run(since: Instant, until: Instant): IO[Unit]
+  // Watch mode: continuously export documents as they arrive
+  def watch(since: Option[Instant]): IO[Unit]
 
 object Exporter:
 
@@ -37,6 +40,19 @@ object Exporter:
           .drain
         *> info"Export completed"
 
+    def watch(since: Option[Instant]): IO[Unit] =
+      info"Starting watch mode export from ${since.getOrElse("now")}" *>
+        repo
+          .watch(since)
+          .flatMap: result =>
+            fs2.Stream.emits(result.toIndex)
+          .map { case (id, dbModel) =>
+            (id, transform(id, dbModel))
+          }
+          .through(sink)
+          .compile
+          .drain
+
   // Factory for partial transformations: B => Option[A]
   def applyPartial[A, B](
       repo: Repo[B],
@@ -60,6 +76,19 @@ object Exporter:
           .compile
           .drain
         *> info"Export completed"
+
+    def watch(since: Option[Instant]): IO[Unit] =
+      info"Starting watch mode export from ${since.getOrElse("now")}" *>
+        repo
+          .watch(since)
+          .flatMap: result =>
+            fs2.Stream.emits(result.toIndex)
+          .flatMap:
+            case (id, dbModel) =>
+              transform(id, dbModel).map(a => fs2.Stream.emit((id, a))).getOrElse(fs2.Stream.empty)
+          .through(sink)
+          .compile
+          .drain
 
 // Elasticsearch sink for batch indexing
 // Note: For production use with watch mode, state management, and sophisticated error handling, use Ingestor.
