@@ -5,7 +5,10 @@ import cats.effect.IO
 import cats.syntax.all.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
+import io.circe.*
 import mongo4cats.bson.Document
+import mongo4cats.circe.*
+import mongo4cats.collection.MongoCollection
 import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument
 import mongo4cats.operations.{ Aggregate, Filter, Projection }
@@ -39,14 +42,14 @@ object ForumRepo:
 
   def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Forum)(using
       LoggerFactory[IO]
-  ): IO[Repo[(Document, String, String)]] =
+  ): IO[Repo[DbForum]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
-    (mongo.getCollection("f_topic"), mongo.getCollection("f_post")).mapN(apply(config))
+    (mongo.getCollection("f_topic"), mongo.getCollectionWithCodec[DbPost]("f_post")).mapN(apply(config))
 
   def apply(config: IngestorConfig.Forum)(
-      topics: MongoCollection,
-      posts: MongoCollection
-  )(using Logger[IO]): Repo[(Document, String, String)] = new:
+      topics: MongoCollection[IO, Document],
+      posts: MongoCollection[IO, DbPost]
+  )(using Logger[IO]): Repo[DbForum] = new:
 
     def fetch(since: Instant, until: Instant) =
       val filter = range(F.createdAt)(since, until.some)
@@ -61,13 +64,13 @@ object ForumRepo:
           .chunkN(config.batchSize)
           .map(_.toList)
           .metered(1.second)
-          .evalMap: events =>
-            val (toDelete, toIndex) = events.partition(_.isErased)
+          .evalMap: posts =>
+            val (toDelete, toIndex) = posts.partition(_.isErased)
             toIndex.toData
               .map: data =>
-                Result(data, toDelete.flatten(using _.id.map(Id.apply)), none)
+                Result(data, toDelete.map(p => Id(p.id)), none)
 
-    def watch(since: Option[Instant]): fs2.Stream[IO, Result[(Document, String, String)]] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbForum]] =
       val builder = posts.watch(aggregate(config.maxPostLength))
       // skip the first event if we're starting from a specific timestamp
       // since the event at that timestamp is already indexed
@@ -98,45 +101,41 @@ object ForumRepo:
         .all
         .map(_.map(doc => (doc.id, doc.getString(Topic.name)).mapN(_ -> _)).flatten.toMap)
 
-    extension (events: List[Document])
-      private def toData: IO[List[SourceWithId[(Document, String, String)]]] =
-        val topicIds = events.flatMap(_.topicId).distinct
+    extension (posts: List[DbPost])
+      private def toData: IO[List[SourceWithId[DbForum]]] =
+        val topicIds = posts.map(_.topicId).distinct
         topicIds.isEmpty.fold(
-          info"no topics found for posts: $events".as(Nil),
+          info"no topics found for posts: $posts".as(Nil),
           topicByIds(topicIds)
             .flatMap: topicMap =>
-              events
+              posts
                 .traverse(_.toData(topicMap))
                 .map(_.flatten)
         )
 
-    extension (doc: Document)
+    extension (post: DbPost)
 
       private def toData(
           topicMap: Map[String, String]
-      ): IO[Option[SourceWithId[(Document, String, String)]]] =
-        (doc.id, doc.topicId)
-          .flatMapN: (id, topicId) =>
-            topicMap.get(topicId).map(topicName => id -> (doc, topicId, topicName))
+      ): IO[Option[SourceWithId[DbForum]]] =
+        topicMap
+          .get(post.topicId)
+          .map: topicName =>
+            post.id -> DbForum(post, topicName)
           .pure[IO]
           .flatTap: data =>
-            def reason = doc.id.fold("missing doc._id; ")(_ => "")
-              + doc.topicId.fold("missing doc.topicId; ")(_ => "")
-              + doc.topicId
-                .map(id => topicMap.get(id).fold("topic or topic.name is missing")(_ => ""))
-                .getOrElse("")
-            info"failed to prepare document data: $doc because $reason".whenA(data.isEmpty)
+            val reason =
+              if topicMap.contains(post.topicId) then ""
+              else s"topic name not found for topicId=${post.topicId}"
+            info"failed to prepare forum data for post ${post.id}: $reason".whenA(data.isEmpty)
 
       private def isErased: Boolean =
-        doc.get("erasedAt").isDefined
-
-      private def topicId: Option[String] =
-        doc.getString(F.topicId)
+        post.erasedAt.isDefined
 
       private def validText: Boolean =
-        doc.getString(F.text).exists(_.length <= config.maxPostLength)
+        post.text.length <= config.maxPostLength
 
-    extension (event: ChangeStreamDocument[Document])
+    extension (event: ChangeStreamDocument[DbPost])
       private def isDelete: Boolean =
         event.operationType == DELETE || event.fullDocument.exists(_.isErased)
 
@@ -151,3 +150,31 @@ object ForumRepo:
 
   object Topic:
     val name = "name"
+
+case class DbPost(
+    id: String, // _id
+    text: String,
+    topicId: String,
+    troll: Boolean,
+    createdAt: Instant,
+    userId: String,
+    erasedAt: Option[Instant]
+)
+
+object DbPost:
+  import ForumRepo.F
+  given Decoder[DbPost] =
+    Decoder.forProduct7(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt)(DbPost.apply)
+
+  // We don't write to the database so we don't need to implement this
+  given Encoder[DbPost] = new:
+    def apply(a: DbPost): Json = ???
+
+// DbForum combines a post with its topic name (fetched separately from f_topic collection)
+case class DbForum(
+    post: DbPost,
+    topicName: String
+):
+  def id: String = post.id
+  def topicId: String = post.topicId
+  def isErased: Boolean = post.erasedAt.isDefined

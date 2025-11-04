@@ -65,15 +65,16 @@ object Translate:
       case Horde => 16
       case RacingKings => 17
 
-  // Pure function for forum: (Document, topicId, topicName) => Option[ForumSource]
-  def forum(doc: Document, topicId: String, topicName: String): Option[ForumSource] =
-    (
-      doc.getString("text"),
-      topicName.some,
-      doc.getBoolean("troll"),
-      doc.getNested("createdAt").flatMap(_.asInstant).map(_.toEpochMilli),
-      doc.getString("userId").some
-    ).mapN(ForumSource.apply(_, _, topicId, _, _, _))
+  // Pure function for forum: DbForum => ForumSource
+  def forum(forum: DbForum): ForumSource =
+    ForumSource(
+      body = forum.post.text,
+      topic = forum.topicName,
+      topicId = forum.post.topicId,
+      author = forum.post.userId.some,
+      troll = forum.post.troll,
+      date = forum.post.createdAt.toEpochMilli
+    )
 
   // Pure function for study: (Document, StudyData) => Option[StudySource]
   def study(doc: Document, data: StudyData): Option[StudySource] =

@@ -35,10 +35,10 @@ object Ingestors:
       TeamRepo(lichess, config.team)
     ).mapN: (forums, ublogs, studies, games, teams) =>
       new Ingestors(
-        Ingestor.watchPartial(
+        Ingestor.watch(
           Index.Forum,
           forums,
-          Translate.forum.tupled,
+          Translate.forum,
           store,
           elastic,
           config.forum.startAt
