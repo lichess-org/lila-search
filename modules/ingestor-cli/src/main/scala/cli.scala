@@ -118,11 +118,18 @@ object cli
           ingestor.game.watch(opts.since.some, opts.dry)
 
   def `export`(opts: ExportOpts): IO[Unit] =
+    given MeterProvider[IO] = MeterProvider.noop[IO]
     Logger[IO].info(s"Exporting ${opts.index.value} from ${opts.since} to ${opts.until} to ${opts.output}") *>
       (opts.index match
-        case Index.Game => Export.games(opts)
+        case Index.Game => exportGames(opts)
         case _          => IO.raiseError(new UnsupportedOperationException(s"Export not supported for ${opts.index.value}"))
-      ) *> Logger[IO].info(s"Export completed: ${opts.output}")
+      )
+
+  private def exportGames(opts: ExportOpts): IO[Unit] =
+    AppConfig.load.flatMap: config =>
+      AppResources.instance(config).use: res =>
+        GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
+          CsvExport(repo, GameCsv.fromDbGame).run(opts.since, opts.until, opts.output)
 
 object opts:
   case class IndexOpts(index: Index | Unit, since: Instant, until: Instant, refresh: Boolean, dry: Boolean)

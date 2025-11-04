@@ -5,30 +5,44 @@ import cats.effect.IO
 import fs2.data.csv.*
 import fs2.data.csv.generic.semiauto.*
 import fs2.io.file.{ Files, Path }
-import lila.search.ingestor.opts.ExportOpts
-import org.typelevel.log4cats.LoggerFactory
-import org.typelevel.otel4s.metrics.MeterProvider
+import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
-object Export:
+import java.time.Instant
 
-  def games(opts: ExportOpts)(using LoggerFactory[IO]): IO[Unit] =
-    given MeterProvider[IO] = MeterProvider.noop[IO]
-    AppConfig.load.flatMap: config =>
-      AppResources.instance(config).use: res =>
-        GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
-          repo
-            .fetch(opts.since, opts.until)
-            .flatMap: result =>
-              fs2.Stream.emits(result.toIndex)
-            .map { case (id, game) =>
-              GameCsv.fromDbGame(id, game)
-            }
-            .through(encodeUsingFirstHeaders(fullRows = true))
-            .intersperse("\n")
-            .through(fs2.text.utf8.encode)
-            .through(Files[IO].writeAll(Path(opts.output)))
-            .compile
-            .drain
+// Generic CSV export trait, independent of CLI
+trait CsvExport:
+  def run(since: Instant, until: Instant, output: String): IO[Unit]
+
+object CsvExport:
+
+  // Factory method for creating CSV exporters
+  // Takes a Repo and transformation functions to convert DB models to CSV rows
+  def apply[A, B](
+      repo: Repo[B],
+      toCsv: (String, B) => A
+  )(using
+      encoder: CsvRowEncoder[A, String],
+      lf: LoggerFactory[IO]
+  ): CsvExport = new:
+    given logger: Logger[IO] = lf.getLogger
+
+    def run(since: Instant, until: Instant, output: String): IO[Unit] =
+      info"Starting CSV export from $since to $until to file: $output" *>
+        repo
+          .fetch(since, until)
+          .flatMap: result =>
+            fs2.Stream.emits(result.toIndex)
+          .map { case (id, dbModel) =>
+            toCsv(id, dbModel)
+          }
+          .through(encodeUsingFirstHeaders(fullRows = true))
+          .intersperse("\n")
+          .through(fs2.text.utf8.encode)
+          .through(Files[IO].writeAll(Path(output)))
+          .compile
+          .drain
+          *> info"CSV export completed: $output"
 
 // CSV representation of GameSource for export
 case class GameCsv(
