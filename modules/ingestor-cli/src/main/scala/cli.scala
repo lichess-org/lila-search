@@ -14,6 +14,8 @@ import org.typelevel.otel4s.metrics.MeterProvider
 
 import java.time.Instant
 
+import Ingestor.given
+
 object cli
     extends CommandIOApp(
       name = "lila-search-cli",
@@ -34,90 +36,43 @@ object cli
     for
       config <- AppConfig.load.toResource
       res <- AppResources.instance(config)
-      forum <- ForumRepo(res.lichess, config.ingestor.forum).toResource
-      ublog <- UblogRepo(res.lichess, config.ingestor.ublog).toResource
-      study <- StudyRepo(res.study, res.studyLocal, config.ingestor.study).toResource
-      game <- GameRepo(res.lichess, config.ingestor.game).toResource
-      team <- TeamRepo(res.lichess, config.ingestor.team).toResource
-    yield (forum, ublog, study, game, team, res)
+    yield (res, config)
 
-  def execute(opts: IndexOpts | ExportOpts)(
-      forumRepo: Repo[DbForum],
-      ublogRepo: Repo[DbUblog],
-      studyRepo: Repo[(DbStudy, StudyChapterData)],
-      gameRepo: Repo[DbGame],
-      teamRepo: Repo[DbTeam],
-      resources: AppResources
-  ): IO[Unit] =
+  def run(opts: IndexOpts)(res: AppResources, config: AppConfig): IO[Unit] =
+    import opts.{ since, until, watch, dry }
+    import res.*
+    def go(index: Index) =
+      val ingestor = index match
+        case Index.Forum =>
+          ForumRepo(res.lichess, config.ingestor.forum).map:
+            Ingestor.index(index, _, store, elastic, since, until, watch, dry)
+        case Index.Ublog =>
+          UblogRepo(res.lichess, config.ingestor.ublog).map:
+            Ingestor.index(index, _, store, elastic, since, until, watch, dry)
+        case Index.Study =>
+          StudyRepo(res.study, res.studyLocal, config.ingestor.study).map:
+            Ingestor.index(index, _, store, elastic, since, until, watch, dry)
+        case Index.Game =>
+          GameRepo(res.lichess, config.ingestor.game).map:
+            Ingestor.index(index, _, store, elastic, since, until, watch, dry)
+        case Index.Team =>
+          TeamRepo(res.lichess, config.ingestor.team).map:
+            Ingestor.index(index, _, store, elastic, since, until, watch, dry)
+
+      putMappingsIfNotExists(res.elastic, index) *>
+        ingestor.flatMap(_.run()) *>
+        refreshIndexes(res.elastic, index).whenA(opts.refresh)
+
+    opts.index.match
+      case i: Index => go(i)
+      case _ => Index.values.toList.traverse_(go)
+
+  def execute(opts: IndexOpts | ExportOpts)(resources: AppResources, config: AppConfig): IO[Unit] =
     opts match
       case opts: IndexOpts =>
-        run(forumRepo, ublogRepo, studyRepo, gameRepo, teamRepo, resources.store, resources.elastic)(opts)
-      case opts: ExportOpts => `export`(gameRepo, opts)
-
-  def run(
-      forumRepo: Repo[DbForum],
-      ublogRepo: Repo[DbUblog],
-      studyRepo: Repo[(DbStudy, StudyChapterData)],
-      gameRepo: Repo[DbGame],
-      teamRepo: Repo[DbTeam],
-      store: KVStore,
-      elastic: ESClient[IO]
-  )(opts: IndexOpts): IO[Unit] =
-    val ingestors =
-      if opts.watch then
-        new Ingestors(
-          Ingestor.watch(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since.some, opts.dry),
-          Ingestor.watch(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since.some, opts.dry),
-          Ingestor
-            .watch(Index.Study, studyRepo, Translate.study.tupled, store, elastic, opts.since.some, opts.dry),
-          Ingestor.watch(Index.Game, gameRepo, Translate.game, store, elastic, opts.since.some, opts.dry),
-          Ingestor.watch(Index.Team, teamRepo, Translate.team, store, elastic, opts.since.some, opts.dry)
-        )
-      else
-        new Ingestors(
-          Ingestor
-            .index(Index.Forum, forumRepo, Translate.forum, store, elastic, opts.since, opts.until, opts.dry),
-          Ingestor
-            .index(Index.Ublog, ublogRepo, Translate.ublog, store, elastic, opts.since, opts.until, opts.dry),
-          Ingestor.index(
-            Index.Study,
-            studyRepo,
-            Translate.study.tupled,
-            store,
-            elastic,
-            opts.since,
-            opts.until,
-            opts.dry
-          ),
-          Ingestor
-            .index(Index.Game, gameRepo, Translate.game, store, elastic, opts.since, opts.until, opts.dry),
-          Ingestor.index(
-            Index.Team,
-            teamRepo,
-            Translate.team,
-            store,
-            elastic,
-            opts.since,
-            opts.until,
-            opts.dry
-          )
-        )
-    index(ingestors, elastic, opts)
-
-  private def index(
-      ingestors: Ingestors,
-      elastic: ESClient[IO],
-      opts: IndexOpts
-  ): IO[Unit] =
-    putMappingsIfNotExists(elastic, opts.index) *>
-      opts.index.match
-        case Index.Forum => ingestors.forum.run()
-        case Index.Ublog => ingestors.ublog.run()
-        case Index.Study => ingestors.study.run()
-        case Index.Game => ingestors.game.run()
-        case Index.Team => ingestors.team.run()
-        case _ => ingestors.run()
-      *> refreshIndexes(elastic, opts.index).whenA(opts.refresh)
+        run(opts)(resources, config)
+      case opts: ExportOpts =>
+        GameRepo(resources.lichess, config.ingestor.game).flatMap(`export`(_, opts))
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index | Unit): IO[Unit] =
     def go(index: Index) =

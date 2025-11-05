@@ -6,6 +6,10 @@ import cats.syntax.all.*
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.LoggerFactory
 
+trait IndexIngestor:
+  def ingestAll(): IO[Unit]
+  def ingest(index: Index): IO[Unit]
+
 class Ingestors(
     val forum: Ingestor,
     val ublog: Ingestor,
@@ -16,7 +20,17 @@ class Ingestors(
   def run(): IO[Unit] =
     List(forum.run(), ublog.run(), team.run(), study.run(), game.run()).parSequence_
 
+  def get(index: Index): Ingestor =
+    index match
+      case Index.Forum => forum
+      case Index.Ublog => ublog
+      case Index.Study => study
+      case Index.Game => game
+      case Index.Team => team
+
 object Ingestors:
+
+  import Ingestor.given
 
   def apply(
       lichess: MongoDatabase[IO],
@@ -34,23 +48,9 @@ object Ingestors:
       TeamRepo(lichess, config.team)
     ).mapN: (forums, ublogs, studies, games, teams) =>
       new Ingestors(
-        Ingestor.watch(
-          Index.Forum,
-          forums,
-          Translate.forum,
-          store,
-          elastic,
-          config.forum.startAt
-        ),
-        Ingestor.watch(Index.Ublog, ublogs, Translate.ublog, store, elastic, config.ublog.startAt),
-        Ingestor.watch(
-          Index.Study,
-          studies,
-          Translate.study.tupled,
-          store,
-          elastic,
-          config.study.startAt
-        ),
-        Ingestor.watch(Index.Game, games, Translate.game, store, elastic, config.game.startAt),
-        Ingestor.watch(Index.Team, teams, Translate.team, store, elastic, config.team.startAt)
+        Ingestor.watch(Index.Forum, forums, store, elastic, config.forum.startAt),
+        Ingestor.watch(Index.Ublog, ublogs, store, elastic, config.ublog.startAt),
+        Ingestor.watch(Index.Study, studies, store, elastic, config.study.startAt),
+        Ingestor.watch(Index.Game, games, store, elastic, config.game.startAt),
+        Ingestor.watch(Index.Team, teams, store, elastic, config.team.startAt)
       )

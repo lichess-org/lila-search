@@ -13,7 +13,6 @@ import smithy4s.schema.Schema
 
 import java.time.Instant
 
-// Single-method interface: creates an ingestion task that runs when run() is called
 trait Ingestor:
   def run(): IO[Unit]
 
@@ -21,11 +20,16 @@ object Ingestor:
 
   given [A] => Schema[A] => Indexable[A] = a => writeToString(a)
 
+  given Indexable[DbGame] = a => writeToString(Translate.game(a))
+  given Indexable[DbForum] = a => writeToString(Translate.forum(a))
+  given Indexable[DbUblog] = a => writeToString(Translate.ublog(a))
+  given Indexable[(DbStudy, StudyChapterData)] = a => writeToString(Translate.study.tupled(a))
+  given Indexable[DbTeam] = a => writeToString(Translate.team(a))
+
   // Watch mode with default start time (from store or config)
-  def watch[A: Schema, B](
+  def watch[A: Indexable](
       index: Index,
-      repo: Repo[B],
-      translate: B => A,
+      repo: Repo[A],
       store: KVStore,
       elastic: ESClient[IO],
       defaultStartAt: Option[Instant]
@@ -43,59 +47,35 @@ object Ingestor:
           .eval(startAt)
           .flatMap(repo.watch)
           .evalMap: result =>
-            val translated = result.map(translate)
-            updateElastic(index, elastic, translated, false) *>
+            updateElastic(index, elastic, result, false) *>
               saveLastIndexedTimestamp(index, store, result.timestamp)
           .compile
           .drain
 
-  // Watch mode with specific start time
-  def watch[A: Schema, B](
+  def index[A: Indexable](
       index: Index,
-      repo: Repo[B],
-      translate: B => A,
-      store: KVStore,
-      elastic: ESClient[IO],
-      since: Option[Instant],
-      dryRun: Boolean
-  )(using LoggerFactory[IO]): Ingestor =
-    given logger: Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
-
-    new:
-      def run(): IO[Unit] =
-        repo
-          .watch(since)
-          .evalMap: result =>
-            updateElastic(index, elastic, result.map(translate), dryRun) *>
-              saveLastIndexedTimestamp(index, store, result.timestamp)
-          .compile
-          .drain
-
-  // Batch indexing mode
-  def index[A: Schema, B](
-      index: Index,
-      repo: Repo[B],
-      translate: B => A,
+      repo: Repo[A],
       store: KVStore,
       elastic: ESClient[IO],
       since: Instant,
       until: Instant,
+      watch: Boolean,
       dryRun: Boolean
   )(using LoggerFactory[IO]): Ingestor =
     given logger: Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
-
     new:
       def run(): IO[Unit] =
-        repo
-          .fetch(since, until)
+        val stream =
+          if watch then repo.watch(since.some)
+          else repo.fetch(since, until)
+        stream
           .evalMap: result =>
-            updateElastic(index, elastic, result.map(translate), dryRun) *>
+            updateElastic(index, elastic, result, dryRun) *>
               saveLastIndexedTimestamp(index, store, result.timestamp)
           .compile
           .drain
 
-  // Helper methods
-  private def updateElastic[A: Schema](
+  private def updateElastic[A: Indexable](
       index: Index,
       elastic: ESClient[IO],
       result: Repo.Result[A],
@@ -121,7 +101,7 @@ object Ingestor:
     .flatTap(_ => Logger[IO].info(s"Deleted ${ids.size} ${index.value}s"))
       .whenA(ids.nonEmpty)
 
-  private def storeBulk[A: Schema](
+  private def storeBulk[A: Indexable](
       index: Index,
       elastic: ESClient[IO],
       sources: List[SourceWithId[A]]

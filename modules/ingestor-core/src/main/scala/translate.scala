@@ -5,10 +5,8 @@ import cats.syntax.all.*
 import chess.Speed
 import chess.variant.Variant
 
-// Pure translation functions from MongoDB models to Smithy models
 object Translate:
 
-  // Pure function: DbGame => GameSource
   def game(g: DbGame): GameSource =
     GameSource(
       status = g.status,
