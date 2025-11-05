@@ -27,7 +27,8 @@ object ForumRepo:
   private def eventFilter(maxPostLength: Int) =
     Filter.in("operationType", interestedOperations) && maxPostSizeFilter(maxPostLength)
 
-  private val interestedFields = List(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt)
+  private val interestedFields =
+    List(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.categId, F.erasedAt)
   private val postProjection = Projection.include(interestedFields)
 
   private val interestedEventFields =
@@ -131,8 +132,11 @@ object ForumRepo:
           topicName,
           doc.getBoolean(F.troll),
           doc.getNested(F.createdAt).flatMap(_.asInstant).map(_.toEpochMilli),
-          doc.getString(F.userId).some
-        ).mapN(ForumSource.apply(_, _, topicId, _, _, _))
+          doc.getString(F.userId),
+          doc.getString(F.categId)
+        ).mapN { (body, topic, troll, date, author, categ) =>
+          ForumSource.apply(body, topic, topicId, troll, date, categ, Some(author))
+        }
 
       private def isErased: Boolean =
         doc.get("erasedAt").isDefined
@@ -150,6 +154,7 @@ object ForumRepo:
   object F:
     val text = "text"
     val topicId = "topicId"
+    val categId = "categId"
     val troll = "troll"
     val userId = "userId"
     val createdAt = "createdAt"
