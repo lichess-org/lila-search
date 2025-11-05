@@ -2,9 +2,11 @@ package lila.search
 package ingestor
 
 import cats.effect.IO
+import cats.syntax.all.*
 import fs2.data.csv.*
 import fs2.data.csv.generic.semiauto.*
 import fs2.io.file.{ Files, Path }
+import lila.search.ingestor.opts.ExportOpts
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
@@ -105,7 +107,6 @@ object GameCsv:
       case Horde => 16
       case RacingKings => 17
 
-// CSV export factory methods that return Ingestor
 object CsvExport:
 
   import java.time.Instant
@@ -157,3 +158,19 @@ object CsvExport:
             .through(sink)
             .compile
             .drain
+
+  def apply(repo: Repo[DbGame], opts: ExportOpts)(using LoggerFactory[IO]): IO[Unit] =
+    given Logger[IO] = LoggerFactory[IO].getLogger
+    val mode = if opts.watch then "watch mode" else s"from ${opts.since.toString} to ${opts.until.toString}"
+    Logger[IO].info(s"Exporting ${opts.index.value} $mode to ${opts.output}") *>
+      (opts.index match
+        case Index.Game => exportGames(repo, opts)
+        case _ =>
+          IO.raiseError(new UnsupportedOperationException(s"Export not supported for ${opts.index.value}")))
+
+  private def exportGames(repo: Repo[DbGame], opts: ExportOpts)(using LoggerFactory[IO]): IO[Unit] =
+    val ingestor =
+      if opts.watch then
+        CsvExport.watch(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since.some)
+      else CsvExport(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since, opts.until)
+    ingestor.run()

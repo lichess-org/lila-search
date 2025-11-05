@@ -72,7 +72,7 @@ object cli
       case opts: IndexOpts =>
         run(opts)(resources, config)
       case opts: ExportOpts =>
-        GameRepo(resources.lichess, config.ingestor.game).flatMap(`export`(_, opts))
+        GameRepo(resources.lichess, config.ingestor.game).flatMap(CsvExport(_, opts))
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index | Unit): IO[Unit] =
     def go(index: Index) =
@@ -100,21 +100,6 @@ object cli
     index.match
       case i: Index => go(i)
       case _ => Index.values.toList.traverse_(go)
-
-  def `export`(repo: Repo[DbGame], opts: ExportOpts): IO[Unit] =
-    val mode = if opts.watch then "watch mode" else s"from ${opts.since.toString} to ${opts.until.toString}"
-    Logger[IO].info(s"Exporting ${opts.index.value} $mode to ${opts.output}") *>
-      (opts.index match
-        case Index.Game => exportGames(repo, opts)
-        case _ =>
-          IO.raiseError(new UnsupportedOperationException(s"Export not supported for ${opts.index.value}")))
-
-  private def exportGames(repo: Repo[DbGame], opts: ExportOpts): IO[Unit] =
-    val ingestor =
-      if opts.watch then
-        CsvExport.watch(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since.some)
-      else CsvExport(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since, opts.until)
-    ingestor.run()
 
 object opts:
   case class IndexOpts(
