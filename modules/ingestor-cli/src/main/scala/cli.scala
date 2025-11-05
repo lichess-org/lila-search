@@ -3,7 +3,6 @@ package ingestor
 
 import cats.data.Validated
 import cats.effect.*
-import cats.mtl.Handle
 import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
@@ -13,8 +12,6 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.MeterProvider
 
 import java.time.Instant
-
-import Ingestor.given
 
 object cli
     extends CommandIOApp(
@@ -38,68 +35,10 @@ object cli
       res <- AppResources.instance(config)
     yield (res, config)
 
-  def run(opts: IndexOpts)(res: AppResources, config: AppConfig): IO[Unit] =
-    import opts.{ since, until, watch, dry }
-    import res.*
-    def go(index: Index) =
-      val ingestor = index match
-        case Index.Forum =>
-          ForumRepo(res.lichess, config.ingestor.forum).map:
-            Ingestor.index(index, _, store, elastic, since, until, watch, dry)
-        case Index.Ublog =>
-          UblogRepo(res.lichess, config.ingestor.ublog).map:
-            Ingestor.index(index, _, store, elastic, since, until, watch, dry)
-        case Index.Study =>
-          StudyRepo(res.study, res.studyLocal, config.ingestor.study).map:
-            Ingestor.index(index, _, store, elastic, since, until, watch, dry)
-        case Index.Game =>
-          GameRepo(res.lichess, config.ingestor.game).map:
-            Ingestor.index(index, _, store, elastic, since, until, watch, dry)
-        case Index.Team =>
-          TeamRepo(res.lichess, config.ingestor.team).map:
-            Ingestor.index(index, _, store, elastic, since, until, watch, dry)
-
-      putMappingsIfNotExists(res.elastic, index) *>
-        ingestor.flatMap(_.run()) *>
-        refreshIndexes(res.elastic, index).whenA(opts.refresh)
-
-    opts.index.match
-      case i: Index => go(i)
-      case _ => Index.values.toList.traverse_(go)
-
   def execute(opts: IndexOpts | ExportOpts)(resources: AppResources, config: AppConfig): IO[Unit] =
     opts match
-      case opts: IndexOpts =>
-        run(opts)(resources, config)
-      case opts: ExportOpts =>
-        GameRepo(resources.lichess, config.ingestor.game).flatMap(CsvExport(_, opts))
-
-  private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index | Unit): IO[Unit] =
-    def go(index: Index) =
-      Handle
-        .allow:
-          elastic
-            .indexExists(index)
-            .ifM(Logger[IO].info(s"Index ${index.value} exists, start indexing"), elastic.putMapping(index))
-        .rescue: e =>
-          Logger[IO].error(e.asException)(s"Failed to check or put mapping for ${index.value}") *>
-            e.asException.raiseError
-    index match
-      case i: Index => go(i)
-      case _ => Index.values.toList.traverse_(go)
-
-  private def refreshIndexes(elastic: ESClient[IO], index: Index | Unit): IO[Unit] =
-    def go(index: Index) =
-      Handle
-        .allow:
-          elastic
-            .refreshIndex(index)
-        .rescue: e =>
-          Logger[IO].error(e.asException)(s"Failed to refresh index: ${index.value}") *>
-            e.asException.raiseError
-    index.match
-      case i: Index => go(i)
-      case _ => Index.values.toList.traverse_(go)
+      case opts: IndexOpts => Indexer(opts, resources, config)
+      case opts: ExportOpts => GameRepo(resources.lichess, config.ingestor.game).flatMap(CsvExport(_, opts))
 
 object opts:
   case class IndexOpts(
@@ -211,7 +150,7 @@ object opts:
       else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
 
   given Argument[Index] =
-    Argument.from("index")(x => Validated.fromEither(Index.fromString(x)).toValidatedNel)
+    Argument.from("index")(Index.fromString(_).toValidatedNel)
 
   given Argument[Instant] =
     Argument.from("time in epoch seconds"): str =>
