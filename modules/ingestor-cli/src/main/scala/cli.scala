@@ -134,13 +134,12 @@ object opts:
         metavar = "csv"
       )
       .withDefault("csv"),
-    Opts
-      .option[String](
-        long = "output",
-        help = "Output file path",
-        short = "o",
-        metavar = "path/to/file.csv"
-      ),
+    Opts.option[String](
+      long = "output",
+      help = "Output file path",
+      short = "o",
+      metavar = "path/to/file.csv"
+    ),
     sinceOpt,
     untilOpt.orElse(Instant.now.pure[Opts]),
     watchOpt
