@@ -4,7 +4,6 @@ package ingestor
 import cats.effect.IO
 import cats.mtl.Handle
 import cats.syntax.all.*
-import com.sksamuel.elastic4s.Indexable
 import lila.search.ingestor.opts.IndexOpts
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
@@ -21,53 +20,39 @@ object Indexer:
     import opts.dry
     import res.*
 
-    inline def go(index: Index) =
-      import ElasticSink.given
-      val runIndex = index match
-        case Index.Forum =>
-          ForumRepo(res.lichess, config.ingestor.forum).flatMap:
-            run(index, _, store, elastic, opts)
-        case Index.Ublog =>
-          UblogRepo(res.lichess, config.ingestor.ublog).flatMap:
-            run(index, _, store, elastic, opts)
-        case Index.Study =>
-          StudyRepo(res.study, res.studyLocal, config.ingestor.study).flatMap:
-            run(index, _, store, elastic, opts)
-        case Index.Game =>
-          GameRepo(res.lichess, config.ingestor.game).flatMap:
-            run(index, _, store, elastic, opts)
-        case Index.Team =>
-          TeamRepo(res.lichess, config.ingestor.team).flatMap:
-            run(index, _, store, elastic, opts)
+    (
+      GameRepo(res.lichess, config.ingestor.game),
+      ForumRepo(res.lichess, config.ingestor.forum),
+      UblogRepo(res.lichess, config.ingestor.ublog),
+      StudyRepo(res.study, res.studyLocal, config.ingestor.study),
+      TeamRepo(res.lichess, config.ingestor.team)
+    ).mapN(Registry.apply)
+      .flatMap { case given Registry =>
+        def go(index: Index) =
+          val runIndex = run(index, store, elastic, opts)
+          putMappingsIfNotExists(res.elastic, index).whenA(!dry) *>
+            runIndex.whenA(!dry) *>
+            refreshIndexes(res.elastic, index).whenA(opts.refresh && !dry)
 
-      putMappingsIfNotExists(res.elastic, index).whenA(!dry) *>
-        runIndex.whenA(!dry) *>
-        refreshIndexes(res.elastic, index).whenA(opts.refresh && !dry)
+        opts.index.toList.traverse_(go)
+      }
 
-    opts.index.toList.traverse_(go)
-
-  def run[A: Indexable](
+  def run(
       index: Index,
-      repo: Repo[A],
       store: KVStore,
       elastic: ESClient[IO],
       opts: IndexOpts
-  )(using LoggerFactory[IO]) =
-    given logger: Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
-    val stream =
-      if opts.watch then repo.watch(opts.since.some)
-      else repo.fetch(opts.since, opts.until)
-    stream
-      .through(sink(index, elastic, store))
-      .compile
-      .drain
-
-  def sink[A: Indexable](
-      index: Index,
-      elastic: ESClient[IO],
-      store: KVStore
-  )(using logger: Logger[IO]): fs2.Pipe[IO, Repo.Result[A], Unit] =
-    _.evalMap(ElasticSink.updateElastic(index, elastic, store))
+  )(using registry: Registry, lf: LoggerFactory[IO]): IO[Unit] =
+    given logger: Logger[IO] = lf.getLoggerFromName(s"${index.value}.ingestor")
+    val im = registry(index)
+    im.withRepo: repo =>
+      val stream =
+        if opts.watch then repo.watch(opts.since.some)
+        else repo.fetch(opts.since, opts.until)
+      stream
+        .evalMap(ElasticSink.updateElastic(index, elastic, store))
+        .compile
+        .drain
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index)(using Logger[IO]): IO[Unit] =
     Handle
