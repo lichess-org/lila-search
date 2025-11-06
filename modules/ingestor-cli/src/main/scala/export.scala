@@ -7,26 +7,7 @@ import fs2.data.csv.*
 import fs2.data.csv.generic.semiauto.*
 import fs2.io.file.{ Files, Path }
 import lila.search.ingestor.opts.ExportOpts
-import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
-
-// CSV file sink - writes stream of data to CSV file
-object CsvSink:
-
-  // For batch export - write with headers, overwrite file
-  def apply[A](output: String)(using
-      encoder: CsvRowEncoder[A, String],
-      lf: LoggerFactory[IO]
-  ): fs2.Pipe[IO, (String, A), Unit] =
-    given logger: Logger[IO] = lf.getLogger
-    stream =>
-      fs2.Stream.eval(info"Writing to CSV file: $output") ++
-        stream
-          .map { case (_, a) => a }
-          .through(encodeUsingFirstHeaders(fullRows = true))
-          .intersperse("\n")
-          .through(fs2.text.utf8.encode)
-          .through(Files[IO].writeAll(Path(output)))
 
 // CSV representation of GameSource for export
 case class GameCsv(
@@ -54,9 +35,9 @@ case class GameCsv(
 object GameCsv:
   given CsvRowEncoder[GameCsv, String] = deriveCsvRowEncoder
 
-  def fromDbGame(id: String, game: DbGame): GameCsv =
+  def fromDbGame(game: DbGame): GameCsv =
     GameCsv(
-      id = id,
+      id = game.id,
       status = game.status,
       turns = (game.ply + 1) / 2,
       rated = game.rated.getOrElse(false),
@@ -109,55 +90,7 @@ object GameCsv:
 
 object CsvExport:
 
-  import java.time.Instant
-
-  // Batch export mode - fetch documents in [since, until] and write to sink
-  def apply[A, B](
-      repo: Repo[B],
-      transform: (String, B) => A,
-      sink: fs2.Pipe[IO, (String, A), Unit],
-      since: Instant,
-      until: Instant
-  )(using LoggerFactory[IO]): Ingestor =
-    given logger: Logger[IO] = LoggerFactory[IO].getLogger
-
-    new:
-      def run(): IO[Unit] =
-        info"Starting export from $since to $until" *>
-          repo
-            .fetch(since, until)
-            .flatMap: result =>
-              fs2.Stream.emits(result.toIndex)
-            .map { case (id, dbModel) =>
-              (id, transform(id, dbModel))
-            }
-            .through(sink)
-            .compile
-            .drain
-          *> info"Export completed"
-
-  // Watch mode export - continuously export documents as they arrive
-  def watch[A, B](
-      repo: Repo[B],
-      transform: (String, B) => A,
-      sink: fs2.Pipe[IO, (String, A), Unit],
-      since: Option[Instant]
-  )(using LoggerFactory[IO]): Ingestor =
-    given logger: Logger[IO] = LoggerFactory[IO].getLogger
-
-    new:
-      def run(): IO[Unit] =
-        info"Starting watch mode export from ${since.getOrElse("now")}" *>
-          repo
-            .watch(since)
-            .flatMap: result =>
-              fs2.Stream.emits(result.toIndex)
-            .map { case (id, dbModel) =>
-              (id, transform(id, dbModel))
-            }
-            .through(sink)
-            .compile
-            .drain
+  given CsvRowEncoder[DbGame, String] = CsvRowEncoder[GameCsv, String].contramap(GameCsv.fromDbGame)
 
   def apply(repo: Repo[DbGame], opts: ExportOpts)(using LoggerFactory[IO]): IO[Unit] =
     given Logger[IO] = LoggerFactory[IO].getLogger
@@ -168,9 +101,19 @@ object CsvExport:
         case _ =>
           IO.raiseError(new UnsupportedOperationException(s"Export not supported for ${opts.index.value}")))
 
-  private def exportGames(repo: Repo[DbGame], opts: ExportOpts)(using LoggerFactory[IO]): IO[Unit] =
-    val ingestor =
-      if opts.watch then
-        CsvExport.watch(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since.some)
-      else CsvExport(repo, GameCsv.fromDbGame, CsvSink[GameCsv](opts.output), opts.since, opts.until)
-    ingestor.run()
+  def csvSink(output: Path): fs2.Pipe[IO, DbGame, Unit] =
+    _.through(encodeUsingFirstHeaders(fullRows = true))
+      .intersperse("\n")
+      .through(fs2.text.utf8.encode)
+      .through(Files[IO].writeAll((output)))
+
+  private def exportGames(repo: Repo[DbGame], opts: ExportOpts)(using Logger[IO]): IO[Unit] =
+    val stream = if opts.watch then repo.watch(opts.since.some) else repo.fetch(opts.since, opts.until)
+    Logger[IO].info(s"Starting export of games to ${opts.output}") *>
+      stream
+        .flatMap: result =>
+          fs2.Stream.emits(result.toIndex)
+        .map(_.source)
+        .through(csvSink(Path(opts.output)))
+        .compile
+        .drain
