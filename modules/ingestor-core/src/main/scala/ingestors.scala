@@ -12,7 +12,7 @@ import java.time.Instant
 
 object Ingestors:
 
-  import ElasticSink.given
+  import Registry.given
 
   def apply(
       lichess: MongoDatabase[IO],

@@ -4,21 +4,10 @@ package ingestor
 import cats.effect.*
 import cats.mtl.Handle.*
 import cats.syntax.all.*
-import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.sksamuel.elastic4s.Indexable
 import org.typelevel.log4cats.Logger
-import smithy4s.json.Json.given
-import smithy4s.schema.Schema
 
 object ElasticSink:
-
-  given [A] => Schema[A] => Indexable[A] = a => writeToString(a)
-
-  given Indexable[DbGame] = a => writeToString(Translate.game(a))
-  given Indexable[DbForum] = a => writeToString(Translate.forum(a))
-  given Indexable[DbUblog] = a => writeToString(Translate.ublog(a))
-  given Indexable[(DbStudy, StudyChapterData)] = a => writeToString(Translate.study.tupled(a))
-  given Indexable[DbTeam] = a => writeToString(Translate.team(a))
 
   def updateElastic[A: Indexable](
       index: Index,

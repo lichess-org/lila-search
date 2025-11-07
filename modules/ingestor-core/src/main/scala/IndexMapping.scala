@@ -8,9 +8,20 @@ trait IndexMapping:
   def repo: Repo[Out]
   given indexable: Indexable[Out]
 
-  def withRepo[R](f: Repo[Out] => (Indexable[Out] ?=> R)): R = f(repo)(using indexable)
+  def withRepo[R](f: Repo[Out] => (Indexable[Out] ?=> R)): R = f(repo)
 
 object Registry:
+
+  import smithy4s.json.Json.given
+  import smithy4s.schema.Schema
+  import com.github.plokhotnyuk.jsoniter_scala.core.*
+
+  given [A] => Schema[A] => Indexable[A] = a => writeToString(a)
+  given Indexable[DbGame] = a => writeToString(Translate.game(a))
+  given Indexable[DbForum] = a => writeToString(Translate.forum(a))
+  given Indexable[DbUblog] = a => writeToString(Translate.ublog(a))
+  given Indexable[(DbStudy, StudyChapterData)] = a => writeToString(Translate.study.tupled(a))
+  given Indexable[DbTeam] = a => writeToString(Translate.team(a))
 
   type Of[I <: Index] = I match
     case Index.Game.type => DbGame
@@ -27,8 +38,7 @@ class Registry(
     team: Repo[DbTeam]
 ):
   import com.sksamuel.elastic4s.Indexable
-  import ElasticSink.given
-  import Registry.Of
+  import Registry.{ Of, given }
 
   /** Helper to create an IndexMapping from a repo */
   private def makeMapping[A: Indexable](r: Repo[A]): IndexMapping =
@@ -47,4 +57,3 @@ class Registry(
   /** Get a specific repo when the index is statically known */
   def get[I <: Index](using ev: ValueOf[I]): Repo[Of[I]] =
     apply(ev.value).repo.asInstanceOf[Repo[Of[I]]]
-
