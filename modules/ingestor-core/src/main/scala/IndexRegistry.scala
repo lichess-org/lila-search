@@ -1,20 +1,12 @@
 package lila.search
 package ingestor
 
-import com.sksamuel.elastic4s.Indexable
-
-trait IndexMapping:
-  type Out
-  def repo: Repo[Out]
-  given indexable: Indexable[Out]
-
-  def withRepo[R](f: Repo[Out] => (Indexable[Out] ?=> R)): R = f(repo)
-
-object Registry:
+object IndexRegistry:
 
   import smithy4s.json.Json.given
   import smithy4s.schema.Schema
   import com.github.plokhotnyuk.jsoniter_scala.core.*
+  import com.sksamuel.elastic4s.Indexable
 
   given [A] => Schema[A] => Indexable[A] = a => writeToString(a)
   given Indexable[DbGame] = a => writeToString(Translate.game(a))
@@ -30,7 +22,13 @@ object Registry:
     case Index.Study.type => (DbStudy, StudyChapterData)
     case Index.Team.type => DbTeam
 
-class Registry(
+  trait IndexMapping:
+    type Out
+    def repo: Repo[Out]
+    given indexable: Indexable[Out]
+    def withRepo[R](f: Repo[Out] => (Indexable[Out] ?=> R)): R = f(repo)
+
+class IndexRegistry(
     game: Repo[DbGame],
     forum: Repo[DbForum],
     ublog: Repo[DbUblog],
@@ -38,7 +36,7 @@ class Registry(
     team: Repo[DbTeam]
 ):
   import com.sksamuel.elastic4s.Indexable
-  import Registry.{ Of, given }
+  import IndexRegistry.{ IndexMapping, Of, given }
 
   /** Helper to create an IndexMapping from a repo */
   private def makeMapping[A: Indexable](r: Repo[A]): IndexMapping =

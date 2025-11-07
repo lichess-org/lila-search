@@ -26,8 +26,8 @@ object Indexer:
       UblogRepo(res.lichess, config.ingestor.ublog),
       StudyRepo(res.study, res.studyLocal, config.ingestor.study),
       TeamRepo(res.lichess, config.ingestor.team)
-    ).mapN(Registry.apply)
-      .flatMap { case given Registry =>
+    ).mapN(IndexRegistry.apply)
+      .flatMap { case given IndexRegistry =>
         def go(index: Index) =
           val runIndex = run(index, store, elastic, opts)
           putMappingsIfNotExists(res.elastic, index).whenA(!dry) *>
@@ -42,7 +42,7 @@ object Indexer:
       store: KVStore,
       elastic: ESClient[IO],
       opts: IndexOpts
-  )(using registry: Registry, lf: LoggerFactory[IO]): IO[Unit] =
+  )(using registry: IndexRegistry, lf: LoggerFactory[IO]): IO[Unit] =
     given logger: Logger[IO] = lf.getLoggerFromName(s"${index.value}.ingestor")
     val im = registry(index)
     im.withRepo: repo =>

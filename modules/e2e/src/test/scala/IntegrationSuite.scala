@@ -8,7 +8,7 @@ import cats.mtl.Raise
 import cats.syntax.all.*
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.ElasticError
-import lila.search.ingestor.ElasticSink.given
+import lila.search.ingestor.IndexRegistry.given
 import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
