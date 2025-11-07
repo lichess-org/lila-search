@@ -82,6 +82,26 @@ lazy val elastic = project
   )
   .dependsOn(core)
 
+lazy val `lila-mongo` = project
+  .in(file("modules/lila-mongo"))
+  .settings(
+    name := "lila-mongo",
+    commonSettings,
+    publish := {},
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      catsCore,
+      catsEffect,
+      fs2,
+      fs2IO,
+      mongo4catsCore,
+      mongo4catsCirce,
+      chess,
+      log4Cats
+    )
+  )
+  .dependsOn(core)
+
 lazy val `ingestor-app` = project
   .in(file("modules/ingestor-app"))
   .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
@@ -137,7 +157,6 @@ lazy val `ingestor-core` = project
     publish := {},
     publish / skip := true,
     libraryDependencies ++= Seq(
-      chess,
       catsCore,
       fs2,
       fs2IO,
@@ -150,8 +169,6 @@ lazy val `ingestor-core` = project
       jsoniterCore,
       jsoniterMacro,
       circe,
-      mongo4catsCore,
-      mongo4catsCirce,
       otel4sCore,
       otel4sHttp4sCore,
       otel4sHttp4sMetrics,
@@ -162,7 +179,7 @@ lazy val `ingestor-core` = project
     ),
     Compile / doc / sources := Seq.empty
   )
-  .dependsOn(elastic, core)
+  .dependsOn(elastic, core, `lila-mongo`)
 
 lazy val client = project
   .in(file("modules/client"))
@@ -226,7 +243,7 @@ val e2e = project
 lazy val root = project
   .in(file("."))
   .settings(publish := {}, publish / skip := true)
-  .aggregate(core, api, app, client, e2e, elastic, `ingestor-core`, `ingestor-app`, `ingestor-cli`)
+  .aggregate(core, api, app, client, e2e, elastic, `lila-mongo`, `ingestor-core`, `ingestor-app`, `ingestor-cli`)
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
 addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")

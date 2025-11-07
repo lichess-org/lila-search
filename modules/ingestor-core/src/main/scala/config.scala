@@ -22,7 +22,7 @@ object AppConfig:
   def appConfig = (
     MongoConfig.config,
     ElasticConfig.config,
-    IngestorConfig.config,
+    IngestorConfigLoader.config,
     kvStorePath
   ).parMapN(AppConfig.apply)
 
@@ -53,21 +53,7 @@ object ElasticConfig:
     env("ELASTIC_URI").or(prop("elastic.uri")).as[Uri].default(uri"http://127.0.0.1:9200")
   def config = uri.map(ElasticConfig.apply)
 
-case class IngestorConfig(
-    forum: IngestorConfig.Forum,
-    ublog: IngestorConfig.Ublog,
-    team: IngestorConfig.Team,
-    study: IngestorConfig.Study,
-    game: IngestorConfig.Game
-)
-
-object IngestorConfig:
-
-  case class Forum(batchSize: Int, timeWindows: Int, startAt: Option[Instant], maxPostLength: Int)
-  case class Ublog(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
-  case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
-  case class Study(batchSize: Int, startAt: Option[Instant], interval: FiniteDuration, databaseName: String)
-  case class Game(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
+object IngestorConfigLoader:
 
   private object Forum:
     private def batchSize =
@@ -78,7 +64,7 @@ object IngestorConfig:
       env("INGESTOR_FORUM_START_AT").or(prop("ingestor.forum.start.at")).as[Instant].option
     private def maxPostLength =
       env("INGESTOR_FORUM_MAX_POST_LENGTH").or(prop("ingestor.forum.max.post.length")).as[Int].default(5_000)
-    def config = (batchSize, timeWindows, startAt, maxPostLength).parMapN(Forum.apply)
+    def config = (batchSize, timeWindows, startAt, maxPostLength).parMapN(IngestorConfig.Forum.apply)
 
   private object Ublog:
     private def batchSize =
@@ -87,7 +73,7 @@ object IngestorConfig:
       env("INGESTOR_UBLOG_TIME_WINDOWS").or(prop("ingestor.ublog.time.windows")).as[Int].default(10)
     private def startAt =
       env("INGESTOR_UBLOG_START_AT").or(prop("ingestor.ublog.start.at")).as[Instant].option
-    def config = (batchSize, timeWindows, startAt).parMapN(Ublog.apply)
+    def config = (batchSize, timeWindows, startAt).parMapN(IngestorConfig.Ublog.apply)
 
   private object Team:
     private def batchSize =
@@ -96,7 +82,7 @@ object IngestorConfig:
       env("INGESTOR_TEAM_TIME_WINDOWS").or(prop("ingestor.team.time.windows")).as[Int].default(10)
     private def startAt =
       env("INGESTOR_TEAM_START_AT").or(prop("ingestor.team.start.at")).as[Instant].option
-    def config = (batchSize, timeWindows, startAt).mapN(Team.apply)
+    def config = (batchSize, timeWindows, startAt).mapN(IngestorConfig.Team.apply)
 
   private object Study:
     private def batchSize =
@@ -109,7 +95,7 @@ object IngestorConfig:
         .as[Long]
         .default(300)
         .map(_.seconds)
-    def config = (batchSize, startAt, interval, studyDatabase).mapN(Study.apply)
+    def config = (batchSize, startAt, interval, studyDatabase).mapN(IngestorConfig.Study.apply)
 
   private object Game:
     private def batchSize =
@@ -118,7 +104,7 @@ object IngestorConfig:
       env("INGESTOR_GAME_TIME_WINDOWS").or(prop("ingestor.game.time.windows")).as[Int].default(10)
     private def startAt =
       env("INGESTOR_GAME_START_AT").or(prop("ingestor.game.start.at")).as[Instant].option
-    def config = (batchSize, timeWindows, startAt).mapN(Game.apply)
+    def config = (batchSize, timeWindows, startAt).mapN(IngestorConfig.Game.apply)
 
   def config = (Forum.config, Ublog.config, Team.config, Study.config, Game.config).mapN(IngestorConfig.apply)
 
