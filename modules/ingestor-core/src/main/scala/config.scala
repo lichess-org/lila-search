@@ -20,7 +20,7 @@ object AppConfig:
   private def kvStorePath = env("KV_STORE_PATH").or(prop("kv.store.path")).as[String].default("store.json")
 
   def appConfig = (
-    MongoConfig.config,
+    MongoConfigLoader.config,
     ElasticConfig.config,
     IngestorConfigLoader.config,
     kvStorePath
@@ -32,12 +32,11 @@ case class AppConfig(
     ingestor: IngestorConfig,
     kvStorePath: String
 )
-case class MongoConfig(uri: String, name: String, studyUri: String, studyName: String)
 
 private def studyDatabase =
   env("MONGO_STUDY_DATABASE").or(prop("mongo.study.database")).as[String].default("lichess")
 
-object MongoConfig:
+object MongoConfigLoader:
 
   private def uri = env("MONGO_URI").or(prop("mongo.uri")).as[String]
   private def name = env("MONGO_DATABASE").or(prop("mongo.database")).as[String].default("lichess")
