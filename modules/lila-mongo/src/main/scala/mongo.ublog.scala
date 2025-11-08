@@ -5,7 +5,9 @@ import cats.effect.IO
 import cats.syntax.all.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
-import mongo4cats.bson.Document
+import io.circe.*
+import mongo4cats.circe.*
+import mongo4cats.collection.MongoCollection
 import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument
 import mongo4cats.operations.{ Aggregate, Filter, Projection }
@@ -48,13 +50,13 @@ object UblogRepo:
 
   def apply(mongo: MongoDatabase[IO], config: IngestorConfig.Ublog)(using
       LoggerFactory[IO]
-  ): IO[Repo[UblogSource]] =
+  ): IO[Repo[DbUblog]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
-    mongo.getCollection("ublog_post").map(apply(config))
+    mongo.getCollectionWithCodec[DbUblog]("ublog_post").map(apply(config))
 
   def apply(config: IngestorConfig.Ublog)(
-      posts: MongoCollection
-  )(using Logger[IO]): Repo[UblogSource] = new:
+      posts: MongoCollection[IO, DbUblog]
+  )(using Logger[IO]): Repo[DbUblog] = new:
 
     def fetch(since: Instant, until: Instant) =
       val filter = range(F.livedAt)(since, until.some)
@@ -68,9 +70,9 @@ object UblogRepo:
           .metered(1.second)
           .map: docs =>
             val (toDelete, toIndex) = docs.partition(!_.isLive)
-            Result(toIndex.toSources, toDelete.flatten(using _.id.map(Id.apply)), none)
+            Result(toIndex, toDelete.map(doc => Id(doc.id)), none)
 
-    def watch(since: Option[Instant]): fs2.Stream[IO, Result[UblogSource]] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbUblog]] =
       val builder = posts.watch(aggregate())
       // skip the first event if we're starting from a specific timestamp
       // since the event at that timestamp is already indexed
@@ -88,34 +90,12 @@ object UblogRepo:
           val lastEventTimestamp = docs.flatten(using _.clusterTime.flatMap(_.asInstant)).maxOption
           val (toDelete, toIndex) = docs.partition(_.isDelete)
           Result(
-            toIndex.flatten(using _.fullDocument).toSources,
-            toDelete.flatten(using _.docId.map(Id.apply)),
+            toIndex.flatMap(_.fullDocument),
+            toDelete.flatMap(_.docId.map(Id.apply)),
             lastEventTimestamp
           )
 
-    extension (docs: List[Document])
-      private def toSources: List[(String, UblogSource)] =
-        docs.flatten(using doc => (doc.id, doc.toSource).mapN(_ -> _))
-
-    extension (doc: Document)
-      private def toSource: Option[UblogSource] =
-        for
-          title <- doc.getString(F.title)
-          intro <- doc.getString(F.intro)
-          body <- doc.getString(F.markdown)
-          author <- doc.getString(F.blog).map(_.split(":")(1))
-          language <- doc.getString(F.language)
-          likes <- doc.getAs[Int](F.likes)
-          topics <- doc.getAs[List[String]](F.topics).map(_.mkString(" ").replaceAll("Chess", ""))
-          text = s"$title\n$topics\n$author\n$intro\n$body"
-          date <- doc.getNested(F.livedAt).flatMap(_.asInstant).map(_.toEpochMilli)
-          quality = doc.getNestedAs[Int](F.quality)
-        yield UblogSource(text, language, likes, date, quality)
-
-      private def isLive: Boolean =
-        doc.getBoolean("live").contains(true) && !doc.getNestedAs[Int](F.quality).exists(_ == 0)
-
-    extension (event: ChangeStreamDocument[Document])
+    extension (event: ChangeStreamDocument[DbUblog])
       private def isDelete: Boolean =
         event.operationType == DELETE || event.fullDocument.exists(!_.isLive)
 
@@ -130,3 +110,40 @@ object UblogRepo:
     val livedAt = "lived.at"
     val quality = "automod.quality"
     val topics = "topics"
+
+case class DbUblog(
+    id: String, // _id
+    title: String,
+    intro: String,
+    markdown: String,
+    blog: String, // format: "user:authorId"
+    language: String,
+    likes: Int,
+    topics: List[String],
+    live: Boolean,
+    livedAt: Option[Instant], // lived.at
+    quality: Option[Int] // automod.quality
+):
+  def isLive: Boolean = live && !quality.exists(_ == 0)
+  def author: String = blog.split(":")(1)
+
+object DbUblog:
+  import UblogRepo.F
+  given Decoder[DbUblog] =
+    Decoder.forProduct11(
+      _id,
+      F.title,
+      F.intro,
+      F.markdown,
+      F.blog,
+      F.language,
+      F.likes,
+      F.topics,
+      F.live,
+      F.livedAt,
+      F.quality
+    )(DbUblog.apply)
+
+  // We don't write to the database so we don't need to implement this
+  given Encoder[DbUblog] = new:
+    def apply(a: DbUblog): Json = ???

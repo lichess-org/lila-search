@@ -61,3 +61,5 @@ object Size:
     else 12
 
   extension (x: Size) def value: Int = x
+
+extension (self: Boolean) def fold[A](t: => A, f: => A): A = if self then t else f

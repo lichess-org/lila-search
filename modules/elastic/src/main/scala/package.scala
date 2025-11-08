@@ -8,10 +8,6 @@ import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.{ ElasticError, Index as ESIndex, Response }
 
-type SourceWithId[A] = (id: String, source: A)
-
-extension (self: Boolean) def fold[A](t: => A, f: => A): A = if self then t else f
-
 extension (queries: List[Query])
   def compile: Query = queries match
     case Nil => matchAllQuery()
@@ -38,3 +34,6 @@ extension [F[_]: Monad, A](response: Response[A])
     response.fold(response.error.raise)(_.pure[F])
   def unitOrFail: Raise[F, ElasticError] ?=> F[Unit] =
     response.fold(response.error.raise)(_ => ().pure[F])
+
+trait HasStringId[A]:
+  extension (a: A) def id: String

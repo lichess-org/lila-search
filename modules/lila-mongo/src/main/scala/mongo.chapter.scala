@@ -15,9 +15,9 @@ import Repo.*
 
 trait ChapterRepo:
   // Aggregate chapters data and convert them to StudyChapterText by their study ids
-  def byStudyIds(ids: List[String]): IO[Map[String, StudyData]]
+  def byStudyIds(ids: List[String]): IO[Map[String, StudyChapterData]]
 
-case class StudyData(
+case class StudyChapterData(
     _id: String,
     name: List[String],
     tags: List[List[Tag]],
@@ -35,13 +35,13 @@ case class StudyData(
       .mkString("", ", ", " ")
 
   def chapterNames = name
-    .collect { case c if !StudyData.defaultNameRegex.matches(c) => c }
+    .collect { case c if !StudyChapterData.defaultNameRegex.matches(c) => c }
     .mkString(" ")
 
   def relevantTags = tags.flatten.collect:
-    case t if StudyData.relevantPgnTags.contains(t.name) => t.value
+    case t if StudyChapterData.relevantPgnTags.contains(t.name) => t.value
 
-object StudyData:
+object StudyChapterData:
 
   given Decoder[Tag] = Decoder.decodeString.emap: s =>
     s.split(":", 2) match
@@ -107,9 +107,9 @@ object ChapterRepo:
     mongo.getCollection("study_chapter_flat").map(apply)
 
   def apply(coll: MongoCollection)(using Logger[IO]): ChapterRepo = new:
-    def byStudyIds(ids: List[String]): IO[Map[String, StudyData]] =
+    def byStudyIds(ids: List[String]): IO[Map[String, StudyChapterData]] =
       coll
-        .aggregateWithCodec[StudyData](Query.aggregate(ids))
+        .aggregateWithCodec[StudyChapterData](Query.aggregate(ids))
         // .flatTap(docs => Logger[IO].debug(s"Received $docs chapters"))
         .stream
         .compile

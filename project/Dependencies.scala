@@ -15,6 +15,7 @@ object Dependencies {
     val decline = "2.5.0"
     val elastic4s = "9.1.1"
     val fs2 = "3.12.2"
+    val fs2Data = "1.12.0"
     val http4s = "0.23.33"
     val mongo4cats = "0.7.13"
     val otel4s = "0.14.0"
@@ -32,6 +33,8 @@ object Dependencies {
 
   val fs2 = "co.fs2" %% "fs2-core" % V.fs2
   val fs2IO = "co.fs2" %% "fs2-io" % V.fs2
+  val fs2DataCsv = "org.gnieh" %% "fs2-data-csv" % V.fs2Data
+  val fs2DataCsvGeneric = "org.gnieh" %% "fs2-data-csv-generic" % V.fs2Data
 
   val cirisCore = "is.cir" %% "ciris" % V.ciris
   val cirisHtt4s = "is.cir" %% "ciris-http4s" % V.ciris

@@ -3,20 +3,16 @@ package ingestor
 
 import cats.effect.*
 import cats.syntax.all.*
+import com.sksamuel.elastic4s.Indexable
 import mongo4cats.database.MongoDatabase
-import org.typelevel.log4cats.LoggerFactory
+import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
-class Ingestors(
-    val forum: Ingestor,
-    val ublog: Ingestor,
-    val study: Ingestor,
-    val game: Ingestor,
-    val team: Ingestor
-):
-  def run(): IO[Unit] =
-    List(forum.watch, ublog.watch, team.watch, study.watch, game.watch).parSequence_
+import java.time.Instant
 
 object Ingestors:
+
+  import IndexRegistry.given
 
   def apply(
       lichess: MongoDatabase[IO],
@@ -25,18 +21,38 @@ object Ingestors:
       store: KVStore,
       elastic: ESClient[IO],
       config: IngestorConfig
-  )(using LoggerFactory[IO]): IO[Ingestors] =
+  )(using LoggerFactory[IO]): IO[Unit] =
     (
       ForumRepo(lichess, config.forum),
       UblogRepo(lichess, config.ublog),
       StudyRepo(study, local, config.study),
       GameRepo(lichess, config.game),
       TeamRepo(lichess, config.team)
-    ).mapN: (forums, ublogs, studies, games, teams) =>
-      new Ingestors(
-        Ingestor(Index.Forum, forums, store, elastic, config.forum.startAt),
-        Ingestor(Index.Ublog, ublogs, store, elastic, config.ublog.startAt),
-        Ingestor(Index.Study, studies, store, elastic, config.study.startAt),
-        Ingestor(Index.Game, games, store, elastic, config.game.startAt),
-        Ingestor(Index.Team, teams, store, elastic, config.team.startAt)
-      )
+    ).flatMapN: (forums, ublogs, studies, games, teams) =>
+      given KVStore = store
+      given ESClient[IO] = elastic
+      List(
+        watch(Index.Forum, forums, config.forum.startAt),
+        watch(Index.Ublog, ublogs, config.ublog.startAt),
+        watch(Index.Study, studies, config.study.startAt),
+        watch(Index.Game, games, config.game.startAt),
+        watch(Index.Team, teams, config.team.startAt)
+      ).parSequence_
+
+  // Watch mode with default start time (from store or config)
+  def watch[A: Indexable: HasStringId](
+      index: Index,
+      repo: Repo[A],
+      defaultStartAt: Option[Instant]
+  )(using lf: LoggerFactory[IO], store: KVStore, elastic: ESClient[IO]): IO[Unit] =
+    given logger: Logger[IO] = lf.getLoggerFromName(s"${index.value}.ingestor")
+    val startAt: IO[Option[Instant]] =
+      defaultStartAt
+        .fold(store.get(index.value))(_.some.pure[IO])
+        .flatTap(since => info"Starting ${index.value} ingestor from $since")
+    fs2.Stream
+      .eval(startAt)
+      .flatMap(repo.watch)
+      .evalMap(index.updateElastic)
+      .compile
+      .drain

@@ -26,7 +26,7 @@ object App extends IOApp.Simple:
       _ <- Logger[IO].info(s"Starting lila-search ingestor with config: ${config.toString}").toResource
       _ <- Logger[IO].info(s"BuildInfo: ${BuildInfo.toString}").toResource
       res <- AppResources.instance(config)
-      _ <- IngestorApp(res, config).run()
+      _ <- IngestorApp(res, config).run().toResource
     yield ()
 
   private def registerRuntimeMetrics(using MeterProvider[IO]): Resource[IO, Unit] =
@@ -47,8 +47,6 @@ object App extends IOApp.Simple:
       .addExporterConfigurer(PrometheusMetricExporterAutoConfigure[IO])
 
 class IngestorApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO]):
-  def run(): Resource[IO, Unit] =
-    Ingestors(res.lichess, res.study, res.studyLocal, res.store, res.elastic, config.ingestor)
-      .flatMap(_.run())
-      .toResource
-      .evalTap(_ => Logger[IO].info("Ingestor started"))
+  def run(): IO[Unit] =
+    Logger[IO].info("Ingestor started") *>
+      Ingestors(res.lichess, res.study, res.studyLocal, res.store, res.elastic, config.ingestor)
