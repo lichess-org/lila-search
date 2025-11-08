@@ -26,6 +26,7 @@ extension (index: Index)
         elastic.storeBulk(index, sources)
       .rescue: e =>
         logger.error(e.asException)(s"Failed to ${index.value} index: ${sources.map(_.id).mkString(", ")}")
+          *> IO.raiseError(e.asException)
       .whenA(sources.nonEmpty) *>
       logger.info(s"Indexed ${sources.size} ${index.value}s")
 
@@ -34,6 +35,7 @@ extension (index: Index)
       elastic.deleteMany(index, ids)
     .rescue: e =>
       logger.error(e.asException)(s"Failed to delete ${index.value}: ${ids.map(_.value).mkString(", ")}")
+        *> IO.raiseError(e.asException)
     .flatTap(_ => Logger[IO].info(s"Deleted ${ids.size} ${index.value}s"))
       .whenA(ids.nonEmpty)
 
