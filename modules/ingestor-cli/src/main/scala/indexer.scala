@@ -31,24 +31,33 @@ object Indexer:
         def go(index: Index) =
           val runIndex = run(index, opts)
           putMappingsIfNotExists(res.elastic, index).whenA(!dry) *>
-            runIndex.whenA(!dry) *>
+            runIndex *>
             refreshIndexes(res.elastic, index).whenA(opts.refresh && !dry)
 
         opts.index.toList.traverse_(go)
       }
 
-  def run(
-      index: Index,
-      opts: IndexOpts
-  )(using registry: IndexRegistry, lf: LoggerFactory[IO], store: KVStore, elastic: ESClient[IO]): IO[Unit] =
+  def run(index: Index, opts: IndexOpts)(using
+      registry: IndexRegistry,
+      lf: LoggerFactory[IO],
+      store: KVStore,
+      elastic: ESClient[IO]
+  ): IO[Unit] =
     given logger: Logger[IO] = lf.getLoggerFromName(s"${index.value}.ingestor")
     val im = registry(index)
     im.withRepo: repo =>
       val stream =
         if opts.watch then repo.watch(opts.since.some)
         else repo.fetch(opts.since, opts.until)
+      val f: Repo.Result[im.Out] => IO[Unit] =
+        if opts.dry then
+          result =>
+            result.toIndex.traverse_(item => Logger[IO].info(s"Dry run - would index ${item.id}")) *>
+              result.toDelete.traverse_(id => Logger[IO].info(s"Dry run - would delete ${id.value}"))
+        else index.updateElastic
+
       stream
-        .evalMap(index.updateElastic)
+        .evalMap(f)
         .compile
         .drain
 
