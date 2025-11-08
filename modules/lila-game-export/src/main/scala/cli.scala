@@ -85,8 +85,8 @@ object opts:
         help = "MongoDB connection URI (can also use MONGO_URI env var)",
         metavar = "mongodb://host:port"
       )
-      .orElse:
-        Opts.env[String]("MONGO_URI", help = "MongoDB URI from environment")
+      .orElse(Opts.env[String]("MONGO_URI", help = "MongoDB URI from environment"))
+      .withDefault("mongodb://localhost:27017")
 
   private val mongoDatabaseOpt =
     Opts
@@ -95,8 +95,7 @@ object opts:
         help = "MongoDB database name (can also use MONGO_DATABASE env var)",
         metavar = "database"
       )
-      .orElse:
-        Opts.env[String]("MONGO_DATABASE", help = "MongoDB database from environment")
+      .orElse(Opts.env[String]("MONGO_DATABASE", help = "MongoDB database from environment"))
       .withDefault("lichess")
 
   private val batchSizeOpt =

@@ -119,7 +119,8 @@ lazy val `lila-game-export` = project
       chess,
       log4Cats,
       declineCore,
-      declineCatsEffect
+      declineCatsEffect,
+      weaver
     )
   )
   .dependsOn(`lila-mongo`)
