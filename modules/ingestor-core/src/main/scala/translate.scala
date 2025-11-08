@@ -62,7 +62,6 @@ object Translate:
       case Horde => 16
       case RacingKings => 17
 
-  // Pure function for forum: DbForum => ForumSource
   def forum(forum: DbForum): ForumSource =
     ForumSource(
       body = forum.post.text,
@@ -73,7 +72,6 @@ object Translate:
       date = forum.post.createdAt.toEpochMilli
     )
 
-  // Pure function for study: (DbStudy, StudyChapterData) => StudySource
   def study(study: DbStudy, data: StudyChapterData): StudySource =
     StudySource(
       name = study.name,
@@ -89,11 +87,9 @@ object Translate:
       updatedAt = study.updatedAt.map(SearchDateTime.fromInstant)
     )
 
-  // Pure function for team: DbTeam => TeamSource
   def team(team: DbTeam): TeamSource =
     TeamSource(team.name, team.description, team.nbMembers)
 
-  // Pure function for ublog: DbUblog => UblogSource
   // todo maybe return Option[UblogSource] and filter out low quality blogs or non-live?
   def ublog(ublog: DbUblog): UblogSource =
     val topics = ublog.topics.mkString(" ").replaceAll("Chess", "")

@@ -18,7 +18,6 @@ object Indexer:
   def apply(opts: IndexOpts, res: AppResources, config: AppConfig)(using LoggerFactory[IO]): IO[Unit] =
     given logger: Logger[IO] = LoggerFactory[IO].getLogger
     import opts.dry
-    import res.*
 
     (
       GameRepo(res.lichess, config.ingestor.game),
@@ -28,8 +27,10 @@ object Indexer:
       TeamRepo(res.lichess, config.ingestor.team)
     ).mapN(IndexRegistry.apply)
       .flatMap { case given IndexRegistry =>
+        given KVStore = res.store
+        given ESClient[IO] = res.elastic
         def go(index: Index) =
-          val runIndex = run(index, store, elastic, opts)
+          val runIndex = run(index, opts)
           putMappingsIfNotExists(res.elastic, index).whenA(!dry) *>
             runIndex.whenA(!dry) *>
             refreshIndexes(res.elastic, index).whenA(opts.refresh && !dry)
@@ -39,10 +40,8 @@ object Indexer:
 
   def run(
       index: Index,
-      store: KVStore,
-      elastic: ESClient[IO],
       opts: IndexOpts
-  )(using registry: IndexRegistry, lf: LoggerFactory[IO]): IO[Unit] =
+  )(using registry: IndexRegistry, lf: LoggerFactory[IO], store: KVStore, elastic: ESClient[IO]): IO[Unit] =
     given logger: Logger[IO] = lf.getLoggerFromName(s"${index.value}.ingestor")
     val im = registry(index)
     im.withRepo: repo =>
@@ -50,7 +49,7 @@ object Indexer:
         if opts.watch then repo.watch(opts.since.some)
         else repo.fetch(opts.since, opts.until)
       stream
-        .evalMap(ElasticSink.updateElastic(index, elastic, store))
+        .evalMap(index.updateElastic)
         .compile
         .drain
 

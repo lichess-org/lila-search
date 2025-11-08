@@ -9,7 +9,6 @@ import fs2.io.file.{ Files, Path }
 import lila.search.ingestor.opts.ExportOpts
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
-// CSV representation of GameSource for export
 case class GameCsv(
     id: String,
     status: Int,

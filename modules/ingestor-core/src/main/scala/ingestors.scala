@@ -29,23 +29,23 @@ object Ingestors:
       GameRepo(lichess, config.game),
       TeamRepo(lichess, config.team)
     ).flatMapN: (forums, ublogs, studies, games, teams) =>
+      given KVStore = store
+      given ESClient[IO] = elastic
       List(
-        watch(Index.Forum, forums, store, elastic, config.forum.startAt),
-        watch(Index.Ublog, ublogs, store, elastic, config.ublog.startAt),
-        watch(Index.Study, studies, store, elastic, config.study.startAt),
-        watch(Index.Game, games, store, elastic, config.game.startAt),
-        watch(Index.Team, teams, store, elastic, config.team.startAt)
+        watch(Index.Forum, forums, config.forum.startAt),
+        watch(Index.Ublog, ublogs, config.ublog.startAt),
+        watch(Index.Study, studies, config.study.startAt),
+        watch(Index.Game, games, config.game.startAt),
+        watch(Index.Team, teams, config.team.startAt)
       ).parSequence_
 
   // Watch mode with default start time (from store or config)
   def watch[A: Indexable: HasStringId](
       index: Index,
       repo: Repo[A],
-      store: KVStore,
-      elastic: ESClient[IO],
       defaultStartAt: Option[Instant]
-  )(using LoggerFactory[IO]): IO[Unit] =
-    given logger: Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
+  )(using lf: LoggerFactory[IO], store: KVStore, elastic: ESClient[IO]): IO[Unit] =
+    given logger: Logger[IO] = lf.getLoggerFromName(s"${index.value}.ingestor")
     val startAt: IO[Option[Instant]] =
       defaultStartAt
         .fold(store.get(index.value))(_.some.pure[IO])
@@ -53,6 +53,6 @@ object Ingestors:
     fs2.Stream
       .eval(startAt)
       .flatMap(repo.watch)
-      .evalMap(ElasticSink.updateElastic(index, elastic, store))
+      .evalMap(index.updateElastic)
       .compile
       .drain
