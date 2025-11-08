@@ -18,7 +18,6 @@ object Indexer:
   def apply(opts: IndexOpts, res: AppResources, config: AppConfig)(using LoggerFactory[IO]): IO[Unit] =
     given logger: Logger[IO] = LoggerFactory[IO].getLogger
     import opts.dry
-
     (
       GameRepo(res.lichess, config.ingestor.game),
       ForumRepo(res.lichess, config.ingestor.forum),

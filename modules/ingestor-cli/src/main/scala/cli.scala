@@ -6,7 +6,7 @@ import cats.effect.*
 import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
-import lila.search.ingestor.opts.{ ExportOpts, IndexOpts }
+import lila.search.ingestor.opts.IndexOpts
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.MeterProvider
@@ -35,10 +35,8 @@ object cli
       res <- AppResources.instance(config)
     yield (res, config)
 
-  def execute(opts: IndexOpts | ExportOpts)(resources: AppResources, config: AppConfig): IO[Unit] =
-    opts match
-      case opts: IndexOpts => Indexer(opts, resources, config)
-      case opts: ExportOpts => CsvExport(opts, config.mongo.lichess, config.ingestor.game)
+  def execute(opts: IndexOpts)(resources: AppResources, config: AppConfig): IO[Unit] =
+    Indexer(opts, resources, config)
 
 object opts:
   case class IndexOpts(
@@ -50,17 +48,7 @@ object opts:
       watch: Boolean
   )
 
-  case class ExportOpts(
-      index: Index,
-      format: String,
-      output: String,
-      since: Instant,
-      until: Instant,
-      watch: Boolean
-  )
-
-  def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
-    Opts.subcommand("export", "export documents to file")(exportOpt)
+  def parse = Opts.subcommand("index", "index documents")(indexOpt)
 
   val singleIndexOpt =
     Opts
@@ -123,30 +111,6 @@ object opts:
       if x.watch || x.until.isAfter(x.since) then Validated.valid(x)
       else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
     )
-
-  val exportOpt = (
-    singleIndexOpt,
-    Opts
-      .option[String](
-        long = "format",
-        help = "Export format (csv)",
-        short = "f",
-        metavar = "csv"
-      )
-      .withDefault("csv"),
-    Opts.option[String](
-      long = "output",
-      help = "Output file path",
-      short = "o",
-      metavar = "path/to/file.csv"
-    ),
-    sinceOpt,
-    untilOpt.orElse(Instant.now.pure[Opts]),
-    watchOpt
-  ).mapN(ExportOpts.apply)
-    .mapValidated: x =>
-      if x.watch || x.until.isAfter(x.since) then Validated.valid(x)
-      else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
 
   given Argument[Index] =
     Argument.from("index")(Index.fromString(_).toValidatedNel)

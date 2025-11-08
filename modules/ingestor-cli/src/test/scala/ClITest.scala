@@ -3,6 +3,7 @@ package ingestor
 
 import cats.syntax.all.*
 import com.monovore.decline
+import lila.search.game.csv.ExportOpts
 
 import java.time.Instant
 
@@ -28,13 +29,26 @@ object CLITest extends weaver.FunSuite:
 
   test("export command"):
     expect.same(
-      testCommand("export", "--index", "game", "--output", "games.csv", "--since", "0", "--until", "1"),
-      ExportOpts(
-        Index.Game,
-        "csv",
+      testCommand(
+        "export",
+        "--mongo-uri",
+        "mongodb://localhost:27017",
+        "--output",
         "games.csv",
-        Instant.ofEpochSecond(0),
-        Instant.ofEpochSecond(1),
-        false
+        "--since",
+        "0",
+        "--until",
+        "1"
+      ),
+      ExportOpts(
+        mongoUri = "mongodb://localhost:27017",
+        mongoDatabase = "lichess",
+        batchSize = 1000,
+        timeWindows = 5,
+        format = "csv",
+        output = "games.csv",
+        since = Instant.ofEpochSecond(0),
+        until = Instant.ofEpochSecond(1),
+        watch = false
       ).asRight
     )
