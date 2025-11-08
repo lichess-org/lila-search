@@ -70,7 +70,7 @@ object UblogRepo:
           .metered(1.second)
           .map: docs =>
             val (toDelete, toIndex) = docs.partition(!_.isLive)
-            Result(toIndex.map(doc => doc.id -> doc), toDelete.map(doc => Id(doc.id)), none)
+            Result(toIndex, toDelete.map(doc => Id(doc.id)), none)
 
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbUblog]] =
       val builder = posts.watch(aggregate())
@@ -90,8 +90,8 @@ object UblogRepo:
           val lastEventTimestamp = docs.flatten(using _.clusterTime.flatMap(_.asInstant)).maxOption
           val (toDelete, toIndex) = docs.partition(_.isDelete)
           Result(
-            toIndex.flatten(using _.fullDocument).map(doc => doc.id -> doc),
-            toDelete.flatten(using _.docId.map(Id.apply)),
+            toIndex.flatMap(_.fullDocument),
+            toDelete.flatMap(_.docId.map(Id.apply)),
             lastEventTimestamp
           )
 

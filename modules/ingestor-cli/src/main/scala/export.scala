@@ -113,7 +113,6 @@ object CsvExport:
       stream
         .flatMap: result =>
           fs2.Stream.emits(result.toIndex)
-        .map(_.source)
         .through(csvSink(Path(opts.output)))
         .compile
         .drain

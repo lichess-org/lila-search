@@ -9,7 +9,7 @@ import org.typelevel.log4cats.Logger
 
 object ElasticSink:
 
-  def updateElastic[A: Indexable](
+  def updateElastic[A: Indexable: HasStringId](
       index: Index,
       elastic: ESClient[IO],
       store: KVStore
@@ -33,10 +33,10 @@ object ElasticSink:
     .flatTap(_ => Logger[IO].info(s"Deleted ${ids.size} ${index.value}s"))
       .whenA(ids.nonEmpty)
 
-  private def storeBulk[A: Indexable](
+  private def storeBulk[A: Indexable: HasStringId](
       index: Index,
       elastic: ESClient[IO],
-      sources: List[SourceWithId[A]]
+      sources: List[A]
   )(using logger: Logger[IO]): IO[Unit] =
     Logger[IO].info(s"Received ${sources.size} docs to ${index.value}") *>
       allow:

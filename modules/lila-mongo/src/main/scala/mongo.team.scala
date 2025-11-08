@@ -59,8 +59,8 @@ object TeamRepo:
             val lastEventTimestamp = docs.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
             val (toDelete, toIndex) = docs.partition(_.isDelete)
             Result(
-              toIndex.flatten(using _.fullDocument).map(t => t.id -> t),
-              toDelete.flatten(using _.docId.map(Id.apply)),
+              toIndex.flatMap(_.fullDocument),
+              toDelete.flatMap(_.docId.map(Id.apply)),
               lastEventTimestamp
             )
 
@@ -79,7 +79,7 @@ object TeamRepo:
             .map: docs =>
               val (toDelete, toIndex) = docs.partition(!_.enabled)
               Result(
-                toIndex.map(t => t.id -> t),
+                toIndex,
                 toDelete.map(t => Id(t.id)),
                 none
               )

@@ -38,7 +38,7 @@ object Ingestors:
       ).parSequence_
 
   // Watch mode with default start time (from store or config)
-  def watch[A: Indexable](
+  def watch[A: Indexable: HasStringId](
       index: Index,
       repo: Repo[A],
       store: KVStore,

@@ -102,7 +102,7 @@ object ForumRepo:
         .map(_.map(doc => (doc.id, doc.getString(Topic.name)).mapN(_ -> _)).flatten.toMap)
 
     extension (posts: List[DbPost])
-      private def toData: IO[List[SourceWithId[DbForum]]] =
+      private def toData: IO[List[DbForum]] =
         val topicIds = posts.map(_.topicId).distinct
         topicIds.isEmpty.fold(
           info"no topics found for posts: $posts".as(Nil),
@@ -117,11 +117,10 @@ object ForumRepo:
 
       private def toData(
           topicMap: Map[String, String]
-      ): IO[Option[SourceWithId[DbForum]]] =
+      ): IO[Option[DbForum]] =
         topicMap
           .get(post.topicId)
-          .map: topicName =>
-            post.id -> DbForum(post, topicName)
+          .map(DbForum(post, _))
           .pure[IO]
           .flatTap: data =>
             val reason =

@@ -34,3 +34,6 @@ extension [F[_]: Monad, A](response: Response[A])
     response.fold(response.error.raise)(_.pure[F])
   def unitOrFail: Raise[F, ElasticError] ?=> F[Unit] =
     response.fold(response.error.raise)(_ => ().pure[F])
+
+trait HasStringId[A]:
+  extension (a: A) def id: String

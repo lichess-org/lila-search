@@ -103,7 +103,7 @@ object StudyRepo:
         .map((since, until) => since -> until.get)
 
     extension (docs: List[DbStudy])
-      private def toData: IO[List[SourceWithId[(DbStudy, StudyChapterData)]]] =
+      private def toData: IO[List[(DbStudy, StudyChapterData)]] =
         val studyIds = docs.map(_.id).distinct
         chapters
           .byStudyIds(studyIds)
@@ -113,10 +113,10 @@ object StudyRepo:
     extension (study: DbStudy)
       private def toData(
           chapterMap: Map[String, StudyChapterData]
-      ): IO[Option[SourceWithId[(DbStudy, StudyChapterData)]]] =
+      ): IO[Option[(DbStudy, StudyChapterData)]] =
         chapterMap
           .get(study.id)
-          .map(data => study.id -> (study, data))
+          .map(data => (study, data))
           .pure[IO]
           .flatTap: data =>
             def reason =

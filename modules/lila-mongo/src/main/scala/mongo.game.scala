@@ -78,8 +78,8 @@ object GameRepo:
           val lastEventTimestamp = events.lastOption.flatMap(_.clusterTime).flatMap(_.asInstant)
           val (toDelete, toIndex) = events.partition(_.operationType == DELETE)
           Result(
-            toIndex.flatten(using _.fullDocument.map(g => g.id -> g)),
-            toDelete.flatten(using _.docId.map(Id.apply)),
+            toIndex.flatMap(_.fullDocument),
+            toDelete.flatMap(_.docId.map(Id.apply)),
             lastEventTimestamp
           )
 
@@ -93,7 +93,7 @@ object GameRepo:
           .chunkN(config.batchSize)
           .map(_.toList)
           .metered(1.second) // to avoid overloading the elasticsearch
-          .map(ds => Result(ds.map(g => g.id -> g), Nil, none))
+          .map(ds => Result(ds, Nil, none))
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =
       val builder = games.watch(aggregate)

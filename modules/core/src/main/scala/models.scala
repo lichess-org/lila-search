@@ -62,6 +62,4 @@ object Size:
 
   extension (x: Size) def value: Int = x
 
-type SourceWithId[A] = (id: String, source: A)
-
 extension (self: Boolean) def fold[A](t: => A, f: => A): A = if self then t else f
