@@ -9,6 +9,38 @@ import fs2.io.file.{ Files, Path }
 import lila.search.ingestor.opts.ExportOpts
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
+object CsvExport:
+
+  given CsvRowEncoder[DbGame, String] = CsvRowEncoder[GameCsv, String].contramap(GameCsv.fromDbGame)
+
+  def apply(opts: ExportOpts, mongo: MongoDatabaseConfig, config: IngestorConfig.Game)(using
+      LoggerFactory[IO]
+  ): IO[Unit] =
+    mongo.makeClient.use: db =>
+      GameRepo(db, config).flatMap(repo => apply(repo, opts))
+
+  private def apply(repo: Repo[DbGame], opts: ExportOpts)(using LoggerFactory[IO]): IO[Unit] =
+    given Logger[IO] = LoggerFactory[IO].getLogger
+    val mode = if opts.watch then "watch mode" else s"from ${opts.since.toString} to ${opts.until.toString}"
+    Logger[IO].info(s"Exporting ${opts.index.value} $mode to ${opts.output}") *>
+      exportGames(repo, opts)
+
+  def csvSink(output: Path): fs2.Pipe[IO, DbGame, Unit] =
+    _.through(encodeUsingFirstHeaders(fullRows = true))
+      .intersperse("\n")
+      .through(fs2.text.utf8.encode)
+      .through(Files[IO].writeAll((output)))
+
+  private def exportGames(repo: Repo[DbGame], opts: ExportOpts)(using Logger[IO]): IO[Unit] =
+    val stream = if opts.watch then repo.watch(opts.since.some) else repo.fetch(opts.since, opts.until)
+    Logger[IO].info(s"Starting export of games to ${opts.output}") *>
+      stream
+        .flatMap: result =>
+          fs2.Stream.emits(result.toIndex)
+        .through(csvSink(Path(opts.output)))
+        .compile
+        .drain
+
 case class GameCsv(
     id: String,
     status: Int,
@@ -86,32 +118,3 @@ object GameCsv:
       case Atomic => 14
       case Horde => 16
       case RacingKings => 17
-
-object CsvExport:
-
-  given CsvRowEncoder[DbGame, String] = CsvRowEncoder[GameCsv, String].contramap(GameCsv.fromDbGame)
-
-  def apply(repo: Repo[DbGame], opts: ExportOpts)(using LoggerFactory[IO]): IO[Unit] =
-    given Logger[IO] = LoggerFactory[IO].getLogger
-    val mode = if opts.watch then "watch mode" else s"from ${opts.since.toString} to ${opts.until.toString}"
-    Logger[IO].info(s"Exporting ${opts.index.value} $mode to ${opts.output}") *>
-      (opts.index match
-        case Index.Game => exportGames(repo, opts)
-        case _ =>
-          IO.raiseError(new UnsupportedOperationException(s"Export not supported for ${opts.index.value}")))
-
-  def csvSink(output: Path): fs2.Pipe[IO, DbGame, Unit] =
-    _.through(encodeUsingFirstHeaders(fullRows = true))
-      .intersperse("\n")
-      .through(fs2.text.utf8.encode)
-      .through(Files[IO].writeAll((output)))
-
-  private def exportGames(repo: Repo[DbGame], opts: ExportOpts)(using Logger[IO]): IO[Unit] =
-    val stream = if opts.watch then repo.watch(opts.since.some) else repo.fetch(opts.since, opts.until)
-    Logger[IO].info(s"Starting export of games to ${opts.output}") *>
-      stream
-        .flatMap: result =>
-          fs2.Stream.emits(result.toIndex)
-        .through(csvSink(Path(opts.output)))
-        .compile
-        .drain

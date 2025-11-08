@@ -38,7 +38,7 @@ object cli
   def execute(opts: IndexOpts | ExportOpts)(resources: AppResources, config: AppConfig): IO[Unit] =
     opts match
       case opts: IndexOpts => Indexer(opts, resources, config)
-      case opts: ExportOpts => GameRepo(resources.lichess, config.ingestor.game).flatMap(CsvExport(_, opts))
+      case opts: ExportOpts => CsvExport(opts, config.mongo.lichess, config.ingestor.game)
 
 object opts:
   case class IndexOpts(
