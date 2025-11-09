@@ -15,17 +15,30 @@ extension (index: Index)
       result: Repo.Result[A]
   )(using Logger[IO], ESClient[IO], KVStore): IO[Unit] =
     index.storeBulk(result.toIndex) *>
+      index.updateBulk(result.toUpdate) *>
       index.deleteMany(result.toDelete) *>
       result.timestamp.traverse_(index.saveTimestamp)
 
   private def storeBulk[A: Indexable: HasStringId](
       sources: List[A]
   )(using logger: Logger[IO], elastic: ESClient[IO]): IO[Unit] =
-    Logger[IO].info(s"Received ${sources.size} docs to ${index.value}") *>
+    Logger[IO].info(s"Indexing ${sources.size} docs to ${index.value}") *>
       allow:
         elastic.storeBulk(index, sources)
       .rescue: e =>
         logger.error(e.asException)(s"Failed to ${index.value} index: ${sources.map(_.id).mkString(", ")}")
+          *> IO.raiseError(e.asException)
+      .whenA(sources.nonEmpty) *>
+      logger.info(s"Indexed ${sources.size} ${index.value}s")
+
+  private def updateBulk(
+      sources: List[(Id, Map[String, Any])]
+  )(using logger: Logger[IO], elastic: ESClient[IO]): IO[Unit] =
+    Logger[IO].info(s"Updating ${sources.size} docs to ${index.value}") *>
+      allow:
+        elastic.updateBulk(index, sources)
+      .rescue: e =>
+        logger.error(e.asException)(s"Failed to ${index.value} index: ${sources.map(_._1).mkString(", ")}")
           *> IO.raiseError(e.asException)
       .whenA(sources.nonEmpty) *>
       logger.info(s"Indexed ${sources.size} ${index.value}s")

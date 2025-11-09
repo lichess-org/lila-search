@@ -60,7 +60,8 @@ object StudyRepo:
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
         pullForIndex(since, until)
           .merge(pullForDelete(since, until))
-        ++ fs2.Stream(Result(Nil, Nil, until.some))
+          .merge(pullForLikes(since, until))
+        ++ fs2.Stream(Result(Nil, Nil, Nil, until.some))
 
     def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, Result[(DbStudy, StudyChapterData)]] =
       val filter = range(F.createdAt)(since, until.some)
@@ -73,7 +74,7 @@ object StudyRepo:
         .map(_.toList)
         // .evalTap(_.traverse_(x => debug"received $x"))
         .evalMap(_.toData)
-        .map(Result(_, Nil, none))
+        .map(Result(_, Nil, Nil, None))
 
     def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, Result[(DbStudy, StudyChapterData)]] =
       val filter =
@@ -89,9 +90,9 @@ object StudyRepo:
         .chunkN(config.batchSize)
         .map(_.toList.flatMap(extractId))
         .evalTap(xs => info"Deleting $xs")
-        .map(Result(Nil, _, none))
+        .map(Result(Nil, _, Nil, None))
 
-    def pullForLikes(since: Instant, until: Instant): fs2.Stream[IO, List[StudyLikesOnly]] =
+    def pullForLikes(since: Instant, until: Instant): fs2.Stream[IO, Result[(DbStudy, StudyChapterData)]] =
       val filter =
         Filter
           .gte("ts", since.asBsonTimestamp)
@@ -104,7 +105,10 @@ object StudyRepo:
         .projection(likesDocProjection)
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
-        .map(_.toList.flatMap(extractLikesOnly))
+        .map: docs =>
+          val toUpdate = docs.toList.flatMap(extractLikesOnly).map: likesOnly =>
+            (likesOnly.id, Map("likes" -> likesOnly.likes))
+          Result(Nil, Nil, toUpdate, None)
 
     def extractLikesOnly(doc: Document): Option[StudyLikesOnly] =
       (extractId(doc), extractLikes(doc)).mapN(StudyLikesOnly.apply)

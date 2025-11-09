@@ -56,21 +56,3 @@ object Ingestors:
       .evalMap(index.updateElastic)
       .compile
       .drain
-
-  // // Watch mode with default start time (from store or config)
-  // def watchStudy(
-  //     index: Index,
-  //     repo: StudyRepo,
-  //     defaultStartAt: Option[Instant]
-  // )(using lf: LoggerFactory[IO], store: KVStore, elastic: ESClient[IO]): IO[Unit] =
-  //   given logger: Logger[IO] = lf.getLoggerFromName(s"${index.value}.ingestor")
-  //   val startAt: IO[Option[Instant]] =
-  //     defaultStartAt
-  //       .fold(store.get(index.value))(_.some.pure[IO])
-  //       .flatTap(since => info"Starting ${index.value} ingestor from $since")
-  //   fs2.Stream
-  //     .eval(startAt)
-  //     .flatMap(repo.watch)
-  //     .evalMap(index.updateElastic)
-  //     .compile
-  //     .drain

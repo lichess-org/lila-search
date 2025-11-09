@@ -61,6 +61,7 @@ object TeamRepo:
             Result(
               toIndex.flatMap(_.fullDocument),
               toDelete.flatMap(_.docId.map(Id.apply)),
+              Nil,
               lastEventTimestamp
             )
 
@@ -81,7 +82,8 @@ object TeamRepo:
               Result(
                 toIndex,
                 toDelete.map(t => Id(t.id)),
-                none
+                Nil,
+                None
               )
 
       extension (event: ChangeStreamDocument[DbTeam])
