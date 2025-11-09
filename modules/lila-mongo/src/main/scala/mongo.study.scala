@@ -106,12 +106,9 @@ object StudyRepo:
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
         // .evalTap(_.traverse_(x => info"received $x"))
-        .map: docs =>
-          val toUpdate = docs.toList
-            .flatMap(extractLikesOnly)
-            .map: likesOnly =>
-              (likesOnly.id, Map("likes" -> likesOnly.likes))
-          Result(Nil, Nil, toUpdate, None)
+        .map(_.toList.flatMap(extractLikesOnly).distincByDocId)
+        .map(_.map(l => l.id -> Map("likes" -> l.likes)))
+        .map(Result(Nil, Nil, _, None))
 
     def extractLikesOnly(doc: Document): Option[StudyLikesOnly] =
       (extractUpdateId(doc), extractLikes(doc)).mapN(StudyLikesOnly.apply)
@@ -169,10 +166,10 @@ object StudyRepo:
     val oplogLikes = "o.diff.u.likes"
     val oplogUpdateId = "o2._id"
 
-case class StudyLikesOnly(
-    id: Id,
-    likes: Int
-)
+case class StudyLikesOnly(id: Id, likes: Int)
+object StudyLikesOnly:
+  given HasDocId[StudyLikesOnly] with
+    extension (a: StudyLikesOnly) def docId: Option[String] = Some(a.id.value)
 
 case class DbStudy(
     id: String, // _id
