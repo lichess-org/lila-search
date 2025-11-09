@@ -34,6 +34,7 @@ object StudyRepo:
 
   private val indexDocProjection = Projection.include(interestedfields)
   private val deleteDocProjection = Projection.include(F.oplogId)
+  private val likesDocProjection = Projection.include(List(F.oplogId, F.oplogLikes))
 
   def apply(
       study: MongoDatabase[IO],
@@ -90,8 +91,29 @@ object StudyRepo:
         .evalTap(xs => info"Deleting $xs")
         .map(Result(Nil, _, none))
 
+    def pullForLikes(since: Instant, until: Instant): fs2.Stream[IO, List[StudyLikesOnly]] =
+      val filter =
+        Filter
+          .gte("ts", since.asBsonTimestamp)
+          .and(Filter.lt("ts", until.asBsonTimestamp))
+          .and(Filter.eq("ns", s"${config.databaseName}.study"))
+          .and(Filter.eq("op", "u")) // update operation
+          .and(Filter.exists("o.diff.u.likes")) // where likes changed
+      oplogs
+        .find(filter)
+        .projection(likesDocProjection)
+        .boundedStream(config.batchSize)
+        .chunkN(config.batchSize)
+        .map(_.toList.flatMap(extractLikesOnly))
+
+    def extractLikesOnly(doc: Document): Option[StudyLikesOnly] =
+      (extractId(doc), extractLikes(doc)).mapN(StudyLikesOnly.apply)
+
     def extractId(doc: Document): Option[Id] =
       doc.getNestedAs[String](F.oplogId).map(Id.apply)
+
+    def extractLikes(doc: Document): Option[Int] =
+      doc.getNestedAs[Int](F.oplogLikes)
 
     def intervalStream(startAt: Option[Instant]): fs2.Stream[IO, (Instant, Instant)] =
       (startAt.fold(fs2.Stream.empty)(since => fs2.Stream(since))
@@ -132,8 +154,14 @@ object StudyRepo:
     val topics = "topics"
     val createdAt = "createdAt"
     val updatedAt = "updatedAt"
-    val oplogId = "o._id"
     val rank = "rank"
+    val oplogId = "o._id"
+    val oplogLikes = "o.diff.u.likes"
+
+case class StudyLikesOnly(
+    id: Id,
+    likes: Int
+)
 
 case class DbStudy(
     id: String, // _id

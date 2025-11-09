@@ -18,6 +18,8 @@ trait ESClient[F[_]]:
   def count[A](query: A)(using Queryable[A]): RaiseF[Long]
   def store[A](index: Index, id: Id, obj: A)(using Indexable[A]): RaiseF[Unit]
   def storeBulk[A](index: Index, objs: Seq[A])(using Indexable[A], HasStringId[A]): RaiseF[Unit]
+  def update[A](index: Index, id: Id, map: Map[String, Any]): RaiseF[Unit]
+  def updateBulk[A](index: Index, docs: List[(Id, Map[String, Any])]): RaiseF[Unit]
   def deleteOne(index: Index, id: Id): RaiseF[Unit]
   def deleteMany(index: Index, ids: List[Id]): RaiseF[Unit]
   def putMapping(index: Index): RaiseF[Unit]
@@ -62,6 +64,17 @@ object ESClient:
         .execute(requests)
         .flatMap(_.unitOrFail)
         .whenA(objs.nonEmpty)
+
+    def update[A](index: Index, id: Id, map: Map[String, Any]): RaiseF[Unit] =
+      client
+        .execute(updateById(index.toES, id.value).doc(map))
+        .flatMap(_.unitOrFail)
+
+    def updateBulk[A](index: Index, docs: List[(Id, Map[String, Any])]): RaiseF[Unit] =
+      client
+        .execute(bulk(docs.map { case (id, map) => updateById(index.toES, id.value).doc(map) }))
+        .flatMap(_.unitOrFail)
+        .whenA(docs.nonEmpty)
 
     def deleteOne(index: Index, id: Id): RaiseF[Unit] =
       client
