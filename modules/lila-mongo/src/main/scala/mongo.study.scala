@@ -34,7 +34,7 @@ object StudyRepo:
 
   private val indexDocProjection = Projection.include(interestedfields)
   private val deleteDocProjection = Projection.include(F.oplogDeleteId)
-  private val likesDocProjection = Projection.include(List(F.oplogUpdateId, F.oplogLikes))
+  private val likesDocProjection = Projection.include(List(F.oplogUpdateId, F.oplogLikes, F.oplogRank))
 
   def apply(
       study: MongoDatabase[IO],
@@ -106,21 +106,14 @@ object StudyRepo:
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
         // .evalTap(_.traverse_(x => info"received $x"))
-        .map(_.toList.flatMap(extractLikesOnly).distincByDocId)
-        .map(_.map(l => l.id -> Map("likes" -> l.likes)))
+        .map(_.toList.flatMap(StudyLikesOnly.fromDoc).distincByDocId)
+        // .evalTap(_.traverse_(x => info"unique $x"))
+        .map(_.map(l => l.id -> l.toMap))
+        // .evalTap(_.traverse_(x => info"map $x"))
         .map(Result(Nil, Nil, _, None))
-
-    def extractLikesOnly(doc: Document): Option[StudyLikesOnly] =
-      (extractUpdateId(doc), extractLikes(doc)).mapN(StudyLikesOnly.apply)
 
     def extractId(doc: Document): Option[Id] =
       doc.getNestedAs[String](F.oplogDeleteId).map(Id.apply)
-
-    def extractUpdateId(doc: Document): Option[Id] =
-      doc.getNestedAs[String](F.oplogUpdateId).map(Id.apply)
-
-    def extractLikes(doc: Document): Option[Int] =
-      doc.getNestedAs[Int](F.oplogLikes)
 
     def intervalStream(startAt: Option[Instant]): fs2.Stream[IO, (Instant, Instant)] =
       (startAt.fold(fs2.Stream.empty)(since => fs2.Stream(since))
@@ -165,11 +158,22 @@ object StudyRepo:
     val oplogDeleteId = "o._id"
     val oplogUpdateId = "o2._id"
     val oplogLikes = "o.diff.u.likes"
+    val oplogRank = "o.diff.u.rank"
 
-case class StudyLikesOnly(id: Id, likes: Int)
+case class StudyLikesOnly(id: Id, likes: Int, rank: Option[Instant]):
+  inline def toMap: Map[String, Any] =
+    Map("likes" -> likes) ++ rank.map(r => "rank" -> SearchDateTime.fromInstant(r))
+
 object StudyLikesOnly:
   given HasDocId[StudyLikesOnly] with
     extension (a: StudyLikesOnly) def docId: Option[String] = Some(a.id.value)
+
+  def fromDoc(doc: Document): Option[StudyLikesOnly] =
+    import StudyRepo.F
+    val id = doc.getNestedAs[String](F.oplogUpdateId).map(Id.apply)
+    val rank = doc.getNestedAs[Instant](F.oplogRank)
+    val likes = doc.getNestedAs[Int](F.oplogLikes)
+    (id, likes).mapN(StudyLikesOnly(_, _, rank))
 
 case class DbStudy(
     id: String, // _id
