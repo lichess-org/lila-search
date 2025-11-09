@@ -69,6 +69,10 @@ object CompatSuite extends weaver.IOSuite:
     override def storeBulk[A](index: Index, objs: Seq[A])(using Indexable[A], HasStringId[A]) =
       IO.unit
 
+    override def update[A](index: Index, id: Id, map: Map[String, Any]): RaiseF[Unit] = IO.unit
+
+    override def updateBulk[A](index: Index, docs: List[(Id, Map[String, Any])]): RaiseF[Unit] = IO.unit
+
     override def putMapping(index: Index) = IO.unit
 
     override def refreshIndex(index: Index) = IO.unit

@@ -10,14 +10,13 @@ trait Repo[A]:
   def fetch(since: Instant, until: Instant): fs2.Stream[IO, Repo.Result[A]]
 
 object Repo:
-  case class Result[A](toIndex: List[A], toDelete: List[Id], timestamp: Option[Instant])
-
-  extension [A](result: Result[A])
-    def map[B](f: A => B): Result[B] =
-      Result(result.toIndex.map(f), result.toDelete, result.timestamp)
-
-    def flatMap[B](f: A => Option[B]): Result[B] =
-      Result(result.toIndex.flatMap(f), result.toDelete, result.timestamp)
+  type ToUpdate = List[(Id, Map[String, Any])]
+  case class Result[A](
+      toIndex: List[A],
+      toDelete: List[Id],
+      toUpdate: ToUpdate = Nil,
+      timestamp: Option[Instant]
+  )
 
   import cats.effect.IO
   import mongo4cats.bson.Document

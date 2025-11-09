@@ -80,7 +80,7 @@ object Translate:
       chapterNames = data.chapterNames,
       chapterTexts = data.chapterTexts,
       likes = study.likes.getOrElse(0),
-      public = study.visibility.fold(true)(_ == "public"),
+      public = study.visibility.fold(false)(_ == "public"),
       topics = study.topics.getOrElse(Nil),
       rank = study.rank.map(SearchDateTime.fromInstant),
       createdAt = study.createdAt.map(SearchDateTime.fromInstant),

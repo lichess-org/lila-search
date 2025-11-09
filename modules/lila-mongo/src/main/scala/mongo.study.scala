@@ -33,7 +33,8 @@ object StudyRepo:
     )
 
   private val indexDocProjection = Projection.include(interestedfields)
-  private val deleteDocProjection = Projection.include(F.oplogId)
+  private val deleteDocProjection = Projection.include(F.oplogDeleteId)
+  private val likesDocProjection = Projection.include(List(F.oplogUpdateId, F.oplogLikes, F.oplogRank))
 
   def apply(
       study: MongoDatabase[IO],
@@ -59,7 +60,8 @@ object StudyRepo:
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
         pullForIndex(since, until)
           .merge(pullForDelete(since, until))
-        ++ fs2.Stream(Result(Nil, Nil, until.some))
+          .merge(pullForLikes(since, until))
+        ++ fs2.Stream(Result(Nil, Nil, Nil, until.some))
 
     def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, Result[(DbStudy, StudyChapterData)]] =
       val filter = range(F.createdAt)(since, until.some)
@@ -72,7 +74,7 @@ object StudyRepo:
         .map(_.toList)
         // .evalTap(_.traverse_(x => debug"received $x"))
         .evalMap(_.toData)
-        .map(Result(_, Nil, none))
+        .map(Result(_, Nil, Nil, None))
 
     def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, Result[(DbStudy, StudyChapterData)]] =
       val filter =
@@ -88,10 +90,30 @@ object StudyRepo:
         .chunkN(config.batchSize)
         .map(_.toList.flatMap(extractId))
         .evalTap(xs => info"Deleting $xs")
-        .map(Result(Nil, _, none))
+        .map(Result(Nil, _, Nil, None))
+
+    def pullForLikes(since: Instant, until: Instant): fs2.Stream[IO, Result[(DbStudy, StudyChapterData)]] =
+      val filter =
+        Filter
+          .gte("ts", since.asBsonTimestamp)
+          .and(Filter.lt("ts", until.asBsonTimestamp))
+          .and(Filter.eq("ns", s"${config.databaseName}.study"))
+          .and(Filter.eq("op", "u")) // update operation
+          .and(Filter.exists("o.diff.u.likes")) // where likes changed
+      oplogs
+        .find(filter)
+        .projection(likesDocProjection)
+        .boundedStream(config.batchSize)
+        .chunkN(config.batchSize)
+        // .evalTap(_.traverse_(x => info"received $x"))
+        .map(_.toList.flatMap(StudyLikesOnly.fromDoc).distincByDocId)
+        // .evalTap(_.traverse_(x => info"unique $x"))
+        .map(_.map(l => l.id -> l.toMap))
+        // .evalTap(_.traverse_(x => info"map $x"))
+        .map(Result(Nil, Nil, _, None))
 
     def extractId(doc: Document): Option[Id] =
-      doc.getNestedAs[String](F.oplogId).map(Id.apply)
+      doc.getNestedAs[String](F.oplogDeleteId).map(Id.apply)
 
     def intervalStream(startAt: Option[Instant]): fs2.Stream[IO, (Instant, Instant)] =
       (startAt.fold(fs2.Stream.empty)(since => fs2.Stream(since))
@@ -132,8 +154,26 @@ object StudyRepo:
     val topics = "topics"
     val createdAt = "createdAt"
     val updatedAt = "updatedAt"
-    val oplogId = "o._id"
     val rank = "rank"
+    val oplogDeleteId = "o._id"
+    val oplogUpdateId = "o2._id"
+    val oplogLikes = "o.diff.u.likes"
+    val oplogRank = "o.diff.u.rank"
+
+case class StudyLikesOnly(id: Id, likes: Int, rank: Option[Instant]):
+  inline def toMap: Map[String, Any] =
+    Map("likes" -> likes) ++ rank.map(r => "rank" -> SearchDateTime.fromInstant(r))
+
+object StudyLikesOnly:
+  given HasDocId[StudyLikesOnly] with
+    extension (a: StudyLikesOnly) def docId: Option[String] = Some(a.id.value)
+
+  def fromDoc(doc: Document): Option[StudyLikesOnly] =
+    import StudyRepo.F
+    val id = doc.getNestedAs[String](F.oplogUpdateId).map(Id.apply)
+    val rank = doc.getNestedAs[Instant](F.oplogRank)
+    val likes = doc.getNestedAs[Int](F.oplogLikes)
+    (id, likes).mapN(StudyLikesOnly(_, _, rank))
 
 case class DbStudy(
     id: String, // _id
