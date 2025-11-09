@@ -34,7 +34,7 @@ object StudyRepo:
 
   private val indexDocProjection = Projection.include(interestedfields)
   private val deleteDocProjection = Projection.include(F.oplogId)
-  private val likesDocProjection = Projection.include(List(F.oplogId, F.oplogLikes))
+  private val likesDocProjection = Projection.include(List(F.oplogUpdateId, F.oplogLikes))
 
   def apply(
       study: MongoDatabase[IO],
@@ -105,6 +105,7 @@ object StudyRepo:
         .projection(likesDocProjection)
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
+        // .evalTap(_.traverse_(x => info"received $x"))
         .map: docs =>
           val toUpdate = docs.toList
             .flatMap(extractLikesOnly)
@@ -113,10 +114,13 @@ object StudyRepo:
           Result(Nil, Nil, toUpdate, None)
 
     def extractLikesOnly(doc: Document): Option[StudyLikesOnly] =
-      (extractId(doc), extractLikes(doc)).mapN(StudyLikesOnly.apply)
+      (extractUpdateId(doc), extractLikes(doc)).mapN(StudyLikesOnly.apply)
 
     def extractId(doc: Document): Option[Id] =
       doc.getNestedAs[String](F.oplogId).map(Id.apply)
+
+    def extractUpdateId(doc: Document): Option[Id] =
+      doc.getNestedAs[String](F.oplogUpdateId).map(Id.apply)
 
     def extractLikes(doc: Document): Option[Int] =
       doc.getNestedAs[Int](F.oplogLikes)
@@ -163,6 +167,7 @@ object StudyRepo:
     val rank = "rank"
     val oplogId = "o._id"
     val oplogLikes = "o.diff.u.likes"
+    val oplogUpdateId = "o2._id"
 
 case class StudyLikesOnly(
     id: Id,
