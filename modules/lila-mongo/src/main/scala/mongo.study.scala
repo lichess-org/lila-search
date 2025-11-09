@@ -106,8 +106,10 @@ object StudyRepo:
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
         .map: docs =>
-          val toUpdate = docs.toList.flatMap(extractLikesOnly).map: likesOnly =>
-            (likesOnly.id, Map("likes" -> likesOnly.likes))
+          val toUpdate = docs.toList
+            .flatMap(extractLikesOnly)
+            .map: likesOnly =>
+              (likesOnly.id, Map("likes" -> likesOnly.likes))
           Result(Nil, Nil, toUpdate, None)
 
     def extractLikesOnly(doc: Document): Option[StudyLikesOnly] =

@@ -11,7 +11,12 @@ trait Repo[A]:
 
 object Repo:
   type ToUpdate = List[(Id, Map[String, Any])]
-  case class Result[A](toIndex: List[A], toDelete: List[Id], toUpdate: ToUpdate = Nil, timestamp: Option[Instant])
+  case class Result[A](
+      toIndex: List[A],
+      toDelete: List[Id],
+      toUpdate: ToUpdate = Nil,
+      timestamp: Option[Instant]
+  )
 
   import cats.effect.IO
   import mongo4cats.bson.Document
