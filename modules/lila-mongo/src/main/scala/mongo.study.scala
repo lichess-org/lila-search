@@ -33,7 +33,7 @@ object StudyRepo:
     )
 
   private val indexDocProjection = Projection.include(interestedfields)
-  private val deleteDocProjection = Projection.include(F.oplogId)
+  private val deleteDocProjection = Projection.include(F.oplogDeleteId)
   private val likesDocProjection = Projection.include(List(F.oplogUpdateId, F.oplogLikes))
 
   def apply(
@@ -114,7 +114,7 @@ object StudyRepo:
       (extractUpdateId(doc), extractLikes(doc)).mapN(StudyLikesOnly.apply)
 
     def extractId(doc: Document): Option[Id] =
-      doc.getNestedAs[String](F.oplogId).map(Id.apply)
+      doc.getNestedAs[String](F.oplogDeleteId).map(Id.apply)
 
     def extractUpdateId(doc: Document): Option[Id] =
       doc.getNestedAs[String](F.oplogUpdateId).map(Id.apply)
@@ -162,9 +162,9 @@ object StudyRepo:
     val createdAt = "createdAt"
     val updatedAt = "updatedAt"
     val rank = "rank"
-    val oplogId = "o._id"
-    val oplogLikes = "o.diff.u.likes"
+    val oplogDeleteId = "o._id"
     val oplogUpdateId = "o2._id"
+    val oplogLikes = "o.diff.u.likes"
 
 case class StudyLikesOnly(id: Id, likes: Int)
 object StudyLikesOnly:
