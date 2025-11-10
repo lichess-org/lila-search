@@ -67,7 +67,7 @@ object Translate:
       body = forum.post.text,
       topic = forum.topicName,
       topicId = forum.post.topicId,
-      author = forum.post.userId.some,
+      author = forum.post.userId,
       troll = forum.post.troll,
       date = forum.post.createdAt.toEpochMilli
     )

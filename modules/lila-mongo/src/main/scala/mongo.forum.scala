@@ -156,7 +156,7 @@ case class DbPost(
     topicId: String,
     troll: Boolean,
     createdAt: Instant,
-    userId: String,
+    userId: Option[String],
     erasedAt: Option[Instant]
 )
 
