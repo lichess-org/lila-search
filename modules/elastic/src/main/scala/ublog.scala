@@ -67,4 +67,4 @@ object Fields:
   val date = "date"
 
 object Mapping:
-  def fields = MappingGenerator.generateFields(ingestor.UblogSource.schema)
+  def fields = MappingGenerator.generateFields(es.UblogSource.schema)

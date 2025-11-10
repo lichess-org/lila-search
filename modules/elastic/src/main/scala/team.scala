@@ -25,7 +25,7 @@ private object Fields:
   val nbMembers = "nbm"
 
 object Mapping:
-  def fields = MappingGenerator.generateFields(ingestor.TeamSource.schema)
+  def fields = MappingGenerator.generateFields(es.TeamSource.schema)
 
 object Team:
   val index = "team"

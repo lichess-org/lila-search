@@ -102,7 +102,7 @@ object Fields:
   val source = "so"
 
 object Mapping:
-  def fields = MappingGenerator.generateFields(ingestor.GameSource.schema)
+  def fields = MappingGenerator.generateFields(es.GameSource.schema)
 
 object Game:
   val index = "game"

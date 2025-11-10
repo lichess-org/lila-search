@@ -62,7 +62,7 @@ object Fields:
   val public = "public"
 
 object Mapping:
-  def fields = MappingGenerator.generateFields(ingestor.StudySource.schema)
+  def fields = MappingGenerator.generateFields(es.StudySource.schema)
 
 object Study:
   val index = "study"

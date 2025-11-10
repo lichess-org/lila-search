@@ -4,6 +4,7 @@ package ingestor
 import cats.syntax.all.*
 import chess.Speed
 import chess.variant.Variant
+import lila.search.es.*
 
 object Translate:
 

@@ -37,4 +37,4 @@ object Fields:
   val date = "da"
 
 object Mapping:
-  def fields = MappingGenerator.generateFields(ingestor.ForumSource.schema)
+  def fields = MappingGenerator.generateFields(es.ForumSource.schema)

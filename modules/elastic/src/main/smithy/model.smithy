@@ -1,6 +1,6 @@
 $version: "2"
 
-namespace lila.search.ingestor
+namespace lila.search.es
 
 use smithy.api#default
 use smithy.api#jsonName
@@ -12,13 +12,6 @@ use lila.search.core#PlayerIds
 use lila.search.core#Strings
 use lila.search.core#IndexString
 use lila.search.core#DateTime
-
-use lila.search.es#textField
-use lila.search.es#keywordField
-use lila.search.es#dateField
-use lila.search.es#shortField
-use lila.search.es#intField
-use lila.search.es#booleanField
 
 structure ForumSource {
   @required

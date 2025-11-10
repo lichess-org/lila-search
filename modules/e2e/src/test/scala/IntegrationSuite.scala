@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.ElasticError
 import lila.search.ingestor.IndexRegistry.given
+import lila.search.es.*
 import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
@@ -68,7 +69,7 @@ object IntegrationSuite extends IOSuite:
           _ <- res.esClient.store(
             Index.Forum,
             Id("forum_id"),
-            ingestor.ForumSource(
+            ForumSource(
               body = "a forum post",
               topic = "chess",
               topicId = "chess",
@@ -91,7 +92,7 @@ object IntegrationSuite extends IOSuite:
           _ <- res.esClient.store(
             Index.Ublog,
             Id("abcdefgh"),
-            ingestor.UblogSource(
+            UblogSource(
               text = "lil bubber, hayo!",
               language = "en",
               likes = 0,
@@ -113,7 +114,7 @@ object IntegrationSuite extends IOSuite:
           _ <- res.esClient.store(
             Index.Team,
             Id("team_id"),
-            ingestor.TeamSource(
+            TeamSource(
               name = "team name",
               description = "team description",
               100
@@ -133,7 +134,7 @@ object IntegrationSuite extends IOSuite:
           _ <- res.esClient.store(
             Index.Study,
             Id("study_id"),
-            ingestor.StudySource(
+            StudySource(
               name = "study name",
               owner = "study owner",
               members = List("member1", "member2"),
@@ -169,7 +170,7 @@ object IntegrationSuite extends IOSuite:
           _ <- res.esClient.store(
             Index.Game,
             Id("game_id"),
-            ingestor.GameSource(
+            GameSource(
               status = 1,
               turns = 100,
               rated = true,
