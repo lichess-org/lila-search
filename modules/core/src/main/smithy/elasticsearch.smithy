@@ -28,7 +28,7 @@ structure keywordField {
     /// Search boost multiplier for this field
     boost: Integer
     /// Whether to store doc values for sorting/aggregations
-    docValues: Boolean = false
+    docValues: Boolean
 }
 
 /// Marks a field as an Elasticsearch date field

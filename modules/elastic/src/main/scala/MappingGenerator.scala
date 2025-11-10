@@ -34,7 +34,7 @@ object MappingGenerator:
   private def generateKeywordField(fieldName: String, traitData: es.KeywordField): ElasticField =
     keywordField(fieldName).copy(
       boost = traitData.boost.map(_.toDouble),
-      docValues = Some(traitData.docValues)
+      docValues = traitData.docValues
     )
 
   private def generateDateField(fieldName: String, traitData: es.DateField): ElasticField =
