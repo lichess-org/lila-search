@@ -1,9 +1,9 @@
 package lila.search
 
-import smithy4s.Hints
-import smithy4s.schema.Schema
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.fields.*
+import smithy4s.Hints
+import smithy4s.schema.Schema
 
 /** Generates Elasticsearch field mappings from Smithy schemas annotated with ES traits */
 object MappingGenerator:

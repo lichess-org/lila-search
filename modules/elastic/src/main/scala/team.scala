@@ -25,13 +25,7 @@ private object Fields:
   val nbMembers = "nbm"
 
 object Mapping:
-  import Fields.*
-  def fields =
-    Seq(
-      textField(name).copy(boost = Some(10), analyzer = Some("english")),
-      textField(description).copy(boost = Some(2), analyzer = Some("english")),
-      shortField(nbMembers)
-    )
+  def fields = MappingGenerator.generateFields(ingestor.TeamSource.schema)
 
 object Team:
   val index = "team"

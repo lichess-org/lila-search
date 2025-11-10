@@ -67,12 +67,4 @@ object Fields:
   val date = "date"
 
 object Mapping:
-  import Fields.*
-  def fields =
-    Seq(
-      textField(text),
-      shortField(quality).copy(docValues = Some(true)),
-      keywordField(language).copy(docValues = Some(false)),
-      shortField(likes).copy(docValues = Some(true)),
-      dateField(date).copy(docValues = Some(true))
-    )
+  def fields = MappingGenerator.generateFields(ingestor.UblogSource.schema)

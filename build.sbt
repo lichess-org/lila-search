@@ -67,6 +67,7 @@ lazy val api = project
 
 lazy val elastic = project
   .in(file("modules/elastic"))
+  .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     name := "elastic",
     commonSettings,
@@ -77,7 +78,8 @@ lazy val elastic = project
       catsEffect,
       catsMtl,
       http4sClient,
-      elastic4sHttp4sClient
+      elastic4sHttp4sClient,
+      smithy4sCore
     )
   )
   .dependsOn(core)

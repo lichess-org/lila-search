@@ -62,23 +62,7 @@ object Fields:
   val public = "public"
 
 object Mapping:
-  import Fields.*
-  def fields =
-    Seq(
-      textField(name)
-        .copy(boost = Some(10), analyzer = Some("english"))
-        .copy(fields = List(keywordField(nameRaw))),
-      keywordField(owner).copy(boost = Some(2), docValues = Some(false)),
-      keywordField(members).copy(boost = Some(1), docValues = Some(false)),
-      textField(chapterNames).copy(boost = Some(4), analyzer = Some("english")),
-      textField(chapterTexts).copy(boost = Some(1), analyzer = Some("english")),
-      textField(topics).copy(boost = Some(5), analyzer = Some("english")),
-      shortField(likes).copy(docValues = Some(true)), // sort by likes
-      booleanField(public).copy(docValues = Some(false)),
-      dateField(rank).copy(format = Some(SearchDateTime.format)),
-      dateField(createdAt).copy(format = Some(SearchDateTime.format)),
-      dateField(updatedAt).copy(format = Some(SearchDateTime.format))
-    )
+  def fields = MappingGenerator.generateFields(ingestor.StudySource.schema)
 
 object Study:
   val index = "study"

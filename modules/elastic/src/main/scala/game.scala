@@ -102,28 +102,7 @@ object Fields:
   val source = "so"
 
 object Mapping:
-  import Fields.*
-  def fields =
-    Seq( // only keep docValues for sortable fields
-      keywordField(status).copy(docValues = Some(false)),
-      shortField(turns).copy(docValues = Some(true)),
-      booleanField(rated).copy(docValues = Some(false)),
-      keywordField(perf).copy(docValues = Some(false)),
-      keywordField(uids).copy(docValues = Some(false)),
-      keywordField(winner).copy(docValues = Some(false)),
-      keywordField(loser).copy(docValues = Some(false)),
-      keywordField(winnerColor).copy(docValues = Some(false)),
-      shortField(averageRating).copy(docValues = Some(true)),
-      shortField(ai).copy(docValues = Some(false)),
-      dateField(date).copy(format = Some(SearchDateTime.format), docValues = Some(true)),
-      intField(duration).copy(docValues = Some(false)),
-      intField(clockInit).copy(docValues = Some(false)),
-      shortField(clockInc).copy(docValues = Some(false)),
-      booleanField(analysed).copy(docValues = Some(false)),
-      keywordField(whiteUser).copy(docValues = Some(false)),
-      keywordField(blackUser).copy(docValues = Some(false)),
-      keywordField(source).copy(docValues = Some(false))
-    )
+  def fields = MappingGenerator.generateFields(ingestor.GameSource.schema)
 
 object Game:
   val index = "game"

@@ -1,8 +1,8 @@
 package lila.search
 package ingestor
 
-import weaver.*
 import com.sksamuel.elastic4s.fields.*
+import weaver.*
 
 /** Tests to verify that generated mappings match the manually defined mappings */
 object MappingComparisonSuite extends SimpleIOSuite:
@@ -99,32 +99,32 @@ object MappingComparisonSuite extends SimpleIOSuite:
           s"[$indexName.$fieldName] Type mismatch: gen=${gen.getClass.getSimpleName}, manual=${man.getClass.getSimpleName}"
         )
 
-  pureTest("Study index: generated mappings match manual mappings"):
-    val generated = GeneratedMappings.study.fields
-    val manual = study.Mapping.fields
-    compareFields(generated, manual, "study") &&
-    expect(generated.toSet == manual.toSet)
+  pureTest("Study index: generated mappings match legacy mappings"):
+    val generated = study.Mapping.fields
+    val legacy = LegacyMappings.study.fields
+    compareFields(generated, legacy, "study") &&
+    expect(generated.toSet == legacy.toSet)
 
-  pureTest("Game index: generated mappings match manual mappings"):
-    val generated = GeneratedMappings.game.fields
-    val manual = game.Mapping.fields
-    compareFields(generated, manual, "game") &&
-    expect(generated.toSet == manual.toSet)
+  pureTest("Game index: generated mappings match legacy mappings"):
+    val generated = game.Mapping.fields
+    val legacy = LegacyMappings.game.fields
+    compareFields(generated, legacy, "game") &&
+    expect(generated.toSet == legacy.toSet)
 
-  pureTest("Forum index: generated mappings match manual mappings"):
-    val generated = GeneratedMappings.forum.fields
-    val manual = forum.Mapping.fields
-    compareFields(generated, manual, "forum") &&
-    expect(generated.toSet == manual.toSet)
+  pureTest("Forum index: generated mappings match legacy mappings"):
+    val generated = forum.Mapping.fields
+    val legacy = LegacyMappings.forum.fields
+    compareFields(generated, legacy, "forum") &&
+    expect(generated.toSet == legacy.toSet)
 
-  pureTest("Team index: generated mappings match manual mappings"):
-    val generated = GeneratedMappings.team.fields
-    val manual = team.Mapping.fields
-    compareFields(generated, manual, "team") &&
-    expect(generated.toSet == manual.toSet)
+  pureTest("Team index: generated mappings match legacy mappings"):
+    val generated = team.Mapping.fields
+    val legacy = LegacyMappings.team.fields
+    compareFields(generated, legacy, "team") &&
+    expect(generated.toSet == legacy.toSet)
 
-  pureTest("Ublog index: generated mappings match manual mappings"):
-    val generated = GeneratedMappings.ublog.fields
-    val manual = ublog.Mapping.fields
-    compareFields(generated, manual, "ublog") &&
-    expect(generated.toSet == manual.toSet)
+  pureTest("Ublog index: generated mappings match legacy mappings"):
+    val generated = ublog.Mapping.fields
+    val legacy = LegacyMappings.ublog.fields
+    compareFields(generated, legacy, "ublog") &&
+    expect(generated.toSet == legacy.toSet)
