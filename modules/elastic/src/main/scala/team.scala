@@ -19,7 +19,7 @@ case class Team(text: String):
   private def makeQuery =
     QueryParser(text, Nil).terms.map(term => multiMatchQuery(term).fields(Team.searchableFields*)).compile
 
-private object Fields:
+object Fields:
   val name = "na"
   val description = "de"
   val nbMembers = "nbm"

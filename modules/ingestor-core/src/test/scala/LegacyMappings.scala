@@ -8,16 +8,8 @@ import com.sksamuel.elastic4s.fields.ElasticField
 object LegacyMappings:
 
   object forum:
-    object Fields:
-      val body = "bo"
-      val topic = "to"
-      val topicId = "ti"
-      val author = "au"
-      val troll = "tr"
-      val date = "da"
-
     def fields: Seq[ElasticField] =
-      import Fields.*
+      import lila.search.forum.Fields.*
       Seq(
         textField(body).copy(boost = Some(2), analyzer = Some("english")),
         textField(topic).copy(boost = Some(5), analyzer = Some("english")),
@@ -28,28 +20,8 @@ object LegacyMappings:
       )
 
   object game:
-    object Fields:
-      val status = "s"
-      val turns = "t"
-      val rated = "r"
-      val perf = "p"
-      val uids = "u"
-      val winner = "w"
-      val loser = "o"
-      val winnerColor = "c"
-      val averageRating = "a"
-      val ai = "i"
-      val date = "d"
-      val duration = "l"
-      val clockInit = "ct"
-      val clockInc = "ci"
-      val analysed = "n"
-      val whiteUser = "wu"
-      val blackUser = "bu"
-      val source = "so"
-
     def fields: Seq[ElasticField] =
-      import Fields.*
+      import lila.search.game.Fields.*
       Seq( // only keep docValues for sortable fields
         keywordField(status).copy(docValues = Some(false)),
         shortField(turns).copy(docValues = Some(true)),
@@ -72,22 +44,8 @@ object LegacyMappings:
       )
 
   object study:
-    object Fields:
-      val name = "name"
-      val nameRaw = "raw"
-      val owner = "owner"
-      val members = "members"
-      val chapterNames = "chapterNames"
-      val chapterTexts = "chapterTexts"
-      val topics = "topics"
-      val createdAt = "createdAt_date"
-      val updatedAt = "updatedAt_date"
-      val rank = "rank"
-      val likes = "likes"
-      val public = "public"
-
     def fields: Seq[ElasticField] =
-      import Fields.*
+      import lila.search.study.Fields.*
       Seq(
         textField(name)
           .copy(boost = Some(10), analyzer = Some("english"))
@@ -105,13 +63,8 @@ object LegacyMappings:
       )
 
   object team:
-    object Fields:
-      val name = "na"
-      val description = "de"
-      val nbMembers = "nbm"
-
     def fields: Seq[ElasticField] =
-      import Fields.*
+      import lila.search.team.Fields.*
       Seq(
         textField(name).copy(boost = Some(10), analyzer = Some("english")),
         textField(description).copy(boost = Some(2), analyzer = Some("english")),
@@ -119,15 +72,8 @@ object LegacyMappings:
       )
 
   object ublog:
-    object Fields:
-      val text = "text"
-      val likes = "likes"
-      val quality = "quality"
-      val language = "language"
-      val date = "date"
-
     def fields: Seq[ElasticField] =
-      import Fields.*
+      import lila.search.ublog.Fields.*
       Seq(
         textField(text),
         shortField(quality).copy(docValues = Some(true)),
