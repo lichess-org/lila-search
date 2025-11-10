@@ -19,19 +19,13 @@ case class Team(text: String):
   private def makeQuery =
     QueryParser(text, Nil).terms.map(term => multiMatchQuery(term).fields(Team.searchableFields*)).compile
 
-private object Fields:
+object Fields:
   val name = "na"
   val description = "de"
   val nbMembers = "nbm"
 
 object Mapping:
-  import Fields.*
-  def fields =
-    Seq(
-      textField(name).copy(boost = Some(10), analyzer = Some("english")),
-      textField(description).copy(boost = Some(2), analyzer = Some("english")),
-      shortField(nbMembers)
-    )
+  def fields = MappingGenerator.generateFields(es.TeamSource.schema)
 
 object Team:
   val index = "team"

@@ -37,13 +37,4 @@ object Fields:
   val date = "da"
 
 object Mapping:
-  import Fields.*
-  def fields =
-    Seq(
-      textField(body).copy(boost = Some(2), analyzer = Some("english")),
-      textField(topic).copy(boost = Some(5), analyzer = Some("english")),
-      keywordField(author).copy(docValues = Some(false)),
-      keywordField(topicId).copy(docValues = Some(false)),
-      booleanField(troll).copy(docValues = Some(false)),
-      dateField(date)
-    )
+  def fields = MappingGenerator.generateFields(es.ForumSource.schema)
