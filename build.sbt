@@ -200,7 +200,8 @@ lazy val `ingestor-core` = project
       weaver,
       weaverScalaCheck
     ),
-    Compile / doc / sources := Seq.empty
+    Compile / doc / sources := Seq.empty,
+    Test / scalacOptions += "-Wconf:msg=interpolation uses toString:s"
   )
   .dependsOn(elastic, core, `lila-mongo`)
 
