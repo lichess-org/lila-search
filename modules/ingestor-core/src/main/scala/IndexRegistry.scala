@@ -1,6 +1,8 @@
 package lila.search
 package ingestor
 
+import cats.effect.IO
+
 object IndexRegistry:
 
   import smithy4s.json.Json.given
@@ -35,23 +37,24 @@ object IndexRegistry:
 
   trait IndexMapping:
     type Out
-    def repo: Repo[Out]
+    def repo: IO[Repo[Out]]
     given indexable: Indexable[Out]
     given hasId: HasStringId[Out]
-    def withRepo[R](f: Repo[Out] => (Indexable[Out] ?=> HasStringId[Out] ?=> R)): R = f(repo)
+    def withRepo[R](f: Repo[Out] => (Indexable[Out] ?=> HasStringId[Out] ?=> IO[R])): IO[R] =
+      repo.flatMap(f(_))
 
 class IndexRegistry(
-    game: Repo[DbGame],
-    forum: Repo[DbForum],
-    ublog: Repo[DbUblog],
-    study: Repo[(DbStudy, StudyChapterData)],
-    team: Repo[DbTeam]
+    game: IO[Repo[DbGame]],
+    forum: IO[Repo[DbForum]],
+    ublog: IO[Repo[DbUblog]],
+    study: IO[Repo[(DbStudy, StudyChapterData)]],
+    team: IO[Repo[DbTeam]]
 ):
   import com.sksamuel.elastic4s.Indexable
   import IndexRegistry.{ IndexMapping, Of, given }
 
   /** Helper to create an IndexMapping from a repo */
-  private def makeMapping[A: Indexable: HasStringId](r: Repo[A]): IndexMapping =
+  private def makeMapping[A: Indexable: HasStringId](r: IO[Repo[A]]): IndexMapping =
     new IndexMapping:
       type Out = A
       def repo = r
@@ -59,12 +62,12 @@ class IndexRegistry(
       def hasId = summon[HasStringId[A]]
 
   def apply(index: Index): IndexMapping = index match
-    case Index.Game => makeMapping(game)
-    case Index.Forum => makeMapping(forum)
-    case Index.Ublog => makeMapping(ublog)
-    case Index.Study => makeMapping(study)
-    case Index.Team => makeMapping(team)
+    case Index.Game => makeMapping[DbGame](game)
+    case Index.Forum => makeMapping[DbForum](forum)
+    case Index.Ublog => makeMapping[DbUblog](ublog)
+    case Index.Study => makeMapping[(DbStudy, StudyChapterData)](study)
+    case Index.Team => makeMapping[DbTeam](team)
 
   /** Get a specific repo when the index is statically known */
-  def get[I <: Index](using ev: ValueOf[I]): Repo[Of[I]] =
-    apply(ev.value).repo.asInstanceOf[Repo[Of[I]]]
+  def get[I <: Index](using ev: ValueOf[I]): IO[Repo[Of[I]]] =
+    apply(ev.value).repo.asInstanceOf[IO[Repo[Of[I]]]]

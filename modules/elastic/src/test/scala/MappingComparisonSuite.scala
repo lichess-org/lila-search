@@ -1,5 +1,4 @@
 package lila.search
-package ingestor
 
 import com.sksamuel.elastic4s.fields.*
 import weaver.*

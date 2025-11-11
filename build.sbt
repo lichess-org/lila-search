@@ -79,8 +79,10 @@ lazy val elastic = project
       catsMtl,
       http4sClient,
       elastic4sHttp4sClient,
-      smithy4sCore
-    )
+      smithy4sCore,
+      weaver
+    ),
+    Test / scalacOptions += "-Wconf:msg=interpolation uses toString:s"
   )
   .dependsOn(core)
 
@@ -169,7 +171,7 @@ lazy val `ingestor-cli` = project
     Compile / doc / sources := Seq.empty,
     Compile / run / fork := true
   )
-  .dependsOn(elastic, core, `ingestor-core`, `lila-game-export`)
+  .dependsOn(elastic, core, `ingestor-core`)
 
 lazy val `ingestor-core` = project
   .in(file("modules/ingestor-core"))

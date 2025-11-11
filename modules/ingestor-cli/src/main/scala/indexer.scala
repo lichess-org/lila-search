@@ -18,24 +18,22 @@ object Indexer:
   def apply(opts: IndexOpts, res: AppResources, config: AppConfig)(using LoggerFactory[IO]): IO[Unit] =
     given logger: Logger[IO] = LoggerFactory[IO].getLogger
     import opts.dry
-    (
+    given IndexRegistry = IndexRegistry(
       GameRepo(res.lichess, config.ingestor.game),
       ForumRepo(res.lichess, config.ingestor.forum),
       UblogRepo(res.lichess, config.ingestor.ublog),
       StudyRepo(res.study, res.studyLocal, config.ingestor.study),
       TeamRepo(res.lichess, config.ingestor.team)
-    ).mapN(IndexRegistry.apply)
-      .flatMap { case given IndexRegistry =>
-        given KVStore = res.store
-        given ESClient[IO] = res.elastic
-        def go(index: Index) =
-          val runIndex = run(index, opts)
-          putMappingsIfNotExists(res.elastic, index).whenA(!dry) *>
-            runIndex *>
-            refreshIndexes(res.elastic, index).whenA(opts.refresh && !dry)
+    )
+    given KVStore = res.store
+    given ESClient[IO] = res.elastic
+    def go(index: Index) =
+      val runIndex = run(index, opts)
+      putMappingsIfNotExists(res.elastic, index).whenA(!dry) *>
+        runIndex *>
+        refreshIndexes(res.elastic, index).whenA(opts.refresh && !dry)
 
-        opts.index.toList.traverse_(go)
-      }
+    opts.index.toList.traverse_(go)
 
   def run(index: Index, opts: IndexOpts)(using
       registry: IndexRegistry,
