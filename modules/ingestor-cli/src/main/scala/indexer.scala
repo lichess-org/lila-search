@@ -23,6 +23,7 @@ object Indexer:
       ForumRepo(res.lichess, config.ingestor.forum),
       UblogRepo(res.lichess, config.ingestor.ublog),
       StudyRepo(res.study, res.studyLocal, config.ingestor.study),
+      Study2Repo(res.study, res.studyLocal, config.ingestor.study),
       TeamRepo(res.lichess, config.ingestor.team)
     )
     given KVStore = res.store

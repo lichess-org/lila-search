@@ -61,6 +61,23 @@ object LegacyMappings:
         dateField(updatedAt).copy(format = Some(SearchDateTime.format))
       )
 
+  object study2:
+    def fields: Seq[ElasticField] =
+      import lila.search.study2.Fields.*
+      Seq(
+        textField(name)
+          .copy(boost = Some(10), analyzer = Some("english"))
+          .copy(fields = List(keywordField(nameRaw).copy(normalizer = Some("lowercase")))),
+        keywordField(owner).copy(boost = Some(2), docValues = Some(false)),
+        keywordField(members).copy(boost = Some(1), docValues = Some(false)),
+        textField(topics).copy(boost = Some(5), analyzer = Some("english")),
+        shortField(likes),
+        booleanField(public),
+        dateField(rank).copy(format = Some(SearchDateTime.format)),
+        dateField(createdAt).copy(format = Some(SearchDateTime.format)),
+        dateField(updatedAt).copy(format = Some(SearchDateTime.format))
+      )
+
   object team:
     def fields: Seq[ElasticField] =
       import lila.search.team.Fields.*
