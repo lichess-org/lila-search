@@ -26,6 +26,14 @@ extension (index: Index)
     case Index.Study2 => study2.Mapping.fields
     case Index.Team => team.Mapping.fields
 
+  def keepSource: Boolean = index match
+    case Index.Forum => false
+    case Index.Ublog => false
+    case Index.Game => false
+    case Index.Study => false
+    case Index.Study2 => true // need source for partial updates (likes and ranks)
+    case Index.Team => false
+
   def refreshInterval =
     index match
       case Index.Study => "10s"
