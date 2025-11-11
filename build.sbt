@@ -79,8 +79,10 @@ lazy val elastic = project
       catsMtl,
       http4sClient,
       elastic4sHttp4sClient,
-      smithy4sCore
-    )
+      smithy4sCore,
+      weaver
+    ),
+    Test / scalacOptions += "-Wconf:msg=interpolation uses toString:s"
   )
   .dependsOn(core)
 
