@@ -7,6 +7,7 @@ import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.{ ElasticError, Index as ESIndex, Response }
+import com.sksamuel.elastic4s.fields.ElasticField
 
 extension (queries: List[Query])
   def compile: Query = queries match
@@ -17,16 +18,18 @@ extension (queries: List[Query])
 extension (index: Index)
   def toES: ESIndex = ESIndex(index.value)
 
-  def mapping = index match
+  def mapping: List[ElasticField] = index match
     case Index.Forum => forum.Mapping.fields
     case Index.Ublog => ublog.Mapping.fields
     case Index.Game => game.Mapping.fields
     case Index.Study => study.Mapping.fields
+    case Index.Study2 => study2.Mapping.fields
     case Index.Team => team.Mapping.fields
 
   def refreshInterval =
     index match
       case Index.Study => "10s"
+      case Index.Study2 => "10s"
       case _ => "300s"
 
 extension [F[_]: Monad, A](response: Response[A])
