@@ -171,7 +171,7 @@ lazy val `ingestor-cli` = project
     Compile / doc / sources := Seq.empty,
     Compile / run / fork := true
   )
-  .dependsOn(elastic, core, `ingestor-core`, `lila-game-export`)
+  .dependsOn(elastic, core, `ingestor-core`)
 
 lazy val `ingestor-core` = project
   .in(file("modules/ingestor-core"))
