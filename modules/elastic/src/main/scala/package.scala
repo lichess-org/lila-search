@@ -5,9 +5,9 @@ import cats.mtl.Raise
 import cats.mtl.implicits.*
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
+import com.sksamuel.elastic4s.fields.ElasticField
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.{ ElasticError, Index as ESIndex, Response }
-import com.sksamuel.elastic4s.fields.ElasticField
 
 extension (queries: List[Query])
   def compile: Query = queries match

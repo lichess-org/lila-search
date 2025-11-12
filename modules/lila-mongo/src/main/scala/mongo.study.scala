@@ -38,16 +38,18 @@ object StudyRepo:
 
     private def enrichWithChapters(result: Result[DbStudy]): IO[Result[(DbStudy, StudyChapterData)]] =
       val studyIds = result.toIndex.map(_.id).distinct
-      chapters.byStudyIds(studyIds).flatMap: chapterMap =>
-        result.toIndex
-          .traverseFilter(_.toData(chapterMap))
-          .map: enriched =>
-            Result(
-              enriched,
-              result.toDelete,
-              result.toUpdate,
-              result.timestamp
-            )
+      chapters
+        .byStudyIds(studyIds)
+        .flatMap: chapterMap =>
+          result.toIndex
+            .traverseFilter(_.toData(chapterMap))
+            .map: enriched =>
+              Result(
+                enriched,
+                result.toDelete,
+                result.toUpdate,
+                result.timestamp
+              )
 
     extension (study: DbStudy)
       private def toData(
