@@ -14,6 +14,7 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import java.time.Instant
 
 import Repo.*
+import scala.annotation.nowarn
 
 object Study2Repo:
   import StudyRepo.F
@@ -59,7 +60,7 @@ object Study2Repo:
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
         pullForIndex(since, until)
           .merge(pullForDelete(since, until))
-          .merge(pullForLikes(since, until))
+          // .merge(pullForLikes(since, until))
         ++ fs2.Stream(Result(Nil, Nil, Nil, until.some))
 
     def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, Result[DbStudy]] =
@@ -90,6 +91,7 @@ object Study2Repo:
         .evalTap(xs => info"Deleting $xs")
         .map(Result(Nil, _, Nil, None))
 
+    @nowarn("msg=unused") // currently not used as we don't support partial updates in study index
     def pullForLikes(since: Instant, until: Instant): fs2.Stream[IO, Result[DbStudy]] =
       val filter =
         Filter
