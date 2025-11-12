@@ -3,7 +3,7 @@ import org.typelevel.scalacoptions.ScalacOptions
 
 inThisBuild(
   Seq(
-    scalaVersion := "3.7.3",
+    scalaVersion := "3.7.4",
     versionScheme := Some("early-semver"),
     organization := "org.lichess.search",
     run / fork := true,
