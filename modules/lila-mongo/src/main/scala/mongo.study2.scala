@@ -63,6 +63,7 @@ object Study2Repo:
         ++ fs2.Stream(Result(Nil, Nil, Nil, until.some))
 
     def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, Result[DbStudy]] =
+      // filter out relay: https://github.com/lichess-org/lila/blob/d1ebb8bdc744125d0024fa643b3817fa34814035/modules/study/src/main/BSONHandlers.scala#L392
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
       studies
