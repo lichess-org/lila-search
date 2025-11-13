@@ -15,7 +15,7 @@ extension (index: Index)
       result: Repo.Result[A]
   )(using Logger[IO], ESClient[IO], KVStore): IO[Unit] =
     index.storeBulk(result.toIndex) *>
-      index.updateBulk(result.toUpdate) *>
+      // index.updateBulk(result.toUpdate) *>
       index.deleteMany(result.toDelete) *>
       result.timestamp.traverse_(index.saveTimestamp)
 

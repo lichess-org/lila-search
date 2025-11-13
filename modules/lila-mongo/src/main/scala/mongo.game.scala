@@ -80,7 +80,6 @@ object GameRepo:
           Result(
             toIndex.flatMap(_.fullDocument),
             toDelete.flatMap(_.docId.map(Id.apply)),
-            Nil,
             lastEventTimestamp
           )
 
@@ -94,7 +93,7 @@ object GameRepo:
           .chunkN(config.batchSize)
           .map(_.toList)
           .metered(1.second) // to avoid overloading the elasticsearch
-          .map(ds => Result(ds, Nil, Nil, None))
+          .map(ds => Result(ds, Nil, None))
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =
       val builder = games.watch(aggregate)

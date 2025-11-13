@@ -14,7 +14,6 @@ object Repo:
   case class Result[A](
       toIndex: List[A],
       toDelete: List[Id],
-      toUpdate: ToUpdate = Nil,
       timestamp: Option[Instant]
   )
 
