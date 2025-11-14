@@ -74,6 +74,7 @@ object StudyRepo:
     val createdAt = "createdAt"
     val updatedAt = "updatedAt"
     val rank = "rank"
+    val from = "rank"
     val oplogDeleteId = "o._id"
     val oplogUpdateId = "o2._id"
     val oplogLikes = "o.diff.u.likes"
@@ -104,14 +105,15 @@ case class DbStudy(
     likes: Option[Int],
     rank: Option[Instant],
     createdAt: Option[Instant],
-    updatedAt: Option[Instant]
+    updatedAt: Option[Instant],
+    from: Option[String] = None
 ):
   def memberIds: List[String] = members.fold(Nil)(_.keys.toList)
 
 object DbStudy:
   import StudyRepo.F
   given Decoder[DbStudy] =
-    Decoder.forProduct10(
+    Decoder.forProduct11(
       _id,
       F.name,
       F.ownerId,
@@ -121,7 +123,8 @@ object DbStudy:
       F.likes,
       F.rank,
       F.createdAt,
-      F.updatedAt
+      F.updatedAt,
+      F.from
     )(DbStudy.apply)
 
   // We don't write to the database so we don't need to implement this
