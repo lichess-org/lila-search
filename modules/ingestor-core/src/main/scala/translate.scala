@@ -88,6 +88,19 @@ object Translate:
       updatedAt = study.updatedAt.map(SearchDateTime.fromInstant)
     )
 
+  def study2(study: DbStudy): Study2Source =
+    Study2Source(
+      name = study.name,
+      owner = study.ownerId,
+      members = study.memberIds,
+      topics = study.topics.getOrElse(Nil),
+      likes = study.likes.getOrElse(0),
+      public = study.visibility.fold(false)(_ == "public"),
+      rank = study.rank.map(SearchDateTime.fromInstant),
+      createdAt = study.createdAt.map(SearchDateTime.fromInstant),
+      updatedAt = study.updatedAt.map(SearchDateTime.fromInstant)
+    )
+
   def team(team: DbTeam): TeamSource =
     TeamSource(team.name, team.description, team.nbMembers)
 
