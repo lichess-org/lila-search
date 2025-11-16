@@ -30,8 +30,8 @@ object StudyRepo:
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[(DbStudy, StudyChapterData)]] =
       study2.watch(since).evalMap(enrichWithChapters)
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[(DbStudy, StudyChapterData)]] =
-      study2.fetch(since, until).evalMap(enrichWithChapters)
+    def fetchAll(since: Instant, until: Instant): fs2.Stream[IO, Result[(DbStudy, StudyChapterData)]] =
+      study2.fetchAll(since, until).evalMap(enrichWithChapters)
 
     private def enrichWithChapters(result: Result[DbStudy]): IO[Result[(DbStudy, StudyChapterData)]] =
       val studyIds = result.toIndex.map(_.id).distinct

@@ -7,7 +7,9 @@ import java.time.Instant
 
 trait Repo[A]:
   def watch(since: Option[Instant]): fs2.Stream[IO, Repo.Result[A]]
-  def fetch(since: Instant, until: Instant): fs2.Stream[IO, Repo.Result[A]]
+  def fetchAll(since: Instant, until: Instant): fs2.Stream[IO, Repo.Result[A]]
+  def fetchUpdate(since: Instant, until: Instant): fs2.Stream[IO, List[A]] =
+    fetchAll(since, until).map(_.toIndex)
 
 object Repo:
   type ToUpdate = List[(Id, Map[String, Any])]

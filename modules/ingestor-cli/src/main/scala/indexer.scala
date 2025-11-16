@@ -47,7 +47,7 @@ object Indexer:
     im.withRepo: repo =>
       val stream =
         if opts.watch then repo.watch(opts.since.some)
-        else repo.fetch(opts.since, opts.until)
+        else repo.fetchAll(opts.since, opts.until)
       val f: Repo.Result[im.Out] => IO[Unit] =
         if opts.dry then
           result =>

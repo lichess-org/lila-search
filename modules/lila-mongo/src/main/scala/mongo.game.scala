@@ -83,7 +83,7 @@ object GameRepo:
             lastEventTimestamp
           )
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[DbGame]] =
+    def fetchAll(since: Instant, until: Instant): fs2.Stream[IO, Result[DbGame]] =
       val filter = range(F.createdAt)(since, until.some)
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games

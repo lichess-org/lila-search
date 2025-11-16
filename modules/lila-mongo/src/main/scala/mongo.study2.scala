@@ -55,16 +55,21 @@ object Study2Repo:
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbStudy]] =
       intervalStream(since)
         .meteredStartImmediately(config.interval)
-        .flatMap(fetch)
+        .flatMap(fetchAll)
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[DbStudy]] =
+    def fetchAll(since: Instant, until: Instant): fs2.Stream[IO, Result[DbStudy]] =
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
         pullForIndex(since, until)
+          .map(Result(_, Nil, None))
           .merge(pullForDelete(since, until))
         // .merge(pullForLikes(since, until))
         ++ fs2.Stream(Result(Nil, Nil, until.some))
 
-    def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, Result[DbStudy]] =
+    override def fetchUpdate(since: Instant, until: Instant): fs2.Stream[IO, List[DbStudy]] =
+      fs2.Stream.eval(info"Fetching studies from $since to $until") *>
+        pullForIndex(since, until)
+
+    def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, List[DbStudy]] =
       // filter out relay: https://github.com/lichess-org/lila/blob/d1ebb8bdc744125d0024fa643b3817fa34814035/modules/study/src/main/BSONHandlers.scala#L392
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
@@ -74,7 +79,6 @@ object Study2Repo:
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
         .map(_.toList)
-        .map(Result(_, Nil, None))
 
     def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, Result[DbStudy]] =
       val filter =
