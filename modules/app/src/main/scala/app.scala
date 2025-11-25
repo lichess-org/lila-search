@@ -12,6 +12,7 @@ import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
 import org.typelevel.otel4s.sdk.metrics.SdkMetrics
 import org.typelevel.otel4s.sdk.metrics.SdkMetrics.AutoConfigured.Builder
 import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
+import org.typelevel.otel4s.{ Attribute, AttributeKey }
 
 object App extends IOApp.Simple:
 
@@ -55,7 +56,18 @@ object App extends IOApp.Simple:
       .addPropertiesCustomizer(_ =>
         Map(
           "otel.metrics.exporter" -> "none",
-          "otel.traces.exporter" -> "none"
+          "otel.traces.exporter" -> "none",
+          "otel.logs.exporter" -> "none",
+          "otel.resource.attributes" -> serviceAttributes
+            .map(attr => s"${attr.key.name}=${attr.value.toString}")
+            .mkString(",")
         )
       )
       .addMeterProviderCustomizer((b, _) => b.registerMetricReader(exporter.metricReader))
+
+  private def serviceAttributes: Seq[Attribute[?]] =
+    Seq(
+      Attribute("service.name", "lila-fishnet"),
+      Attribute("service.version", BuildInfo.version),
+      Attribute("vcs.change.id", BuildInfo.gitHeadCommit)
+    )
