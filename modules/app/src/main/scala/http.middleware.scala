@@ -22,6 +22,6 @@ def MkMiddleware(config: HttpServerConfig)(using LoggerFactory[IO], MeterProvide
 
   OtelMetrics
     .serverMetricsOps[IO]()
-    .map(org.http4s.server.middleware.Metrics[IO](_))
+    .map(org.http4s.server.middleware.Metrics[IO](_, None))
     .map: metrics =>
       logger.andThen(AutoSlash(_)).andThen(Timeout(60.seconds)).andThen(metrics)
