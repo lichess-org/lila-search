@@ -17,7 +17,7 @@ object Dependencies {
     val fs2 = "3.12.2"
     val fs2Data = "1.12.0"
     val http4s = "0.23.33"
-    val mongo4cats = "0.7.13"
+    val mongo4cats = "0.7.14"
     val otel4s = "0.14.0"
     val otel4sHttp4s = "0.15.0"
   }
@@ -60,7 +60,7 @@ object Dependencies {
   val circe = "io.circe" %% "circe-core" % "0.14.15"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j" % "2.7.1"
-  val logback = "ch.qos.logback" % "logback-classic" % "1.5.20"
+  val logback = "ch.qos.logback" % "logback-classic" % "1.5.21"
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.10"
 
   val otel4sCore = "org.typelevel" %% "otel4s-core" % V.otel4s
@@ -76,8 +76,8 @@ object Dependencies {
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
   val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.43.6" % Test
-  val weaver = "org.typelevel" %% "weaver-cats" % "0.11.1" % Test
-  val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.11.1" % Test
+  val weaver = "org.typelevel" %% "weaver-cats" % "0.11.2" % Test
+  val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.11.2" % Test
   val catsEffectTestKit = "org.typelevel" %% "cats-effect-testkit" % V.catsEffect % Test
   val scalacheck = "org.scalacheck" %% "scalacheck" % "1.17.0" % Test
 }
