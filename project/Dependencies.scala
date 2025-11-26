@@ -67,7 +67,7 @@ object Dependencies {
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
   val otel4sSdk = "org.typelevel" %% "otel4s-sdk" % V.otel4s
   val otel4sInstrumentationMetrics = "org.typelevel" %% "otel4s-instrumentation-metrics" % V.otel4s
-  val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.8.0"
+  val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.8.1"
 
   val otel4sHttp4sCore = "org.http4s" %% "http4s-otel4s-middleware-core" % V.otel4sHttp4s
   val otel4sHttp4sMetrics = "org.http4s" %% "http4s-otel4s-middleware-metrics" % V.otel4sHttp4s
