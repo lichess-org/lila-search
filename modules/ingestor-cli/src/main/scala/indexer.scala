@@ -4,7 +4,7 @@ package ingestor
 import cats.effect.IO
 import cats.mtl.Handle
 import cats.syntax.all.*
-import lila.search.ingestor.opts.IndexOpts
+import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 object Indexer:
@@ -15,9 +15,10 @@ object Indexer:
       case i: Index => List(i)
       case _ => Index.values.toList
 
-  def apply(opts: IndexOpts, res: AppResources, config: AppConfig)(using LoggerFactory[IO]): IO[Unit] =
+  def index(opts: IndexOpts, res: AppResources, config: AppConfig)(using
+      LoggerFactory[IO]
+  ): IO[Unit] =
     given logger: Logger[IO] = LoggerFactory[IO].getLogger
-    import opts.dry
     given IndexRegistry = IndexRegistry(
       GameRepo(res.lichess, config.ingestor.game),
       ForumRepo(res.lichess, config.ingestor.forum),
@@ -28,15 +29,19 @@ object Indexer:
     )
     given KVStore = res.store
     given ESClient[IO] = res.elastic
+
     def go(index: Index) =
-      val runIndex = run(index, opts)
-      putMappingsIfNotExists(res.elastic, index).whenA(!dry) *>
-        runIndex *>
-        refreshIndexes(res.elastic, index).whenA(opts.refresh && !dry)
+      putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
+        runIndex(index, opts) *>
+        refreshIndexes(res.elastic, index).whenA(opts.refresh && !opts.dry)
 
     opts.index.toList.traverse_(go)
 
-  def run(index: Index, opts: IndexOpts)(using
+  def reindex(opts: ReindexOpts, res: AppResources, config: AppConfig)(using
+      LoggerFactory[IO]
+  ) = ???
+
+  def runIndex(index: Index, opts: IndexOpts)(using
       registry: IndexRegistry,
       lf: LoggerFactory[IO],
       store: KVStore,
