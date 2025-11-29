@@ -12,6 +12,7 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.MeterProvider
 
 import java.time.Instant
+import scala.concurrent.duration.FiniteDuration
 
 object cli
     extends CommandIOApp(
@@ -52,7 +53,9 @@ object opts:
 
   case class ReindexOpts(
       index: Index | Unit,
-      refresh: Boolean,
+      since: Option[Instant],
+      until: Option[Instant],
+      collectDeletionInterval: Option[FiniteDuration],
       dry: Boolean
   )
 
@@ -108,6 +111,15 @@ object opts:
       metavar = "time in epoch seconds"
     )
 
+  val collectDeletionIntervalOpt =
+    Opts
+      .option[FiniteDuration](
+        long = "cld",
+        help = "Interval to collect deleted IDs during reindexing",
+        metavar = "duration"
+      )
+      .orNone
+
   val indexOpt = (
     singleIndexOpt.orElse(allIndexOpt),
     sinceOpt,
@@ -123,9 +135,15 @@ object opts:
 
   val reindexOpt = (
     singleIndexOpt.orElse(allIndexOpt),
-    refreshOpt,
+    sinceOpt.orNone,
+    untilOpt.orNone,
+    collectDeletionIntervalOpt,
     dryOpt
   ).mapN(ReindexOpts.apply)
+    .mapValidated(x =>
+      if x.until.flatMap(u => x.since.map(s => u.isAfter(s))).getOrElse(false) then Validated.valid(x)
+      else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
+    )
 
   given Argument[Index] =
     Argument.from("index")(Index.fromString(_).toValidatedNel)
