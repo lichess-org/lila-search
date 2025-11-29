@@ -27,18 +27,18 @@ object cli
   override def main: Opts[IO[ExitCode]] =
     opts.parse.map: opts =>
       Logger[IO].info(s"Starting lila-search-cli with ${opts.toString}") *>
-        makeResources.use(execute(opts)).as(ExitCode.Success)
+        makeIndexer.use(execute(opts)).as(ExitCode.Success)
 
-  private def makeResources =
+  private def makeIndexer =
     for
       config <- AppConfig.load.toResource
       res <- AppResources.instance(config)
-    yield (res, config)
+    yield Indexer(res, config)
 
-  def execute(opts: IndexOpts | ReindexOpts)(resources: AppResources, config: AppConfig): IO[Unit] =
+  def execute(opts: IndexOpts | ReindexOpts)(indexer: Indexer): IO[Unit] =
     opts match
-      case opts: ReindexOpts => Indexer.reindex(opts, resources, config)
-      case opts: IndexOpts => Indexer.index(opts, resources, config)
+      case opts: ReindexOpts => indexer.reindex(opts)
+      case opts: IndexOpts => indexer.index(opts)
 
 object opts:
   case class IndexOpts(

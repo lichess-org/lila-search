@@ -6,6 +6,10 @@ import cats.mtl.Handle
 import cats.syntax.all.*
 import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
+import java.time.Instant
+import scala.concurrent.duration.*
+import fs2.io.file.Files
+import cats.effect.std.Supervisor
 
 object Indexer:
 
@@ -15,20 +19,24 @@ object Indexer:
       case i: Index => List(i)
       case _ => Index.values.toList
 
-  def index(opts: IndexOpts, res: AppResources, config: AppConfig)(using
-      LoggerFactory[IO]
-  ): IO[Unit] =
-    given logger: Logger[IO] = LoggerFactory[IO].getLogger
-    given IndexRegistry = IndexRegistry(
-      GameRepo(res.lichess, config.ingestor.game),
-      ForumRepo(res.lichess, config.ingestor.forum),
-      UblogRepo(res.lichess, config.ingestor.ublog),
-      StudyRepo(res.study, res.studyLocal, config.ingestor.study),
-      Study2Repo(res.study, res.studyLocal, config.ingestor.study),
-      TeamRepo(res.lichess, config.ingestor.team)
-    )
-    given KVStore = res.store
-    given ESClient[IO] = res.elastic
+  extension (index: Index) def deletedAtLogPath: String = s"./deletes_${index.value}.log"
+
+class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[IO]):
+  import Indexer.*
+
+  given logger: Logger[IO] = LoggerFactory[IO].getLogger
+  given registry: IndexRegistry = IndexRegistry(
+    GameRepo(res.lichess, config.ingestor.game),
+    ForumRepo(res.lichess, config.ingestor.forum),
+    UblogRepo(res.lichess, config.ingestor.ublog),
+    StudyRepo(res.study, res.studyLocal, config.ingestor.study),
+    Study2Repo(res.study, res.studyLocal, config.ingestor.study),
+    TeamRepo(res.lichess, config.ingestor.team)
+  )
+  given KVStore = res.store
+  given ESClient[IO] = res.elastic
+
+  def index(opts: IndexOpts): IO[Unit] =
 
     def go(index: Index) =
       putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
@@ -37,17 +45,15 @@ object Indexer:
 
     opts.index.toList.traverse_(go)
 
-  def reindex(opts: ReindexOpts, res: AppResources, config: AppConfig)(using
-      LoggerFactory[IO]
-  ) = ???
+  def reindex(opts: ReindexOpts) =
+    def go(index: Index) =
+      putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
+        runReindex(index) *>
+        refreshIndexes(res.elastic, index).whenA(opts.refresh && !opts.dry)
+    opts.index.toList.traverse_(go)
 
-  def runIndex(index: Index, opts: IndexOpts)(using
-      registry: IndexRegistry,
-      lf: LoggerFactory[IO],
-      store: KVStore,
-      elastic: ESClient[IO]
-  ): IO[Unit] =
-    given logger: Logger[IO] = lf.getLoggerFromName(s"${index.value}.ingestor")
+  def runIndex(index: Index, opts: IndexOpts): IO[Unit] =
+    given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
     val im = registry(index)
     im.withRepo: repo =>
       val stream =
@@ -64,6 +70,43 @@ object Indexer:
         .evalMap(f)
         .compile
         .drain
+
+  def runReindex(index: Index): IO[Unit] =
+    given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
+    registry(index).withRepo: repo =>
+      IO.realTimeInstant.flatMap: now =>
+        val indexStream = repo
+          .fetchUpdate(Instant.EPOCH, now)
+          .evalMap(index.storeBulk)
+          .compile
+          .drain
+        val writeDelete = IO.sleep(1.hour) *> StreamUtils
+          .intervalStream(now.some, 1.hour)
+          .meteredStartImmediately(1.hour)
+          .flatMap(repo.fetchDelete)
+          .flatMap(ids => fs2.Stream.emits(ids))
+          .map(id => id.value + "\n")
+          .through(fs2.text.utf8.encode[IO])
+          .through(Files[IO].writeAll(fs2.io.file.Path(index.deletedAtLogPath)))
+          .compile
+          .drain
+        logger.info(s"Starting reindexing for ${index.value} at ${now.toEpochMilli}") *>
+          Supervisor
+            .apply[IO](await = false)
+            .use: supervisor =>
+              supervisor
+                .supervise(writeDelete)
+                .flatMap: _ =>
+                  indexStream *> logger.info("Reindexing completed")
+          *> Files[IO]
+            .readAll(fs2.io.file.Path(index.deletedAtLogPath))
+            .through(fs2.text.utf8.decode[IO])
+            .through(fs2.text.lines)
+            .map(x => Id(x.trim))
+            .chunkN(1000)
+            .evalMap(xs => index.deleteMany(xs.toList))
+            .compile
+            .drain
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index)(using Logger[IO]): IO[Unit] =
     Handle
