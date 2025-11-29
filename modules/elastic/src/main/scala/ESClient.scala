@@ -91,7 +91,7 @@ object ESClient:
       dropIndex(index) *> client
         .execute:
           createIndex(index.value)
-            .mapping(properties(index.mapping).source(false)) // all false
+            .mapping(properties(index.mapping).source(index.keepSource))
             .shards(5)
             .replicas(0)
             .refreshInterval(index.refreshInterval)

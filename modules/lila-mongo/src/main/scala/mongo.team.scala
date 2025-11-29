@@ -61,11 +61,10 @@ object TeamRepo:
             Result(
               toIndex.flatMap(_.fullDocument),
               toDelete.flatMap(_.docId.map(Id.apply)),
-              Nil,
               lastEventTimestamp
             )
 
-      def fetch(since: Instant, until: Instant) =
+      def fetchAll(since: Instant, until: Instant) =
         val filter = range(F.createdAt)(since, until.some)
           .or(range(F.updatedAt)(since, until.some))
           .or(range(F.erasedAt)(since, until.some))
@@ -82,7 +81,6 @@ object TeamRepo:
               Result(
                 toIndex,
                 toDelete.map(t => Id(t.id)),
-                Nil,
                 None
               )
 

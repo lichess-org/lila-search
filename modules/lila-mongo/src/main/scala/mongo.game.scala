@@ -80,11 +80,10 @@ object GameRepo:
           Result(
             toIndex.flatMap(_.fullDocument),
             toDelete.flatMap(_.docId.map(Id.apply)),
-            Nil,
             lastEventTimestamp
           )
 
-    def fetch(since: Instant, until: Instant): fs2.Stream[IO, Result[DbGame]] =
+    def fetchAll(since: Instant, until: Instant): fs2.Stream[IO, Result[DbGame]] =
       val filter = range(F.createdAt)(since, until.some)
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
@@ -94,7 +93,7 @@ object GameRepo:
           .chunkN(config.batchSize)
           .map(_.toList)
           .metered(1.second) // to avoid overloading the elasticsearch
-          .map(ds => Result(ds, Nil, Nil, None))
+          .map(ds => Result(ds, Nil, None))
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =
       val builder = games.watch(aggregate)

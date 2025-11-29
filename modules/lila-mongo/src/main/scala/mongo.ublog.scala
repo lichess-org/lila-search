@@ -58,7 +58,7 @@ object UblogRepo:
       posts: MongoCollection[IO, DbUblog]
   )(using Logger[IO]): Repo[DbUblog] = new:
 
-    def fetch(since: Instant, until: Instant) =
+    def fetchAll(since: Instant, until: Instant) =
       val filter = range(F.livedAt)(since, until.some)
       fs2.Stream.eval(info"Fetching blog posts from $since to $until") *>
         posts
@@ -70,7 +70,7 @@ object UblogRepo:
           .metered(1.second)
           .map: docs =>
             val (toDelete, toIndex) = docs.partition(!_.isLive)
-            Result(toIndex, toDelete.map(doc => Id(doc.id)), Nil, None)
+            Result(toIndex, toDelete.map(doc => Id(doc.id)), None)
 
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbUblog]] =
       val builder = posts.watch(aggregate())
@@ -92,7 +92,6 @@ object UblogRepo:
           Result(
             toIndex.flatMap(_.fullDocument),
             toDelete.flatMap(_.docId.map(Id.apply)),
-            Nil,
             lastEventTimestamp
           )
 

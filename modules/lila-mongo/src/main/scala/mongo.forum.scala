@@ -51,7 +51,7 @@ object ForumRepo:
       posts: MongoCollection[IO, DbPost]
   )(using Logger[IO]): Repo[DbForum] = new:
 
-    def fetch(since: Instant, until: Instant) =
+    def fetchAll(since: Instant, until: Instant) =
       val filter = range(F.createdAt)(since, until.some)
         .or(range(F.updatedAt)(since, until.some))
         .or(range(F.erasedAt)(since, until.some))
@@ -68,7 +68,7 @@ object ForumRepo:
             val (toDelete, toIndex) = posts.partition(_.isErased)
             toIndex.toData
               .map: data =>
-                Result(data, toDelete.map(p => Id(p.id)), Nil, None)
+                Result(data, toDelete.map(p => Id(p.id)), None)
 
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbForum]] =
       val builder = posts.watch(aggregate(config.maxPostLength))
@@ -91,7 +91,7 @@ object ForumRepo:
             .flatten(using _.fullDocument)
             .toData
             .map: data =>
-              Result(data, toDelete.flatten(using _.docId.map(Id.apply)), Nil, lastEventTimestamp)
+              Result(data, toDelete.flatten(using _.docId.map(Id.apply)), lastEventTimestamp)
 
     // Fetches topic names by their ids
     private def topicByIds(ids: Seq[String]): IO[Map[String, String]] =

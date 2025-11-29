@@ -23,6 +23,7 @@ object Indexer:
       ForumRepo(res.lichess, config.ingestor.forum),
       UblogRepo(res.lichess, config.ingestor.ublog),
       StudyRepo(res.study, res.studyLocal, config.ingestor.study),
+      Study2Repo(res.study, res.studyLocal, config.ingestor.study),
       TeamRepo(res.lichess, config.ingestor.team)
     )
     given KVStore = res.store
@@ -46,7 +47,7 @@ object Indexer:
     im.withRepo: repo =>
       val stream =
         if opts.watch then repo.watch(opts.since.some)
-        else repo.fetch(opts.since, opts.until)
+        else repo.fetchAll(opts.since, opts.until)
       val f: Repo.Result[im.Out] => IO[Unit] =
         if opts.dry then
           result =>

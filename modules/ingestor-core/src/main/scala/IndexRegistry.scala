@@ -15,6 +15,7 @@ object IndexRegistry:
   given Indexable[DbForum] = a => writeToString(Translate.forum(a))
   given Indexable[DbUblog] = a => writeToString(Translate.ublog(a))
   given Indexable[(DbStudy, StudyChapterData)] = a => writeToString(Translate.study.tupled(a))
+  given Indexable[DbStudy] = a => writeToString(Translate.study2(a))
   given Indexable[DbTeam] = a => writeToString(Translate.team(a))
 
   given HasStringId[DbGame]:
@@ -25,6 +26,8 @@ object IndexRegistry:
     extension (a: DbUblog) def id: String = a.id
   given HasStringId[(DbStudy, StudyChapterData)]:
     extension (a: (DbStudy, StudyChapterData)) def id: String = a._1.id
+  given HasStringId[DbStudy]:
+    extension (a: DbStudy) def id: String = a.id
   given HasStringId[DbTeam]:
     extension (a: DbTeam) def id: String = a.id
 
@@ -33,6 +36,7 @@ object IndexRegistry:
     case Index.Forum.type => DbForum
     case Index.Ublog.type => DbUblog
     case Index.Study.type => (DbStudy, StudyChapterData)
+    case Index.Study2.type => DbStudy
     case Index.Team.type => DbTeam
 
   trait IndexMapping:
@@ -48,6 +52,7 @@ class IndexRegistry(
     forum: IO[Repo[DbForum]],
     ublog: IO[Repo[DbUblog]],
     study: IO[Repo[(DbStudy, StudyChapterData)]],
+    study2: IO[Repo[DbStudy]],
     team: IO[Repo[DbTeam]]
 ):
   import com.sksamuel.elastic4s.Indexable
@@ -66,6 +71,7 @@ class IndexRegistry(
     case Index.Forum => makeMapping[DbForum](forum)
     case Index.Ublog => makeMapping[DbUblog](ublog)
     case Index.Study => makeMapping[(DbStudy, StudyChapterData)](study)
+    case Index.Study2 => makeMapping[DbStudy](study2)
     case Index.Team => makeMapping[DbTeam](team)
 
   /** Get a specific repo when the index is statically known */

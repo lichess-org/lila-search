@@ -51,7 +51,7 @@ object GameExport:
       until: Instant,
       watch: Boolean
   )(using Logger[IO]): IO[Unit] =
-    val stream = if watch then repo.watch(since.some) else repo.fetch(since, until)
+    val stream = if watch then repo.watch(since.some) else repo.fetchAll(since, until)
     Logger[IO].info(s"Starting export of games to $output") *>
       stream
         .flatMap: result =>

@@ -139,6 +139,33 @@ structure StudySource {
   updatedAt: DateTime
 }
 
+structure Study2Source {
+  @required
+  @textField(boost: 10, analyzer: "english", keywordSubfield: {name: "raw", normalizer: "lowercase"})
+  name: String
+  @required
+  @keywordField(boost: 2, docValues: false)
+  owner: String
+  @required
+  @keywordField(boost: 1, docValues: false)
+  members: PlayerIds
+  @default
+  @textField(boost: 5, analyzer: "english", docValues: false)
+  topics: Strings
+  @required
+  @shortField
+  likes: Integer
+  @required
+  @booleanField
+  public: Boolean
+  @dateField(format: "yyyy-MM-dd HH:mm:ss")
+  rank: DateTime
+  @dateField(format: "yyyy-MM-dd HH:mm:ss")
+  createdAt: DateTime
+  @dateField(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: DateTime
+}
+
 structure TeamSource {
   @required
   @jsonName("na")

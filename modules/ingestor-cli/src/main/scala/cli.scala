@@ -72,7 +72,7 @@ object opts:
 
   val refreshOpt =
     Opts
-      .flag(long = "refresh", help = "Refresh index(ex) after finishing index", short = "r")
+      .flag(long = "refresh", help = "Refresh index(es) after finishing index", short = "r")
       .orNone
       .map(_.isDefined)
 
