@@ -58,7 +58,9 @@ class IndexRegistry(
   import com.sksamuel.elastic4s.Indexable
   import IndexRegistry.{ IndexMapping, Of, given }
 
-  /** Helper to create an IndexMapping from a repo */
+  /**
+   * Helper to create an IndexMapping from a repo
+   */
   private def makeMapping[A: Indexable: HasStringId](r: IO[Repo[A]]): IndexMapping =
     new IndexMapping:
       type Out = A
@@ -74,6 +76,8 @@ class IndexRegistry(
     case Index.Study2 => makeMapping[DbStudy](study2)
     case Index.Team => makeMapping[DbTeam](team)
 
-  /** Get a specific repo when the index is statically known */
+  /**
+   * Get a specific repo when the index is statically known
+   */
   def get[I <: Index](using ev: ValueOf[I]): IO[Repo[Of[I]]] =
     apply(ev.value).repo.asInstanceOf[IO[Repo[Of[I]]]]

@@ -1,8 +1,9 @@
 package lila.search
 package ingestor
 
-import cats.syntax.all.*
 import cats.effect.IO
+import cats.syntax.all.*
+
 import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 

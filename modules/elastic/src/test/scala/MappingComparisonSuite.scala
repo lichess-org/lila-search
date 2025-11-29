@@ -3,7 +3,9 @@ package lila.search
 import com.sksamuel.elastic4s.fields.*
 import weaver.*
 
-/** Tests to verify that generated mappings match the manually defined mappings */
+/**
+ * Tests to verify that generated mappings match the manually defined mappings
+ */
 object MappingComparisonSuite extends SimpleIOSuite:
 
   // Helper to compare field sequences
