@@ -53,8 +53,7 @@ object Study2Repo:
   )(using Logger[IO]): Repo[DbStudy] = new:
 
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbStudy]] =
-      intervalStream(since)
-        .meteredStartImmediately(config.interval)
+      intervalStream(since, config.interval)
         .flatMap(fetchAll)
 
     def fetchAll(since: Instant, until: Instant): fs2.Stream[IO, Result[DbStudy]] =
@@ -119,15 +118,6 @@ object Study2Repo:
 
     def extractId(doc: Document): Option[Id] =
       doc.getNestedAs[String](F.oplogDeleteId).map(Id.apply)
-
-    def intervalStream(startAt: Option[Instant]): fs2.Stream[IO, (Instant, Instant)] =
-      (startAt.fold(fs2.Stream.empty)(since => fs2.Stream(since))
-        ++ fs2.Stream
-          .eval(IO.realTimeInstant)
-          .flatMap(now =>
-            fs2.Stream.unfold(now)(s => (s, s.plusSeconds(config.interval.toSeconds)).some)
-          )).zipWithNext
-        .map((since, until) => since -> until.get)
 
   object F:
     val name = "name"
