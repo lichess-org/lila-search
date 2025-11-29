@@ -6,7 +6,7 @@ import cats.effect.*
 import cats.syntax.all.*
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
-import lila.search.ingestor.opts.IndexOpts
+import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.MeterProvider
@@ -27,16 +27,18 @@ object cli
   override def main: Opts[IO[ExitCode]] =
     opts.parse.map: opts =>
       Logger[IO].info(s"Starting lila-search-cli with ${opts.toString}") *>
-        makeResources.use(execute(opts)).as(ExitCode.Success)
+        makeIndexer.use(execute(opts)).as(ExitCode.Success)
 
-  private def makeResources =
+  private def makeIndexer =
     for
       config <- AppConfig.load.toResource
       res <- AppResources.instance(config)
-    yield (res, config)
+    yield Indexer(res, config)
 
-  def execute(opts: IndexOpts)(resources: AppResources, config: AppConfig): IO[Unit] =
-    Indexer(opts, resources, config)
+  def execute(opts: IndexOpts | ReindexOpts)(indexer: Indexer): IO[Unit] =
+    opts match
+      case opts: ReindexOpts => indexer.reindex(opts)
+      case opts: IndexOpts => indexer.index(opts)
 
 object opts:
   case class IndexOpts(
@@ -48,7 +50,15 @@ object opts:
       watch: Boolean
   )
 
-  def parse = Opts.subcommand("index", "index documents")(indexOpt)
+  case class ReindexOpts(
+      index: Index | Unit,
+      since: Option[Instant],
+      until: Option[Instant],
+      dry: Boolean
+  )
+
+  def parse = Opts.subcommand("index", "index documents")(indexOpt) <+>
+    Opts.subcommand("reindex", "reindex all documents")(reindexOpt)
 
   val singleIndexOpt =
     Opts
@@ -109,6 +119,17 @@ object opts:
   ).mapN(IndexOpts.apply)
     .mapValidated(x =>
       if x.watch || x.until.isAfter(x.since) then Validated.valid(x)
+      else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
+    )
+
+  val reindexOpt = (
+    singleIndexOpt.orElse(allIndexOpt),
+    sinceOpt.orNone,
+    untilOpt.orNone,
+    dryOpt
+  ).mapN(ReindexOpts.apply)
+    .mapValidated(x =>
+      if x.until.flatMap(u => x.since.map(s => u.isAfter(s))).getOrElse(true) then Validated.valid(x)
       else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
     )
 

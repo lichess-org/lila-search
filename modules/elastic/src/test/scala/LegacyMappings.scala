@@ -3,7 +3,9 @@ package lila.search
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.fields.ElasticField
 
-/** Legacy manual mapping definitions preserved for testing purposes */
+/**
+ * Legacy manual mapping definitions preserved for testing purposes
+ */
 object LegacyMappings:
 
   object forum:

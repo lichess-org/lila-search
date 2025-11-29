@@ -6,10 +6,14 @@ import com.sksamuel.elastic4s.fields.*
 import smithy4s.Hints
 import smithy4s.schema.Schema
 
-/** Generates Elasticsearch field mappings from Smithy schemas annotated with ES traits */
+/**
+ * Generates Elasticsearch field mappings from Smithy schemas annotated with ES traits
+ */
 object MappingGenerator:
 
-  /** Generate field mappings from a Smithy schema */
+  /**
+   * Generate field mappings from a Smithy schema
+   */
   def generateFields[A](schema: Schema[A]): List[ElasticField] =
     schema match
       case Schema.StructSchema(fields = fields) =>

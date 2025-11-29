@@ -15,7 +15,6 @@ trait KVStore:
 
 object KVStore:
 
-  val file: String = "store.json"
   given JsonValueCodec[Map[String, Long]] = JsonCodecMaker.make
 
   type State = Map[String, Long]

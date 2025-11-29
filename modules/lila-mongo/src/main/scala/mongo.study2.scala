@@ -53,7 +53,8 @@ object Study2Repo:
   )(using Logger[IO]): Repo[DbStudy] = new:
 
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbStudy]] =
-      intervalStream(since)
+      StreamUtils
+        .intervalStream(since, config.interval)
         .meteredStartImmediately(config.interval)
         .flatMap(fetchAll)
 
@@ -61,13 +62,17 @@ object Study2Repo:
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
         pullForIndex(since, until)
           .map(Result(_, Nil, None))
-          .merge(pullForDelete(since, until))
+          .merge(pullForDelete(since, until).map(Result(Nil, _, None)))
         // .merge(pullForLikes(since, until))
         ++ fs2.Stream(Result(Nil, Nil, until.some))
 
     override def fetchUpdate(since: Instant, until: Instant): fs2.Stream[IO, List[DbStudy]] =
-      fs2.Stream.eval(info"Fetching studies from $since to $until") *>
+      fs2.Stream.eval(info"Fetching created/updated studies from $since to $until") *>
         pullForIndex(since, until)
+
+    override def fetchDelete(since: Instant, until: Instant): fs2.Stream[IO, List[Id]] =
+      fs2.Stream.eval(info"Fetching deleted studies from $since to $until") *>
+        pullForDelete(since, until)
 
     def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, List[DbStudy]] =
       // filter out relay: https://github.com/lichess-org/lila/blob/d1ebb8bdc744125d0024fa643b3817fa34814035/modules/study/src/main/BSONHandlers.scala#L392
@@ -78,9 +83,10 @@ object Study2Repo:
         .projection(indexDocProjection)
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
+        .map(_.filter(!_.isBroadcast))
         .map(_.toList)
 
-    def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, Result[DbStudy]] =
+    def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, List[Id]] =
       val filter =
         Filter
           .gte("ts", since.asBsonTimestamp)
@@ -93,8 +99,7 @@ object Study2Repo:
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
         .map(_.toList.flatMap(extractId))
-        .evalTap(xs => info"Deleting $xs")
-        .map(Result(Nil, _, None))
+      // .evalTap(xs => info"Deleting $xs")
 
     @nowarn("msg=unused") // currently not used as we don't support partial updates in study index
     def pullForLikes(since: Instant, until: Instant) = // fs2.Stream[IO, Result[DbStudy]] =
@@ -116,15 +121,6 @@ object Study2Repo:
 
     def extractId(doc: Document): Option[Id] =
       doc.getNestedAs[String](F.oplogDeleteId).map(Id.apply)
-
-    def intervalStream(startAt: Option[Instant]): fs2.Stream[IO, (Instant, Instant)] =
-      (startAt.fold(fs2.Stream.empty)(since => fs2.Stream(since))
-        ++ fs2.Stream
-          .eval(IO.realTimeInstant)
-          .flatMap(now =>
-            fs2.Stream.unfold(now)(s => (s, s.plusSeconds(config.interval.toSeconds)).some)
-          )).zipWithNext
-        .map((since, until) => since -> until.get)
 
   object F:
     val name = "name"

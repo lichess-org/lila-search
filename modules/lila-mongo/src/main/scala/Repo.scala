@@ -10,6 +10,8 @@ trait Repo[A]:
   def fetchAll(since: Instant, until: Instant): fs2.Stream[IO, Repo.Result[A]]
   def fetchUpdate(since: Instant, until: Instant): fs2.Stream[IO, List[A]] =
     fetchAll(since, until).map(_.toIndex)
+  def fetchDelete(since: Instant, until: Instant): fs2.Stream[IO, List[Id]] =
+    fetchAll(since, until).map(_.toDelete)
 
 object Repo:
   type ToUpdate = List[(Id, Map[String, Any])]
