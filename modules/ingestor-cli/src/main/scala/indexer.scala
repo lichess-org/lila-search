@@ -105,9 +105,11 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     registry(index).withRepo: repo =>
       val indexStream = repo
         .fetchUpdate(since.getOrElse(Instant.EPOCH), now)
-        .evalMap(store_)
+        .evalTap(store_)
+        .map(_.size)
         .compile
-        .drain
+        .fold(0)(_ + _)
+        .flatMap(total => logger.info(s"Reindexed $total documents for ${index.value}"))
       val writeDelete = IO.sleep(sleepDuration) *> StreamUtils
         .intervalStream(now.some, sleepDuration)
         .metered(sleepDuration)
@@ -128,7 +130,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
           .through(fs2.text.utf8.decode[IO])
           .through(fs2.text.lines)
           .map(x => Id(x.trim))
-          .chunkN(1000)
+          .chunkN(100)
           .evalMap(xs => delete_(xs.toList))
           .compile
           .drain
