@@ -53,7 +53,8 @@ object Study2Repo:
   )(using Logger[IO]): Repo[DbStudy] = new:
 
     def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbStudy]] =
-      StreamUtils.intervalStream(since, config.interval)
+      StreamUtils
+        .intervalStream(since, config.interval)
         .meteredStartImmediately(config.interval)
         .flatMap(fetchAll)
 

@@ -2,15 +2,16 @@ package lila.search
 package ingestor
 
 import cats.effect.IO
+import cats.effect.std.Supervisor
 import cats.mtl.Handle
 import cats.syntax.all.*
+import com.sksamuel.elastic4s.Indexable
+import fs2.io.file.Files
 import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
+
 import java.time.Instant
 import scala.concurrent.duration.*
-import fs2.io.file.Files
-import cats.effect.std.Supervisor
-import com.sksamuel.elastic4s.Indexable
 
 object Indexer:
 
@@ -90,22 +91,18 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
   ): IO[Unit] =
     import opts.{ since, until, collectDeletionInterval, dry }
 
-    def store_[A: Indexable: HasStringId]( sources: List[A]): IO[Unit] =
-      if dry then
-        Logger[IO].info(s"Dry run - would index ${sources.size} docs to ${index.value}")
-      else
-        index.storeBulk(sources)
+    def store_[A: Indexable: HasStringId](sources: List[A]): IO[Unit] =
+      if dry then Logger[IO].info(s"Dry run - would index ${sources.size} docs to ${index.value}")
+      else index.storeBulk(sources)
 
     def delete_(ids: List[Id]): IO[Unit] =
-      if dry then
-        Logger[IO].info(s"Dry run - would delete ${ids.size} docs from ${index.value}")
-      else
-        index.deleteMany(ids)
+      if dry then Logger[IO].info(s"Dry run - would delete ${ids.size} docs from ${index.value}")
+      else index.deleteMany(ids)
 
     given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
     val sleepDuration = collectDeletionInterval.getOrElse(1.hour)
     val now = until.getOrElse(Instant.now())
-      registry(index).withRepo: repo =>
+    registry(index).withRepo: repo =>
       val indexStream = repo
         .fetchUpdate(since.getOrElse(Instant.EPOCH), now)
         .evalMap(store_)

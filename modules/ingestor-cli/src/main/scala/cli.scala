@@ -141,7 +141,7 @@ object opts:
     dryOpt
   ).mapN(ReindexOpts.apply)
     .mapValidated(x =>
-      if x.until.flatMap(u => x.since.map(s => u.isAfter(s))).getOrElse(false) then Validated.valid(x)
+      if x.until.flatMap(u => x.since.map(s => u.isAfter(s))).getOrElse(true) then Validated.valid(x)
       else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
     )
 
