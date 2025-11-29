@@ -49,7 +49,13 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
   def reindex(opts: ReindexOpts) =
     def go(index: Index) =
-      putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
+      Handle
+        .allow:
+          res.elastic.putMapping(index)
+        .rescue: e =>
+          Logger[IO].error(e.asException)(s"Failed put mapping for ${index.value}") *>
+            e.asException.raiseError
+      *>
         runReindex(index, opts) *>
         refreshIndexes(res.elastic, index).whenA(!opts.dry)
     if opts.index != Index.Study2 then
@@ -110,6 +116,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
         .compile
         .fold(0)(_ + _)
         .flatMap(total => logger.info(s"Reindexed $total documents for ${index.value}"))
+
       val writeDelete = IO.sleep(sleepDuration) *> StreamUtils
         .intervalStream(now.some, sleepDuration)
         .metered(sleepDuration)

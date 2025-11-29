@@ -28,8 +28,7 @@ extension (index: Index)
       .rescue: e =>
         logger.error(e.asException)(s"Failed to ${index.value} index: ${sources.map(_.id).mkString(", ")}")
           *> IO.raiseError(e.asException)
-      .whenA(sources.nonEmpty) *>
-      logger.info(s"Indexed ${sources.size} ${index.value}s")
+      .whenA(sources.nonEmpty)
 
   private def updateBulk(
       sources: List[(Id, Map[String, Any])]

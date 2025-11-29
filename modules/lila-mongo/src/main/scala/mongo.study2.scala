@@ -83,6 +83,7 @@ object Study2Repo:
         .projection(indexDocProjection)
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
+        .map(_.filter(!_.isBroadcast))
         .map(_.toList)
 
     def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, List[Id]] =
@@ -98,7 +99,7 @@ object Study2Repo:
         .boundedStream(config.batchSize)
         .chunkN(config.batchSize)
         .map(_.toList.flatMap(extractId))
-        .evalTap(xs => info"Deleting $xs")
+        // .evalTap(xs => info"Deleting $xs")
 
     @nowarn("msg=unused") // currently not used as we don't support partial updates in study index
     def pullForLikes(since: Instant, until: Instant) = // fs2.Stream[IO, Result[DbStudy]] =
