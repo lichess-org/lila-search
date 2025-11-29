@@ -11,13 +11,13 @@ object Dependencies {
     val catsEffect = "3.6.3"
     val catsMtl = "1.6.0"
     val ciris = "3.11.1"
-    val chess = "17.12.5"
+    val chess = "17.14.1"
     val decline = "2.5.0"
     val elastic4s = "9.1.1"
     val fs2 = "3.12.2"
     val fs2Data = "1.12.0"
     val http4s = "0.23.33"
-    val mongo4cats = "0.7.14"
+    val mongo4cats = "0.7.16"
     val otel4s = "0.14.0"
     val otel4sHttp4s = "0.15.0"
   }
@@ -67,7 +67,7 @@ object Dependencies {
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
   val otel4sSdk = "org.typelevel" %% "otel4s-sdk" % V.otel4s
   val otel4sInstrumentationMetrics = "org.typelevel" %% "otel4s-instrumentation-metrics" % V.otel4s
-  val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.8.0"
+  val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.8.1"
 
   val otel4sHttp4sCore = "org.http4s" %% "http4s-otel4s-middleware-core" % V.otel4sHttp4s
   val otel4sHttp4sMetrics = "org.http4s" %% "http4s-otel4s-middleware-metrics" % V.otel4sHttp4s
@@ -75,7 +75,7 @@ object Dependencies {
   val declineCore = "com.monovore" %% "decline" % V.decline
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
-  val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.43.6" % Test
+  val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.44.0" % Test
   val weaver = "org.typelevel" %% "weaver-cats" % "0.11.2" % Test
   val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.11.2" % Test
   val catsEffectTestKit = "org.typelevel" %% "cats-effect-testkit" % V.catsEffect % Test
