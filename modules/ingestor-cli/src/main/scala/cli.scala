@@ -45,6 +45,7 @@ object opts:
       until: Instant,
       refresh: Boolean,
       dry: Boolean,
+      watch: Boolean
   )
 
   def parse = Opts.subcommand("index", "index documents")(indexOpt)
@@ -75,6 +76,12 @@ object opts:
       .orNone
       .map(_.isDefined)
 
+  val watchOpt =
+    Opts
+      .flag(long = "watch", help = "Watch change events and continuously index", short = "w")
+      .orNone
+      .map(_.isDefined)
+
   val untilOpt =
     Opts
       .option[Instant](
@@ -98,9 +105,10 @@ object opts:
     untilOpt.orElse(Instant.now.pure[Opts]),
     refreshOpt,
     dryOpt,
+    watchOpt
   ).mapN(IndexOpts.apply)
     .mapValidated(x =>
-      if x.until.isAfter(x.since) then Validated.valid(x)
+      if x.watch || x.until.isAfter(x.since) then Validated.valid(x)
       else Validated.invalidNel(s"since: ${x.since.toString} must be before until: ${x.until.toString}")
     )
 

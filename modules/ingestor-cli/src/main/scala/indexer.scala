@@ -46,7 +46,8 @@ object Indexer:
     val im = registry(index)
     im.withRepo: repo =>
       val stream =
-        repo.fetchAll(opts.since, opts.until)
+        if opts.watch then repo.watch(opts.since.some)
+        else repo.fetchAll(opts.since, opts.until)
       val f: Repo.Result[im.Out] => IO[Unit] =
         if opts.dry then
           result =>
