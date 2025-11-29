@@ -12,7 +12,6 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.MeterProvider
 
 import java.time.Instant
-import scala.concurrent.duration.FiniteDuration
 
 object cli
     extends CommandIOApp(
@@ -55,7 +54,6 @@ object opts:
       index: Index | Unit,
       since: Option[Instant],
       until: Option[Instant],
-      collectDeletionInterval: Option[FiniteDuration],
       dry: Boolean
   )
 
@@ -111,15 +109,6 @@ object opts:
       metavar = "time in epoch seconds"
     )
 
-  val collectDeletionIntervalOpt =
-    Opts
-      .option[FiniteDuration](
-        long = "cld",
-        help = "Interval to collect deleted IDs during reindexing",
-        metavar = "duration"
-      )
-      .orNone
-
   val indexOpt = (
     singleIndexOpt.orElse(allIndexOpt),
     sinceOpt,
@@ -137,7 +126,6 @@ object opts:
     singleIndexOpt.orElse(allIndexOpt),
     sinceOpt.orNone,
     untilOpt.orNone,
-    collectDeletionIntervalOpt,
     dryOpt
   ).mapN(ReindexOpts.apply)
     .mapValidated(x =>

@@ -2,16 +2,13 @@ package lila.search
 package ingestor
 
 import cats.effect.IO
-import cats.effect.std.Supervisor
 import cats.mtl.Handle
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
-import fs2.io.file.Files
 import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
-import scala.concurrent.duration.*
 
 object Indexer:
 
@@ -95,53 +92,22 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
       index: Index,
       opts: ReindexOpts
   ): IO[Unit] =
-    import opts.{ since, until, collectDeletionInterval, dry }
+    import opts.{ since, until, dry }
 
     def store_[A: Indexable: HasStringId](sources: List[A]): IO[Unit] =
       if dry then Logger[IO].info(s"Dry run - would index ${sources.size} docs to ${index.value}")
       else index.storeBulk(sources)
 
-    def delete_(ids: List[Id]): IO[Unit] =
-      if dry then Logger[IO].info(s"Dry run - would delete ${ids.size} docs from ${index.value}")
-      else index.deleteMany(ids)
-
     given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
-    val sleepDuration = collectDeletionInterval.getOrElse(1.hour)
     val now = until.getOrElse(Instant.now())
     registry(index).withRepo: repo =>
-      val indexStream = repo
+      repo
         .fetchUpdate(since.getOrElse(Instant.EPOCH), now)
         .evalTap(store_)
         .map(_.size)
         .compile
         .fold(0)(_ + _)
         .flatMap(total => logger.info(s"Reindexed $total documents for ${index.value}"))
-
-      val writeDelete = IO.sleep(sleepDuration) *> StreamUtils
-        .intervalStream(now.some, sleepDuration)
-        .metered(sleepDuration)
-        .flatMap(repo.fetchDelete)
-        .flatMap(ids => fs2.Stream.emits(ids))
-        .map(id => id.value + "\n")
-        .through(fs2.text.utf8.encode[IO])
-        .through(Files[IO].writeAll(fs2.io.file.Path(index.deletedAtLogPath)))
-        .compile
-        .drain
-      logger.info(s"Starting reindexing for ${index.value} at ${now.toEpochMilli}") *>
-        Supervisor
-          .apply[IO](await = false)
-          .use: supervisor =>
-            supervisor.supervise(writeDelete) *> indexStream
-        *> Files[IO]
-          .readAll(fs2.io.file.Path(index.deletedAtLogPath))
-          .through(fs2.text.utf8.decode[IO])
-          .through(fs2.text.lines)
-          .map(x => Id(x.trim))
-          .chunkN(100)
-          .evalMap(xs => delete_(xs.toList))
-          .compile
-          .drain
-    *> logger.info(s"Reindexing for ${index.value} finished")
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index)(using Logger[IO]): IO[Unit] =
     Handle
