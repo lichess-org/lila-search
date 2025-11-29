@@ -7,13 +7,13 @@ import io.github.arainko.ducktape.*
 import lila.search.forum.Forum
 import lila.search.game.Game
 import lila.search.spec.*
+import lila.search.study2.Study2
 import lila.search.team.Team
 import lila.search.ublog.Ublog
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import smithy4s.Timestamp
 
 import java.time.Instant
-import lila.search.study2.Study2
 
 class SearchServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends SearchService[IO]:
 
