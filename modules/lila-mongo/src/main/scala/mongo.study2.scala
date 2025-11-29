@@ -63,7 +63,7 @@ object Study2Repo:
         pullForIndex(since, until)
           .map(Result(_, Nil, None))
           .merge(pullForDelete(since, until).map(Result(Nil, _, None)))
-        .merge(pullForLikes(since, until))
+        // .merge(pullForLikes(since, until))
         ++ fs2.Stream(Result(Nil, Nil, until.some))
 
     override def fetchUpdate(since: Instant, until: Instant): fs2.Stream[IO, List[DbStudy]] =
