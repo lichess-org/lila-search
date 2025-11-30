@@ -70,10 +70,13 @@ object LegacyMappings:
         textField(name)
           .copy(boost = Some(10), analyzer = Some("english"))
           .copy(fields = List(keywordField(nameRaw).copy(normalizer = Some("lowercase")))),
-        keywordField(owner).copy(boost = Some(2), docValues = Some(false)),
+        textField(description)
+          .copy(boost = Some(5), analyzer = Some("english")),
+        keywordField(owner).copy(boost = Some(5), docValues = Some(false)),
         keywordField(members).copy(boost = Some(1), docValues = Some(false)),
         textField(topics).copy(boost = Some(5), analyzer = Some("english")),
-        shortField(likes),
+        intField(likes),
+        intField(views),
         booleanField(public),
         dateField(rank).copy(format = Some(SearchDateTime.format)),
         dateField(createdAt).copy(format = Some(SearchDateTime.format)),

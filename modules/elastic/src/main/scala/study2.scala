@@ -49,6 +49,7 @@ case class Study2(text: String, sorting: Option[Sorting], userId: Option[String]
 
 object Fields:
   val name = "name"
+  val description = "description"
   val nameRaw = "raw"
   val owner = "owner"
   val members = "members"
@@ -58,6 +59,7 @@ object Fields:
   val rank = "rank"
   val likes = "likes"
   val public = "public"
+  val views = "views"
 
 object Mapping:
   def fields = MappingGenerator.generateFields(es.Study2Source.schema)
@@ -69,7 +71,8 @@ object Study2:
     Fields.name,
     Fields.owner,
     Fields.members,
-    Fields.topics
+    Fields.topics,
+    Fields.description,
   )
 
   enum Field(val field: String):

@@ -143,8 +143,10 @@ structure Study2Source {
   @required
   @textField(boost: 10, analyzer: "english", keywordSubfield: {name: "raw", normalizer: "lowercase"})
   name: String
+  @textField(boost: 5, analyzer: "english")
+  description: String
   @required
-  @keywordField(boost: 2, docValues: false)
+  @keywordField(boost: 5, docValues: false)
   owner: String
   @required
   @keywordField(boost: 1, docValues: false)
@@ -153,8 +155,11 @@ structure Study2Source {
   @textField(boost: 5, analyzer: "english", docValues: false)
   topics: Strings
   @required
-  @shortField
+  @intField
   likes: Integer
+  @required
+  @intField
+  views: Integer
   @required
   @booleanField
   public: Boolean

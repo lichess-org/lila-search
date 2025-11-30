@@ -18,8 +18,6 @@ object Indexer:
       case i: Index => List(i)
       case _ => Index.values.toList
 
-  extension (index: Index) def deletedAtLogPath: String = s"./deletes_${index.value}.log"
-
 class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[IO]):
   import Indexer.*
 

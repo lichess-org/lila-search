@@ -91,12 +91,14 @@ object Translate:
   def study2(study: DbStudy): Study2Source =
     Study2Source(
       name = study.name,
+      description = study.description,
       owner = study.ownerId,
       members = study.memberIds,
       topics = study.topics.getOrElse(Nil),
       likes = study.likes.getOrElse(0),
       public = study.visibility.fold(false)(_ == "public"),
       rank = study.rank.map(SearchDateTime.fromInstant),
+      views = study.views.getOrElse(0),
       createdAt = study.createdAt.map(SearchDateTime.fromInstant),
       updatedAt = study.updatedAt.map(SearchDateTime.fromInstant)
     )
