@@ -91,7 +91,7 @@ object Translate:
   def study2(study: DbStudy): Study2Source =
     Study2Source(
       name = study.name,
-      description = study.description,
+      description = study.description.filterNot(s => s.isBlank || s == "-"),
       owner = study.ownerId,
       members = study.memberIds,
       topics = study.topics.getOrElse(Nil),
