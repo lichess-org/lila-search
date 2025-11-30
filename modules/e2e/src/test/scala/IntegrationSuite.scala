@@ -130,22 +130,20 @@ object IntegrationSuite extends IOSuite:
       .search(uri)
       .use: service =>
         for
-          _ <- res.esClient.putMapping(Index.Study)
+          _ <- res.esClient.putMapping(Index.Study2)
           _ <- res.esClient.store(
-            Index.Study,
+            Index.Study2,
             Id("study_id"),
-            StudySource(
+            Study2Source(
               name = "study name",
               owner = "study owner",
               members = List("member1", "member2"),
-              chapterNames = "chapter one",
-              chapterTexts = "study description",
               likes = 100,
               public = true,
               topics = List("topic1", "topic2")
             )
           )
-          _ <- res.esClient.refreshIndex(Index.Study)
+          _ <- res.esClient.refreshIndex(Index.Study2)
           a <- service.search(Query.study("name"), from, size)
           b <- service.search(Query.study("study description"), from, size)
           c <- service.search(Query.study("topic1"), from, size)
