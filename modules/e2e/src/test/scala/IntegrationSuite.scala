@@ -125,7 +125,7 @@ object IntegrationSuite extends IOSuite:
           y <- service.search(Query.team("team description"), from, size)
         yield expect(x.hitIds.size == 1 && x == y)
 
-  test("study"): res =>
+  test("study2".ignore): res =>
     Clients
       .search(uri)
       .use: service =>
@@ -145,6 +145,32 @@ object IntegrationSuite extends IOSuite:
             )
           )
           _ <- res.esClient.refreshIndex(Index.Study2)
+          a <- service.search(Query.study("name"), from, size)
+          b <- service.search(Query.study("study description"), from, size)
+          c <- service.search(Query.study("topic1"), from, size)
+        yield expect(a.hitIds.size == 1 && b == a && c == a)
+
+  test("study"): res =>
+    Clients
+      .search(uri)
+      .use: service =>
+        for
+          _ <- res.esClient.putMapping(Index.Study)
+          _ <- res.esClient.store(
+            Index.Study,
+            Id("study_id"),
+            StudySource(
+              name = "study name",
+              owner = "study owner",
+              members = List("member1", "member2"),
+              chapterNames = "chapter one",
+              chapterTexts = "study description",
+              likes = 100,
+              public = true,
+              topics = List("topic1", "topic2")
+            )
+          )
+          _ <- res.esClient.refreshIndex(Index.Study)
           a <- service.search(Query.study("name"), from, size)
           b <- service.search(Query.study("study description"), from, size)
           c <- service.search(Query.study("topic1"), from, size)

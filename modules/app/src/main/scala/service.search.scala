@@ -7,6 +7,7 @@ import io.github.arainko.ducktape.*
 import lila.search.forum.Forum
 import lila.search.game.Game
 import lila.search.spec.*
+import lila.search.study.Study
 import lila.search.study2.Study2
 import lila.search.team.Team
 import lila.search.ublog.Ublog
@@ -48,6 +49,8 @@ object SearchServiceImpl:
   given dateRange: Transformer.Derived[DateRange, Range[Instant]] =
     Transformer.Derived.FromFunction(r => Range(r.a.map(_.to[Instant]), r.b.map(_.to[Instant])))
 
+  val useStudy2 = sys.env.get("SEARCH_USE_STUDY2").filter(_.toLowerCase == "true").isDefined
+
   given Queryable[Query]:
     extension (query: Query)
       def searchDef(from: From, size: Size) =
@@ -55,7 +58,9 @@ object SearchServiceImpl:
           case q: Query.Forum => q.to[Forum].searchDef(from, size)
           case q: Query.Ublog => q.to[Ublog].searchDef(from, size)
           case q: Query.Game => q.to[Game].searchDef(from, size)
-          case q: Query.Study => q.to[Study2].searchDef(from, size)
+          case q: Query.Study =>
+            if useStudy2 then q.to[Study2].searchDef(from, size)
+            else q.to[Study].searchDef(from, size)
           case q: Query.Team => q.to[Team].searchDef(from, size)
 
       def countDef =
@@ -63,12 +68,16 @@ object SearchServiceImpl:
           case q: Query.Forum => q.to[Forum].countDef
           case q: Query.Ublog => q.to[Ublog].countDef
           case q: Query.Game => q.to[Game].countDef
-          case q: Query.Study => q.to[Study2].countDef
+          case q: Query.Study =>
+            if useStudy2 then q.to[Study2].countDef
+            else q.to[Study].countDef
           case q: Query.Team => q.to[Team].countDef
 
       def index = query match
         case _: Query.Forum => Index.Forum
         case _: Query.Ublog => Index.Ublog
         case _: Query.Game => Index.Game
-        case _: Query.Study => Index.Study2
+        case _: Query.Study =>
+          if useStudy2 then Index.Study2
+          else Index.Study
         case _: Query.Team => Index.Team
