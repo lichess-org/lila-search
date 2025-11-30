@@ -40,7 +40,7 @@ extension (index: Index)
         logger.error(e.asException)(s"Failed to ${index.value} index: ${sources.map(_._1).mkString(", ")}")
           *> IO.raiseError(e.asException)
       .whenA(sources.nonEmpty) *>
-      logger.info(s"Indexed ${sources.size} ${index.value}s")
+      logger.info(s"Updated ${sources.size} ${index.value}s")
 
   private def deleteMany(ids: List[Id])(using logger: Logger[IO], elastic: ESClient[IO]): IO[Unit] =
     allow:
