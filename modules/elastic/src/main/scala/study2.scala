@@ -49,8 +49,8 @@ case class Study2(text: String, sorting: Option[Sorting], userId: Option[String]
 
 object Fields:
   val name = "name"
-  val description = "description"
   val nameRaw = "raw"
+  val description = "description"
   val owner = "owner"
   val members = "members"
   val topics = "topics"
