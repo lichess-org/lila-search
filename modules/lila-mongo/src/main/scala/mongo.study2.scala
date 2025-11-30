@@ -31,7 +31,8 @@ object Study2Repo:
       F.rank,
       F.createdAt,
       F.updatedAt,
-      F.from
+      F.from,
+      F.views
     )
 
   private val indexDocProjection = Projection.include(interestedfields)
@@ -133,6 +134,7 @@ object Study2Repo:
     val updatedAt = "updatedAt"
     val rank = "rank"
     val from = "from"
+    val views = "views"
     val oplogDeleteId = "o._id"
     val oplogUpdateId = "o2._id"
     val oplogLikes = "o.diff.u.likes"
@@ -164,7 +166,8 @@ case class DbStudy(
     rank: Option[Instant],
     createdAt: Option[Instant],
     updatedAt: Option[Instant],
-    from: Option[String] = None
+    from: Option[String],
+    views: Option[Int]
 ):
   def memberIds: List[String] = members.fold(Nil)(_.keys.toList)
   // https://github.com/lichess-org/lila/blob/71f127800da448ef79f7a5f868c16608110c9c7c/modules/study/src/main/BSONHandlers.scala#L377
@@ -173,7 +176,7 @@ case class DbStudy(
 object DbStudy:
   import Study2Repo.F
   given Decoder[DbStudy] =
-    Decoder.forProduct11(
+    Decoder.forProduct12(
       _id,
       F.name,
       F.ownerId,
@@ -184,7 +187,8 @@ object DbStudy:
       F.rank,
       F.createdAt,
       F.updatedAt,
-      F.from
+      F.from,
+      F.views
     )(DbStudy.apply)
 
   // We don't write to the database so we don't need to implement this
