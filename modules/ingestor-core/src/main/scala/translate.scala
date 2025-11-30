@@ -98,7 +98,6 @@ object Translate:
       likes = study.likes.getOrElse(0),
       public = study.visibility.fold(false)(_ == "public"),
       rank = study.rank.map(SearchDateTime.fromInstant),
-      views = study.views.getOrElse(0),
       createdAt = study.createdAt.map(SearchDateTime.fromInstant),
       updatedAt = study.updatedAt.map(SearchDateTime.fromInstant)
     )

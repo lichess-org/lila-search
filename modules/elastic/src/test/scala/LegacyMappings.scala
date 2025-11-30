@@ -76,7 +76,6 @@ object LegacyMappings:
         keywordField(members).copy(boost = Some(1), docValues = Some(false)),
         textField(topics).copy(boost = Some(5), analyzer = Some("english")),
         intField(likes),
-        intField(views),
         booleanField(public),
         dateField(rank).copy(format = Some(SearchDateTime.format)),
         dateField(createdAt).copy(format = Some(SearchDateTime.format)),

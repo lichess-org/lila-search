@@ -31,7 +31,6 @@ object Study2Repo:
       F.createdAt,
       F.updatedAt,
       F.from,
-      F.views,
       F.description
     )
 
@@ -134,7 +133,6 @@ object Study2Repo:
     val updatedAt = "updatedAt"
     val rank = "rank"
     val from = "from"
-    val views = "views"
     val description = "description"
     val oplogDeleteId = "o._id"
     val oplogUpdateId = "o2._id"
@@ -168,7 +166,6 @@ case class DbStudy(
     createdAt: Option[Instant],
     updatedAt: Option[Instant],
     from: Option[String],
-    views: Option[Int],
     description: Option[String]
 ):
   def memberIds: List[String] = members.fold(Nil)(_.keys.toList)
@@ -178,7 +175,7 @@ case class DbStudy(
 object DbStudy:
   import Study2Repo.F
   given Decoder[DbStudy] =
-    Decoder.forProduct13(
+    Decoder.forProduct12(
       _id,
       F.name,
       F.ownerId,
@@ -190,7 +187,6 @@ object DbStudy:
       F.createdAt,
       F.updatedAt,
       F.from,
-      F.views,
       F.description // todo filter out bad description?
     )(DbStudy.apply)
 

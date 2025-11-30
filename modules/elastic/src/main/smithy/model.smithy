@@ -158,9 +158,6 @@ structure Study2Source {
   @intField
   likes: Integer
   @required
-  @intField
-  views: Integer
-  @required
   @booleanField
   public: Boolean
   @dateField(format: "yyyy-MM-dd HH:mm:ss")

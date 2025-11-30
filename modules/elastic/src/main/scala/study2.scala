@@ -59,7 +59,6 @@ object Fields:
   val rank = "rank"
   val likes = "likes"
   val public = "public"
-  val views = "views"
 
 object Mapping:
   def fields = MappingGenerator.generateFields(es.Study2Source.schema)
@@ -72,7 +71,7 @@ object Study2:
     Fields.owner,
     Fields.members,
     Fields.topics,
-    Fields.description,
+    Fields.description
   )
 
   enum Field(val field: String):

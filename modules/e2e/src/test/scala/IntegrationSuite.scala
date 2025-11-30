@@ -139,7 +139,6 @@ object IntegrationSuite extends IOSuite:
               owner = "study owner",
               members = List("member1", "member2"),
               description = "study description".some,
-              views = 50,
               likes = 100,
               public = true,
               topics = List("topic1", "topic2")
