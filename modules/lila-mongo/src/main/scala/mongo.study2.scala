@@ -87,6 +87,7 @@ object Study2Repo:
         .chunkN(config.batchSize)
         .map(_.filter(!_.isBroadcast))
         .map(_.toList)
+        .evalTap(_.traverse_(s => debug"Indexing study $s"))
 
     def pullForDelete(since: Instant, until: Instant): fs2.Stream[IO, List[Id]] =
       val filter =
