@@ -18,12 +18,8 @@ object Repo:
   case class Result[A](
       toIndex: List[A],
       toDelete: List[Id],
-      toUpdate: ToUpdate,
       timestamp: Option[Instant]
   )
-  object Result:
-    def apply[A](toIndex: List[A], toDelete: List[Id], timestamp: Option[Instant]): Result[A] =
-      Result(toIndex, toDelete, Nil, timestamp)
 
   import cats.effect.IO
   import mongo4cats.bson.Document
