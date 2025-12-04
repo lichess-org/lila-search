@@ -61,7 +61,7 @@ object Dependencies {
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j" % "2.7.1"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.21"
-  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.10"
+  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.11"
 
   val otel4sCore = "org.typelevel" %% "otel4s-core" % V.otel4s
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
