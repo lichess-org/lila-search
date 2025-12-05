@@ -7,7 +7,6 @@ import com.sksamuel.elastic4s.Indexable
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
-import scala.concurrent.duration.*
 
 import java.time.Instant
 
@@ -26,18 +25,16 @@ object Ingestors:
     (
       ForumRepo(lichess, config.forum),
       UblogRepo(lichess, config.ublog),
-      StudyRepo(study, local, config.study),
       Study2Repo(study, local, config.study),
       GameRepo(lichess, config.game),
       TeamRepo(lichess, config.team)
-    ).flatMapN: (forums, ublogs, studies, study2s, games, teams) =>
+    ).flatMapN: (forums, ublogs, study2s, games, teams) =>
       given KVStore = store
       given ESClient[IO] = elastic
       List(
         watch(Index.Forum, forums, config.forum.startAt),
         watch(Index.Ublog, ublogs, config.ublog.startAt),
-        watch(Index.Study, studies, config.study.startAt),
-        IO.sleep(10.seconds) *> watch(Index.Study2, study2s, config.study.startAt),
+        watch(Index.Study2, study2s, config.study.startAt),
         watch(Index.Game, games, config.game.startAt),
         watch(Index.Team, teams, config.team.startAt)
       ).parSequence_
