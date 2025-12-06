@@ -125,31 +125,6 @@ object IntegrationSuite extends IOSuite:
           y <- service.search(Query.team("team description"), from, size)
         yield expect(x.hitIds.size == 1 && x == y)
 
-  // test("study2"): res =>
-  //   Clients
-  //     .search(uri)
-  //     .use: service =>
-  //       for
-  //         _ <- res.esClient.putMapping(Index.Study2)
-  //         _ <- res.esClient.store(
-  //           Index.Study2,
-  //           Id("study_id"),
-  //           Study2Source(
-  //             name = "study name",
-  //             owner = "study owner",
-  //             members = List("member1", "member2"),
-  //             description = "study description".some,
-  //             likes = 100,
-  //             public = true,
-  //             topics = List("topic1", "topic2")
-  //           )
-  //         )
-  //         _ <- res.esClient.refreshIndex(Index.Study2)
-  //         a <- service.search(Query.study("name"), from, size)
-  //         b <- service.search(Query.study("study description"), from, size)
-  //         c <- service.search(Query.study("topic1"), from, size)
-  //       yield expect(a.hitIds.size == 1 && b == a && c == a)
-
   test("study"): res =>
     Clients
       .search(uri)
@@ -171,9 +146,9 @@ object IntegrationSuite extends IOSuite:
           )
           _ <- res.esClient.refreshIndex(Index.Study)
           a <- service.search(Query.study("name"), from, size)
-        // b <- service.search(Query.study("study description"), from, size)
-        // c <- service.search(Query.study("topic1"), from, size)
-        yield expect(true)
+          b <- service.search(Query.study("study description"), from, size)
+          c <- service.search(Query.study("topic1"), from, size)
+        yield expect(true && a.hitIds.size == 1 && b == a && c == a)
 
   val defaultIntRange = IntRange(none, none)
   val defaultDateRange = DateRange(none, none)
