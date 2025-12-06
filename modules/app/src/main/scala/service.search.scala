@@ -59,8 +59,9 @@ object SearchServiceImpl:
           case q: Query.Ublog => q.to[Ublog].searchDef(from, size)
           case q: Query.Game => q.to[Game].searchDef(from, size)
           case q: Query.Study =>
-            if useStudy2 then q.to[Study2].searchDef(from, size)
-            else q.to[Study].searchDef(from, size)
+            // if useStudy2 then q.to[Study2].searchDef(from, size)
+            // else
+              q.to[Study].searchDef(from, size)
           case q: Query.Team => q.to[Team].searchDef(from, size)
 
       def countDef =

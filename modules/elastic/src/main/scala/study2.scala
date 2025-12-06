@@ -9,15 +9,16 @@ import lila.search.study2.Study2.Sorting
 case class Study2(text: String, sorting: Option[Sorting], userId: Option[String]):
 
   def searchDef(from: From, size: Size) =
-    search(Study2.index)
+    search(Index.Study2.value)
       .query(makeQuery())
       .fetchSource(false)
       .sortBy(sorting.map(_.toElastic) ++ Seq(fieldSort("_score").order(SortOrder.DESC)))
       .start(from.value)
       .size(size.value)
 
-  def countDef = count(Study2.index).query(makeQuery())
+  def countDef = count(Index.Study2.value).query(makeQuery())
 
+  // diferrent query for different orders?
   private def makeQuery() = {
     val parsed = QueryParser(text, List("owner", "member"))
     val matcher: Query =
@@ -64,7 +65,6 @@ object Mapping:
   def fields = MappingGenerator.generateFields(es.Study2Source.schema)
 
 object Study2:
-  val index = "study2"
 
   private val searchableFields = List(
     Fields.name,

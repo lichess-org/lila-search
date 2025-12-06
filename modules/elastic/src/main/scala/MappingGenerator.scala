@@ -31,7 +31,8 @@ object MappingGenerator:
         val baseField = textField(fieldName)
           .copy(
             boost = traitData.boost.map(_.toDouble),
-            analyzer = traitData.analyzer
+            analyzer = traitData.analyzer,
+            searchAnalyzer = traitData.searchAnalyzer,
           )
         // If keyword subfield is specified, add it
         traitData.keywordSubfield match

@@ -26,7 +26,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     GameRepo(res.lichess, config.ingestor.game),
     ForumRepo(res.lichess, config.ingestor.forum),
     UblogRepo(res.lichess, config.ingestor.ublog),
-    StudyRepo(res.study, res.studyLocal, config.ingestor.study),
+    Study2Repo(res.study, res.studyLocal, config.ingestor.study),
     Study2Repo(res.study, res.studyLocal, config.ingestor.study),
     TeamRepo(res.lichess, config.ingestor.team)
   )

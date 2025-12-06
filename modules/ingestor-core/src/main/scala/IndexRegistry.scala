@@ -14,7 +14,6 @@ object IndexRegistry:
   given Indexable[DbGame] = a => writeToString(Translate.game(a))
   given Indexable[DbForum] = a => writeToString(Translate.forum(a))
   given Indexable[DbUblog] = a => writeToString(Translate.ublog(a))
-  given Indexable[(DbStudy, StudyChapterData)] = a => writeToString(Translate.study.tupled(a))
   given Indexable[DbStudy] = a => writeToString(Translate.study2(a))
   given Indexable[DbTeam] = a => writeToString(Translate.team(a))
 
@@ -51,7 +50,7 @@ class IndexRegistry(
     game: IO[Repo[DbGame]],
     forum: IO[Repo[DbForum]],
     ublog: IO[Repo[DbUblog]],
-    study: IO[Repo[(DbStudy, StudyChapterData)]],
+    study: IO[Repo[DbStudy]],
     study2: IO[Repo[DbStudy]],
     team: IO[Repo[DbTeam]]
 ):
@@ -72,7 +71,7 @@ class IndexRegistry(
     case Index.Game => makeMapping[DbGame](game)
     case Index.Forum => makeMapping[DbForum](forum)
     case Index.Ublog => makeMapping[DbUblog](ublog)
-    case Index.Study => makeMapping[(DbStudy, StudyChapterData)](study)
+    case Index.Study => makeMapping[DbStudy](study)
     case Index.Study2 => makeMapping[DbStudy](study2)
     case Index.Team => makeMapping[DbTeam](team)
 
