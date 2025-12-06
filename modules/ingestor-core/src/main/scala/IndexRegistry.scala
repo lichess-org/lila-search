@@ -23,8 +23,6 @@ object IndexRegistry:
     extension (a: DbForum) def id: String = a.id
   given HasStringId[DbUblog]:
     extension (a: DbUblog) def id: String = a.id
-  given HasStringId[(DbStudy, StudyChapterData)]:
-    extension (a: (DbStudy, StudyChapterData)) def id: String = a._1.id
   given HasStringId[DbStudy]:
     extension (a: DbStudy) def id: String = a.id
   given HasStringId[DbTeam]:
