@@ -26,12 +26,11 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
     val matcher: Query =
       if parsed.terms.isEmpty then matchAllQuery()
       else
-        val multiMatcher =
           multiMatchQuery(parsed.terms.mkString(" "))
             .fields(Study.searchables*)
             .analyzer("english_with_chess_synonyms")
+            .operator("and")
             .matchType("most_fields")
-        sorting.fold(multiMatcher)(_ => multiMatcher.operator("and"))
 
     boolQuery()
       .must:
