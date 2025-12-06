@@ -27,7 +27,6 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     ForumRepo(res.lichess, config.ingestor.forum),
     UblogRepo(res.lichess, config.ingestor.ublog),
     Study2Repo(res.study, res.studyLocal, config.ingestor.study),
-    Study2Repo(res.study, res.studyLocal, config.ingestor.study),
     TeamRepo(res.lichess, config.ingestor.team)
   )
   given KVStore = res.store
@@ -47,7 +46,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
       putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
         runReindex(index, opts) *>
         refreshIndexes(res.elastic, index).whenA(!opts.dry)
-    if opts.index != Index.Study2 then
+    if opts.index != Index.Study then
       logger.warn(
         s"Reindexing is only supported for the Study2 index. No action taken for ${opts.index.toString}."
       )

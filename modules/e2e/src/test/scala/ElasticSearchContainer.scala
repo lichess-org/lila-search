@@ -4,9 +4,9 @@ package test
 
 import cats.effect.{ IO, Resource }
 import com.dimafeng.testcontainers.GenericContainer
-import org.testcontainers.containers.wait.strategy.Wait
 import com.dimafeng.testcontainers.GenericContainer.FileSystemBind
 import org.testcontainers.containers.BindMode
+import org.testcontainers.containers.wait.strategy.Wait
 
 object ElasticSearchContainer:
 
@@ -24,7 +24,8 @@ object ElasticSearchContainer:
         exposedPorts = Seq(PORT),
         waitStrategy = Wait.forListeningPort(),
         env = env,
-        classpathResourceMapping = Seq(FileSystemBind("synonyms", "/usr/share/elasticsearch/config/synonyms", BindMode.READ_WRITE))
+        classpathResourceMapping =
+          Seq(FileSystemBind("synonyms", "/usr/share/elasticsearch/config/synonyms", BindMode.READ_WRITE))
       )
     ).flatTap(cont => IO(cont.start()))
     Resource.make(start)(cont => IO(cont.stop()))

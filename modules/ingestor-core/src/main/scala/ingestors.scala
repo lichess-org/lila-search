@@ -34,7 +34,7 @@ object Ingestors:
       List(
         watch(Index.Forum, forums, config.forum.startAt),
         watch(Index.Ublog, ublogs, config.ublog.startAt),
-        watch(Index.Study2, study2s, config.study.startAt),
+        watch(Index.Study, study2s, config.study.startAt),
         watch(Index.Game, games, config.game.startAt),
         watch(Index.Team, teams, config.team.startAt)
       ).parSequence_

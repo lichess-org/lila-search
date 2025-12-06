@@ -32,7 +32,7 @@ object MappingGenerator:
           .copy(
             boost = traitData.boost.map(_.toDouble),
             analyzer = traitData.analyzer,
-            searchAnalyzer = traitData.searchAnalyzer,
+            searchAnalyzer = traitData.searchAnalyzer
           )
         // If keyword subfield is specified, add it
         traitData.keywordSubfield match

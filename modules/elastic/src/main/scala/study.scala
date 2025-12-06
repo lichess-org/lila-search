@@ -2,11 +2,11 @@ package lila.search
 package study
 
 import com.sksamuel.elastic4s.ElasticDsl.*
+import com.sksamuel.elastic4s.requests.count.CountRequest
+import com.sksamuel.elastic4s.requests.searches.SearchRequest
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
 import lila.search.study.Study.Sorting
-import com.sksamuel.elastic4s.requests.count.CountRequest
-import com.sksamuel.elastic4s.requests.searches.SearchRequest
 
 case class Study(text: String, sorting: Option[Sorting], userId: Option[String]):
 
@@ -26,11 +26,11 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
     val matcher: Query =
       if parsed.terms.isEmpty then matchAllQuery()
       else
-          multiMatchQuery(parsed.terms.mkString(" "))
-            .fields(Study.searchables*)
-            .analyzer("english_with_chess_synonyms")
-            .operator("and")
-            .matchType("most_fields")
+        multiMatchQuery(parsed.terms.mkString(" "))
+          .fields(Study.searchables*)
+          .analyzer("english_with_chess_synonyms")
+          .operator("and")
+          .matchType("most_fields")
 
     boolQuery()
       .must:
