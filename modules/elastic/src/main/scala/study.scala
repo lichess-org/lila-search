@@ -27,10 +27,11 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
       if parsed.terms.isEmpty then matchAllQuery()
       else
         multiMatchQuery(parsed.terms.mkString(" "))
-          .fields(Study.searchables*)
+          .field(Fields.name, 3.0)
+          .field(Fields.topics, 2.0)
+          .field(Fields.description, 1.0)
           .analyzer("english_with_chess_synonyms")
           .operator("and")
-          .matchType("most_fields")
 
     boolQuery()
       .must:
@@ -69,12 +70,6 @@ object Mapping:
   def fields = MappingGenerator.generateFields(es.Study2Source.schema)
 
 object Study:
-
-  private val searchables = List(
-    Fields.name,
-    Fields.topics,
-    Fields.description
-  )
 
   enum Field(val field: String):
     case Name extends Field(s"${Fields.name}.${Fields.nameRaw}")
