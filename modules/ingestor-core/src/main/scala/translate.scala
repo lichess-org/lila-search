@@ -73,24 +73,10 @@ object Translate:
       date = forum.post.createdAt.toEpochMilli
     )
 
-  def study(study: DbStudy, data: StudyChapterData): StudySource =
-    StudySource(
-      name = study.name,
-      owner = study.ownerId,
-      members = study.memberIds,
-      chapterNames = data.chapterNames,
-      chapterTexts = data.chapterTexts,
-      likes = study.likes.getOrElse(0),
-      public = study.visibility.fold(false)(_ == "public"),
-      topics = study.topics.getOrElse(Nil),
-      rank = study.rank.map(SearchDateTime.fromInstant),
-      createdAt = study.createdAt.map(SearchDateTime.fromInstant),
-      updatedAt = study.updatedAt.map(SearchDateTime.fromInstant)
-    )
-
-  def study2(study: DbStudy): Study2Source =
+  def study(study: DbStudy): Study2Source =
     Study2Source(
       name = study.name,
+      description = study.description.filterNot(s => s.isBlank || s == "-"),
       owner = study.ownerId,
       members = study.memberIds,
       topics = study.topics.getOrElse(Nil),

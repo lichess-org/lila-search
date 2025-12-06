@@ -2,21 +2,24 @@ package lila.search
 package study
 
 import com.sksamuel.elastic4s.ElasticDsl.*
+import com.sksamuel.elastic4s.requests.count.CountRequest
+import com.sksamuel.elastic4s.requests.searches.SearchRequest
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
 import lila.search.study.Study.Sorting
 
 case class Study(text: String, sorting: Option[Sorting], userId: Option[String]):
 
-  def searchDef(from: From, size: Size) =
-    search(Study.index)
+  def searchDef(from: From, size: Size): SearchRequest =
+    search(Index.Study.value)
       .query(makeQuery())
-      .fetchSource(false)
       .sortBy(sorting.map(_.toElastic) ++ Seq(fieldSort("_score").order(SortOrder.DESC)))
       .start(from.value)
       .size(size.value)
+      .fetchSource(false)
 
-  def countDef = count(Study.index).query(makeQuery())
+  def countDef: CountRequest =
+    count(Index.Study.value).query(makeQuery())
 
   private def makeQuery() = {
     val parsed = QueryParser(text, List("owner", "member"))
@@ -24,9 +27,12 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
       if parsed.terms.isEmpty then matchAllQuery()
       else
         multiMatchQuery(parsed.terms.mkString(" "))
-          .fields(Study.searchableFields*)
-          .analyzer("english")
-          .matchType("most_fields")
+          .field(Fields.name, 3.0)
+          .field(Fields.topics, 2.0)
+          .field(Fields.description, 1.0)
+          .analyzer("english_with_chess_synonyms")
+          .operator("and")
+
     boolQuery()
       .must:
         matcher :: List(
@@ -50,31 +56,20 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
 object Fields:
   val name = "name"
   val nameRaw = "raw"
+  val description = "description"
   val owner = "owner"
   val members = "members"
-  val chapterNames = "chapterNames"
-  val chapterTexts = "chapterTexts"
   val topics = "topics"
-  val createdAt = "createdAt_date"
-  val updatedAt = "updatedAt_date"
+  val createdAt = "createdAt"
+  val updatedAt = "updatedAt"
   val rank = "rank"
   val likes = "likes"
   val public = "public"
 
 object Mapping:
-  def fields = MappingGenerator.generateFields(es.StudySource.schema)
+  def fields = MappingGenerator.generateFields(es.Study2Source.schema)
 
 object Study:
-  val index = "study"
-
-  private val searchableFields = List(
-    Fields.name,
-    Fields.owner,
-    Fields.members,
-    Fields.topics,
-    Fields.chapterNames,
-    Fields.chapterTexts
-  )
 
   enum Field(val field: String):
     case Name extends Field(s"${Fields.name}.${Fields.nameRaw}")

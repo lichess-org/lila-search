@@ -134,12 +134,11 @@ object IntegrationSuite extends IOSuite:
           _ <- res.esClient.store(
             Index.Study,
             Id("study_id"),
-            StudySource(
+            Study2Source(
               name = "study name",
               owner = "study owner",
               members = List("member1", "member2"),
-              chapterNames = "chapter one",
-              chapterTexts = "study description",
+              description = "study description".some,
               likes = 100,
               public = true,
               topics = List("topic1", "topic2")
@@ -149,7 +148,7 @@ object IntegrationSuite extends IOSuite:
           a <- service.search(Query.study("name"), from, size)
           b <- service.search(Query.study("study description"), from, size)
           c <- service.search(Query.study("topic1"), from, size)
-        yield expect(a.hitIds.size == 1 && b == a && c == a)
+        yield expect(true && a.hitIds.size == 1 && b == a && c == a)
 
   val defaultIntRange = IntRange(none, none)
   val defaultDateRange = DateRange(none, none)
@@ -161,6 +160,7 @@ object IntegrationSuite extends IOSuite:
     duration = defaultIntRange,
     sorting = GameSorting("field", "asc")
   )
+
   test("game"): res =>
     Clients
       .search(uri)

@@ -124,12 +124,6 @@ object MappingComparisonSuite extends SimpleIOSuite:
     compareFields(generated, legacy, "team") &&
     expect(generated.toSet == legacy.toSet)
 
-  pureTest("Study2 index: generated mappings match legacy mappings"):
-    val generated = study2.Mapping.fields
-    val legacy = LegacyMappings.study2.fields
-    compareFields(generated, legacy, "study2") &&
-    expect(generated.toSet == legacy.toSet)
-
   pureTest("Ublog index: generated mappings match legacy mappings"):
     val generated = ublog.Mapping.fields
     val legacy = LegacyMappings.ublog.fields

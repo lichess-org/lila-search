@@ -44,7 +44,7 @@ object StudyRepo:
               Result(
                 enriched,
                 result.toDelete,
-                // result.toUpdate,
+                Nil,
                 result.timestamp
               )
 

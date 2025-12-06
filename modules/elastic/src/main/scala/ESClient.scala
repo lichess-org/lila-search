@@ -90,11 +90,13 @@ object ESClient:
     def putMapping(index: Index): RaiseF[Unit] =
       dropIndex(index) *> client
         .execute:
-          createIndex(index.value)
-            .mapping(properties(index.mapping).source(index.keepSource))
-            .shards(5)
-            .replicas(0)
-            .refreshInterval(index.refreshInterval)
+          val request =
+            createIndex(index.value)
+              .mapping(properties(index.mapping).source(index.keepSource))
+              .shards(5)
+              .replicas(0)
+              .refreshInterval(index.refreshInterval)
+          index.analysis.fold(request)(request.analysis(_))
         .flatMap(_.unitOrFail)
 
     def refreshIndex(index: Index): RaiseF[Unit] =
