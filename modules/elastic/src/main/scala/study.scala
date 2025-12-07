@@ -23,15 +23,21 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
 
   private def makeQuery() = {
     val parsed = QueryParser(text, List("owner", "member"))
+
     val matcher: Query =
       if parsed.terms.isEmpty then matchAllQuery()
       else
-        multiMatchQuery(parsed.terms.mkString(" "))
-          .field(Fields.name, 3.0)
-          .field(Fields.topics, 2.0)
-          .field(Fields.description, 1.0)
-          .analyzer("english_with_chess_synonyms")
-          .operator("and")
+        val text = parsed.terms.mkString(" ")
+        boolQuery().should(
+          multiMatchQuery(text)
+            .field(Fields.name, 3.0)
+            .field(Fields.topics, 2.0)
+            .field(Fields.description, 1.0)
+            .analyzer("english_with_chess_synonyms")
+            .operator("and"),
+          multiMatchQuery(text)
+            .fields(Fields.owner, Fields.members)
+        )
 
     boolQuery()
       .must:
