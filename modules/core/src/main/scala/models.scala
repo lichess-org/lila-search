@@ -31,8 +31,7 @@ enum Index(val value: String):
   case Forum extends Index("forum")
   case Ublog extends Index("ublog")
   case Game extends Index("game")
-  case Study extends Index("study")
-  case Study2 extends Index("study2")
+  case Study extends Index("study2_2")
   case Team extends Index("team")
 
 object Index:
@@ -42,7 +41,6 @@ object Index:
       case "ublog" => Index.Ublog.asRight
       case "game" => Index.Game.asRight
       case "study" => Index.Study.asRight
-      case "study2" => Index.Study2.asRight
       case "team" => Index.Team.asRight
       case _ => s"Invalid index: $value. It must be in ${Index.valuesStrings}".asLeft
 

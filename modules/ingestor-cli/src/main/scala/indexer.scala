@@ -18,8 +18,6 @@ object Indexer:
       case i: Index => List(i)
       case _ => Index.values.toList
 
-  extension (index: Index) def deletedAtLogPath: String = s"./deletes_${index.value}.log"
-
 class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[IO]):
   import Indexer.*
 
@@ -29,7 +27,6 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     ForumRepo(res.lichess, config.ingestor.forum),
     UblogRepo(res.lichess, config.ingestor.ublog),
     StudyRepo(res.study, res.studyLocal, config.ingestor.study),
-    Study2Repo(res.study, res.studyLocal, config.ingestor.study),
     TeamRepo(res.lichess, config.ingestor.team)
   )
   given KVStore = res.store
@@ -46,16 +43,10 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
   def reindex(opts: ReindexOpts) =
     def go(index: Index) =
-      Handle
-        .allow:
-          res.elastic.putMapping(index)
-        .rescue: e =>
-          Logger[IO].error(e.asException)(s"Failed put mapping for ${index.value}") *>
-            e.asException.raiseError
-      *>
+      putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
         runReindex(index, opts) *>
         refreshIndexes(res.elastic, index).whenA(!opts.dry)
-    if opts.index != Index.Study2 then
+    if opts.index != Index.Study then
       logger.warn(
         s"Reindexing is only supported for the Study2 index. No action taken for ${opts.index.toString}."
       )

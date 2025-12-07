@@ -16,8 +16,10 @@ structure KeywordSubfield {
 structure textField {
     /// Search boost multiplier for this field
     boost: Integer
-    /// Analyzer to use (e.g., "english", "standard")
+    /// Index analyzer to use (e.g., "english", "standard")
     analyzer: String
+    /// Search analyzer to use (e.g., "english", "standard")
+    searchAnalyzer: String
     /// Optional keyword subfield for exact matching
     keywordSubfield: KeywordSubfield
 }

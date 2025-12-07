@@ -49,31 +49,15 @@ object LegacyMappings:
       import lila.search.study.Fields.*
       Seq(
         textField(name)
-          .copy(boost = Some(10), analyzer = Some("english"))
-          .copy(fields = List(keywordField(nameRaw))),
-        keywordField(owner).copy(boost = Some(2), docValues = Some(false)),
-        keywordField(members).copy(boost = Some(1), docValues = Some(false)),
-        textField(chapterNames).copy(boost = Some(4), analyzer = Some("english")),
-        textField(chapterTexts).copy(boost = Some(1), analyzer = Some("english")),
-        textField(topics).copy(boost = Some(5), analyzer = Some("english")),
-        shortField(likes).copy(docValues = Some(true)), // sort by likes
-        booleanField(public).copy(docValues = Some(false)),
-        dateField(rank).copy(format = Some(SearchDateTime.format)),
-        dateField(createdAt).copy(format = Some(SearchDateTime.format)),
-        dateField(updatedAt).copy(format = Some(SearchDateTime.format))
-      )
-
-  object study2:
-    def fields: Seq[ElasticField] =
-      import lila.search.study2.Fields.*
-      Seq(
-        textField(name)
-          .copy(boost = Some(10), analyzer = Some("english"))
+          .copy(analyzer = Some("english"), searchAnalyzer = Some("english_with_chess_synonyms"))
           .copy(fields = List(keywordField(nameRaw).copy(normalizer = Some("lowercase")))),
-        keywordField(owner).copy(boost = Some(2), docValues = Some(false)),
-        keywordField(members).copy(boost = Some(1), docValues = Some(false)),
-        textField(topics).copy(boost = Some(5), analyzer = Some("english")),
-        shortField(likes),
+        textField(description)
+          .copy(analyzer = Some("english"), searchAnalyzer = Some("english_with_chess_synonyms")),
+        keywordField(owner).copy(docValues = Some(false)),
+        keywordField(members).copy(docValues = Some(false)),
+        textField(topics)
+          .copy(analyzer = Some("english"), searchAnalyzer = Some("english_with_chess_synonyms")),
+        intField(likes),
         booleanField(public),
         dateField(rank).copy(format = Some(SearchDateTime.format)),
         dateField(createdAt).copy(format = Some(SearchDateTime.format)),

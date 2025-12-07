@@ -104,56 +104,23 @@ structure GameSource {
   source: Integer
 }
 
-structure StudySource {
-  @required
-  @textField(boost: 10, analyzer: "english", keywordSubfield: {name: "raw"})
-  name: String
-  @required
-  @keywordField(boost: 2, docValues: false)
-  owner: String
-  @required
-  @keywordField(boost: 1, docValues: false)
-  members: PlayerIds
-  @required
-  @textField(boost: 4, analyzer: "english")
-  chapterNames: String
-  @required
-  @textField(boost: 1, analyzer: "english")
-  chapterTexts: String
-  @default
-  @textField(boost: 5, analyzer: "english")
-  topics: Strings
-  @required
-  @shortField(docValues: true)
-  likes: Integer
-  @required
-  @booleanField(docValues: false)
-  public: Boolean
-  @dateField(format: "yyyy-MM-dd HH:mm:ss")
-  rank: DateTime
-  @jsonName("createdAt_date")
-  @dateField(format: "yyyy-MM-dd HH:mm:ss")
-  createdAt: DateTime
-  @jsonName("updatedAt_date")
-  @dateField(format: "yyyy-MM-dd HH:mm:ss")
-  updatedAt: DateTime
-}
-
 structure Study2Source {
   @required
-  @textField(boost: 10, analyzer: "english", keywordSubfield: {name: "raw", normalizer: "lowercase"})
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms", keywordSubfield: {name: "raw", normalizer: "lowercase"})
   name: String
+  @textField( analyzer: "english", searchAnalyzer: "english_with_chess_synonyms" )
+  description: String
   @required
-  @keywordField(boost: 2, docValues: false)
+  @keywordField(docValues: false)
   owner: String
   @required
-  @keywordField(boost: 1, docValues: false)
+  @keywordField(docValues: false)
   members: PlayerIds
   @default
-  @textField(boost: 5, analyzer: "english", docValues: false)
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms", docValues: false)
   topics: Strings
   @required
-  @shortField
+  @intField
   likes: Integer
   @required
   @booleanField

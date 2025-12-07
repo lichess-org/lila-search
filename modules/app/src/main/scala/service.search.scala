@@ -48,6 +48,8 @@ object SearchServiceImpl:
   given dateRange: Transformer.Derived[DateRange, Range[Instant]] =
     Transformer.Derived.FromFunction(r => Range(r.a.map(_.to[Instant]), r.b.map(_.to[Instant])))
 
+  val useStudy2 = sys.env.get("SEARCH_USE_STUDY2").filter(_.toLowerCase == "true").isDefined
+
   given Queryable[Query]:
     extension (query: Query)
       def searchDef(from: From, size: Size) =
