@@ -40,7 +40,7 @@ object Index:
       case "forum" => Index.Forum.asRight
       case "ublog" => Index.Ublog.asRight
       case "game" => Index.Game.asRight
-      case "study2_2" => Index.Study.asRight
+      case "study" => Index.Study.asRight
       case "team" => Index.Team.asRight
       case _ => s"Invalid index: $value. It must be in ${Index.valuesStrings}".asLeft
 
