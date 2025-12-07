@@ -25,7 +25,7 @@ object Ingestors:
     (
       ForumRepo(lichess, config.forum),
       UblogRepo(lichess, config.ublog),
-      Study2Repo(study, local, config.study),
+      StudyRepo(study, local, config.study),
       GameRepo(lichess, config.game),
       TeamRepo(lichess, config.team)
     ).flatMapN: (forums, ublogs, study2s, games, teams) =>
