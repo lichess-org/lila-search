@@ -23,7 +23,6 @@ jobs:
           - check
           - test
         java:
-          - 21
           - 25
     steps:
       - uses: actions/checkout@v6
