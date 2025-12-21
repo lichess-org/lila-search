@@ -22,6 +22,9 @@ object MappingGenerator:
           val fieldName = field.hints.get[smithy.api.JsonName].map(_.value).getOrElse(field.label)
           generateField(fieldName, field.hints, field.schema)
         }
+      case Schema.OptionSchema(underlying) =>
+        // Unwrap optional schemas and process the underlying structure
+        generateFields(underlying)
       case _ => Nil
 
   private def generateTextField(fieldName: String, hints: Hints): Option[ElasticField] =
