@@ -25,6 +25,10 @@ object MappingGenerator:
       case Schema.OptionSchema(underlying) =>
         // Unwrap optional schemas and process the underlying structure
         generateFields(underlying)
+      case Schema.CollectionSchema(_, _, _, member) =>
+        // Unwrap collection schemas and process the member schema
+        // For nested fields, the mapping defines the structure of each element
+        generateFields(member)
       case _ => Nil
 
   private def generateTextField(fieldName: String, hints: Hints): Option[ElasticField] =

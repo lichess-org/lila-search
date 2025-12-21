@@ -132,6 +132,10 @@ structure Chapter {
   tags: ChapterTags
 }
 
+list Chapters {
+  member: Chapter
+}
+
 structure Study2Source {
   @required
   @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms", keywordSubfield: {name: "raw", normalizer: "lowercase"})
@@ -148,7 +152,7 @@ structure Study2Source {
   @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms", docValues: false)
   topics: Strings
   @nestedField(dynamic: "false")
-  chapters: Chapter
+  chapters: Chapters
   @required
   @intField
   likes: Integer
