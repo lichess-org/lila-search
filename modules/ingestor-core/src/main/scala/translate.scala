@@ -73,18 +73,45 @@ object Translate:
       date = forum.post.createdAt.toEpochMilli
     )
 
-  def study(study: DbStudy): Study2Source =
+  def study(study: DbStudy, chapterData: Option[StudyChapterData]): Study2Source =
     Study2Source(
       name = study.name,
       description = study.description.filterNot(s => s.isBlank || s == "-"),
       owner = study.ownerId,
       members = study.memberIds,
       topics = study.topics.getOrElse(Nil),
+      chapters = chapterData.map(translateChapters),
       likes = study.likes.getOrElse(0),
       public = study.visibility.fold(false)(_ == "public"),
       rank = study.rank.map(SearchDateTime.fromInstant),
       createdAt = study.createdAt.map(SearchDateTime.fromInstant),
       updatedAt = study.updatedAt.map(SearchDateTime.fromInstant)
+    )
+
+  private def translateChapters(data: StudyChapterData): List[es.Chapter] =
+    // Zip together parallel lists from StudyChapterData
+    val chapters = data.name.indices.map { i =>
+      val tags = if i < data.tags.size then Some(translateChapterTags(data.tags(i))) else None
+      es.Chapter(
+        name = data.name.lift(i),
+        description = data.description.lift(i).filterNot(_.isBlank),
+        tags = tags
+      )
+    }.toList
+    chapters
+
+  private def translateChapterTags(tags: List[chess.format.pgn.Tag]): es.ChapterTags =
+    import chess.format.pgn.Tag
+    val tagMap = tags.map(t => t.name.toString -> t.value).toMap
+    es.ChapterTags(
+      variant = tagMap.get(Tag.Variant.toString),
+      event = tagMap.get(Tag.Event.toString),
+      white = tagMap.get(Tag.White.toString),
+      black = tagMap.get(Tag.Black.toString),
+      whiteFideId = tagMap.get(Tag.WhiteFideId.toString),
+      blackFideId = tagMap.get(Tag.BlackFideId.toString),
+      eco = tagMap.get(Tag.ECO.toString),
+      opening = tagMap.get(Tag.Opening.toString)
     )
 
   def team(team: DbTeam): TeamSource =
