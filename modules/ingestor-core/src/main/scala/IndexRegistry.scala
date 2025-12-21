@@ -14,7 +14,7 @@ object IndexRegistry:
   given Indexable[DbGame] = a => writeToString(Translate.game(a))
   given Indexable[DbForum] = a => writeToString(Translate.forum(a))
   given Indexable[DbUblog] = a => writeToString(Translate.ublog(a))
-  given Indexable[(DbStudy, Option[StudyChapterData])] = (study, chapters) =>
+  given Indexable[(DbStudy, Option[List[StudyChapterData]])] = (study, chapters) =>
     writeToString(Translate.study(study, chapters))
   given Indexable[DbTeam] = a => writeToString(Translate.team(a))
 
@@ -24,8 +24,8 @@ object IndexRegistry:
     extension (a: DbForum) def id: String = a.id
   given HasStringId[DbUblog]:
     extension (a: DbUblog) def id: String = a.id
-  given HasStringId[(DbStudy, Option[StudyChapterData])]:
-    extension (a: (DbStudy, Option[StudyChapterData])) def id: String = a._1.id
+  given HasStringId[(DbStudy, Option[List[StudyChapterData]])]:
+    extension (a: (DbStudy, Option[List[StudyChapterData]])) def id: String = a._1.id
   given HasStringId[DbTeam]:
     extension (a: DbTeam) def id: String = a.id
 
@@ -33,7 +33,7 @@ object IndexRegistry:
     case Index.Game.type => DbGame
     case Index.Forum.type => DbForum
     case Index.Ublog.type => DbUblog
-    case Index.Study.type => (DbStudy, Option[StudyChapterData])
+    case Index.Study.type => (DbStudy, Option[List[StudyChapterData]])
     case Index.Team.type => DbTeam
 
   trait IndexMapping:
@@ -48,7 +48,7 @@ class IndexRegistry(
     game: IO[Repo[DbGame]],
     forum: IO[Repo[DbForum]],
     ublog: IO[Repo[DbUblog]],
-    study: IO[Repo[(DbStudy, Option[StudyChapterData])]],
+    study: IO[Repo[(DbStudy, Option[List[StudyChapterData]])]],
     team: IO[Repo[DbTeam]]
 ):
   import com.sksamuel.elastic4s.Indexable
@@ -68,7 +68,7 @@ class IndexRegistry(
     case Index.Game => makeMapping[DbGame](game)
     case Index.Forum => makeMapping[DbForum](forum)
     case Index.Ublog => makeMapping[DbUblog](ublog)
-    case Index.Study => makeMapping[(DbStudy, Option[StudyChapterData])](study)
+    case Index.Study => makeMapping[(DbStudy, Option[List[StudyChapterData]])](study)
     case Index.Team => makeMapping[DbTeam](team)
 
   /**

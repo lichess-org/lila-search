@@ -124,6 +124,9 @@ structure ChapterTags {
 }
 
 structure Chapter {
+  @required
+  @keywordField(docValues: false)
+  id: String
   @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
   name: String
   @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")

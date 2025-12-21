@@ -73,14 +73,14 @@ object Translate:
       date = forum.post.createdAt.toEpochMilli
     )
 
-  def study(study: DbStudy, chapterData: Option[StudyChapterData]): Study2Source =
+  def study(study: DbStudy, chapters: Option[List[StudyChapterData]]): Study2Source =
     Study2Source(
       name = study.name,
       description = study.description.filterNot(s => s.isBlank || s == "-"),
       owner = study.ownerId,
       members = study.memberIds,
       topics = study.topics.getOrElse(Nil),
-      chapters = chapterData.map(translateChapters),
+      chapters = chapters.map(_.map(translateChapter)),
       likes = study.likes.getOrElse(0),
       public = study.visibility.fold(false)(_ == "public"),
       rank = study.rank.map(SearchDateTime.fromInstant),
@@ -88,17 +88,13 @@ object Translate:
       updatedAt = study.updatedAt.map(SearchDateTime.fromInstant)
     )
 
-  private def translateChapters(data: StudyChapterData): List[es.Chapter] =
-    // Zip together parallel lists from StudyChapterData
-    val chapters = data.name.indices.map { i =>
-      val tags = if i < data.tags.size then Some(translateChapterTags(data.tags(i))) else None
-      es.Chapter(
-        name = data.name.lift(i),
-        description = data.description.lift(i).filterNot(_.isBlank),
-        tags = tags
-      )
-    }.toList
-    chapters
+  private def translateChapter(chapter: StudyChapterData): es.Chapter =
+    es.Chapter(
+      id = chapter.id,
+      name = Some(chapter.name).filterNot(_.isBlank),
+      description = chapter.description.filterNot(_.isBlank),
+      tags = if chapter.tags.isEmpty then None else Some(translateChapterTags(chapter.tags))
+    )
 
   private def translateChapterTags(tags: List[chess.format.pgn.Tag]): es.ChapterTags =
     import chess.format.pgn.Tag
