@@ -1,5 +1,6 @@
 import sbt.*
 import smithy4s.codegen.BuildInfo.version as smithy4sVersion
+import snapshot4s.BuildInfo.snapshot4sVersion
 
 object Dependencies {
 
@@ -80,4 +81,5 @@ object Dependencies {
   val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.11.2" % Test
   val catsEffectTestKit = "org.typelevel" %% "cats-effect-testkit" % V.catsEffect % Test
   val scalacheck = "org.scalacheck" %% "scalacheck" % "1.17.0" % Test
+  val snapshot4s = "com.siriusxm" %% "snapshot4s-weaver" % snapshot4sVersion % Test
 }

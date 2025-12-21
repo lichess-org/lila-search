@@ -1,0 +1,1 @@
+{"settings":{"index":{"refresh_interval":"300s","number_of_shards":5,"number_of_replicas":0}},"mappings":{"_source":{"enabled":false},"properties":{"na":{"type":"text","analyzer":"english","boost":10.0},"de":{"type":"text","analyzer":"english","boost":2.0},"nbm":{"type":"short"}}}}
