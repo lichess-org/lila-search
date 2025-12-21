@@ -21,9 +21,11 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
   def countDef: CountRequest =
     count(Index.Study.value).query(makeQuery())
 
-  private def makeQuery() = {
+  private def makeQuery() =
     val parsed = QueryParser(text, List("owner", "member"))
+    parsed("owner").fold(makePublicQuery(parsed))(makeOwnerQuery(parsed))
 
+  private def makePublicQuery(parsed: ParsedQuery) = {
     val matcher: Query =
       if parsed.terms.isEmpty then matchAllQuery()
       else
@@ -54,6 +56,8 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
         ).flatten
       )
   }.minimumShouldMatch(1)
+
+  private def makeOwnerQuery(parsed: ParsedQuery)(owner: String) = ???
 
   private val selectPublic = termQuery(Fields.public, true)
 
