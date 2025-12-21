@@ -83,7 +83,11 @@ object MappingGenerator:
       .map: traitData =>
         booleanField(fieldName).copy(docValues = traitData.docValues)
 
-  private def generateNestedField(fieldName: String, hints: Hints, fieldSchema: Schema[?]): Option[ElasticField] =
+  private def generateNestedField(
+      fieldName: String,
+      hints: Hints,
+      fieldSchema: Schema[?]
+  ): Option[ElasticField] =
     hints
       .get[es.NestedField]
       .map: traitData =>

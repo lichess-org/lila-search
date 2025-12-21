@@ -5,13 +5,13 @@ import cats.effect.IO
 import cats.syntax.all.*
 import chess.format.pgn.Tag
 import io.circe.*
+import io.circe.derivation.Configuration
 import mongo4cats.circe.*
 import mongo4cats.database.MongoDatabase
 import mongo4cats.operations.{ Aggregate, Filter }
 import org.typelevel.log4cats.Logger
 
 import Repo.*
-import io.circe.derivation.Configuration
 
 trait ChapterRepo:
   // Get chapters by their study ids, returning a list of chapters per study

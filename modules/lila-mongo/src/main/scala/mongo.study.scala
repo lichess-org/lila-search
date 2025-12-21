@@ -62,7 +62,10 @@ object StudyRepo:
         .meteredStartImmediately(config.interval)
         .flatMap(fetchAll)
 
-    def fetchAll(since: Instant, until: Instant): fs2.Stream[IO, Result[(DbStudy, Option[List[StudyChapterData]])]] =
+    def fetchAll(
+        since: Instant,
+        until: Instant
+    ): fs2.Stream[IO, Result[(DbStudy, Option[List[StudyChapterData]])]] =
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
         pullForIndex(since, until)
           .evalMap(enrichWithChapters)
@@ -71,7 +74,10 @@ object StudyRepo:
           .merge(pullForLikes(since, until).map(Result(Nil, Nil, _, None)))
         ++ fs2.Stream(Result(Nil, Nil, until.some))
 
-    override def fetchUpdate(since: Instant, until: Instant): fs2.Stream[IO, List[(DbStudy, Option[List[StudyChapterData]])]] =
+    override def fetchUpdate(
+        since: Instant,
+        until: Instant
+    ): fs2.Stream[IO, List[(DbStudy, Option[List[StudyChapterData]])]] =
       fs2.Stream.eval(info"Fetching created/updated studies from $since to $until") *>
         pullForIndex(since, until)
           .evalMap(enrichWithChapters)
@@ -80,7 +86,9 @@ object StudyRepo:
       fs2.Stream.eval(info"Fetching deleted studies from $since to $until") *>
         pullForDelete(since, until)
 
-    private def enrichWithChapters(studies: List[DbStudy]): IO[List[(DbStudy, Option[List[StudyChapterData]])]] =
+    private def enrichWithChapters(
+        studies: List[DbStudy]
+    ): IO[List[(DbStudy, Option[List[StudyChapterData]])]] =
       val studyIds = studies.map(_.id)
       chapters.byStudyIds(studyIds).map { chapterMap =>
         studies.map(study => (study, chapterMap.get(study.id)))
