@@ -67,7 +67,7 @@ lazy val api = project
 
 lazy val elastic = project
   .in(file("modules/elastic"))
-  .enablePlugins(Smithy4sCodegenPlugin)
+  .enablePlugins(Smithy4sCodegenPlugin, Snapshot4sPlugin)
   .settings(
     name := "elastic",
     commonSettings,
@@ -80,7 +80,8 @@ lazy val elastic = project
       http4sClient,
       elastic4sHttp4sClient,
       smithy4sCore,
-      weaver
+      weaver,
+      snapshot4s
     ),
     Test / scalacOptions += "-Wconf:msg=interpolation uses toString:s"
   )

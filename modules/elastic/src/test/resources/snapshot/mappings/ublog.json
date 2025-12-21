@@ -1,0 +1,1 @@
+{"settings":{"index":{"refresh_interval":"300s","number_of_shards":5,"number_of_replicas":0}},"mappings":{"_source":{"enabled":false},"properties":{"text":{"type":"text"},"language":{"type":"keyword","doc_values":false},"likes":{"type":"short","doc_values":true},"date":{"type":"date","doc_values":true},"quality":{"type":"short","doc_values":true}}}}

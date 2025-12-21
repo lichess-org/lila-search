@@ -7,6 +7,7 @@ import cats.syntax.all.*
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.analysis.*
 import com.sksamuel.elastic4s.fields.ElasticField
+import com.sksamuel.elastic4s.requests.indexes.CreateIndexRequest
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.{ ElasticError, Index as ESIndex, Response }
 
@@ -45,6 +46,15 @@ extension (index: Index)
     index match
       case Index.Study => chessAnalysis.some
       case _ => none
+
+  def createIndexRequest: CreateIndexRequest =
+    val request =
+      createIndex(index.value)
+        .mapping(properties(index.mapping).source(index.keepSource))
+        .shards(5)
+        .replicas(0)
+        .refreshInterval(index.refreshInterval)
+    index.analysis.fold(request)(request.analysis(_))
 
 extension [F[_]: Monad, A](response: Response[A])
   def toResult: Raise[F, ElasticError] ?=> F[A] =

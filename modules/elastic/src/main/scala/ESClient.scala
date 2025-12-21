@@ -88,16 +88,10 @@ object ESClient:
         .whenA(ids.nonEmpty)
 
     def putMapping(index: Index): RaiseF[Unit] =
-      dropIndex(index) *> client
-        .execute:
-          val request =
-            createIndex(index.value)
-              .mapping(properties(index.mapping).source(index.keepSource))
-              .shards(5)
-              .replicas(0)
-              .refreshInterval(index.refreshInterval)
-          index.analysis.fold(request)(request.analysis(_))
-        .flatMap(_.unitOrFail)
+      dropIndex(index) *>
+        client
+          .execute(index.createIndexRequest)
+          .flatMap(_.unitOrFail)
 
     def refreshIndex(index: Index): RaiseF[Unit] =
       client
