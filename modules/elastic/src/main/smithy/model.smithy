@@ -107,11 +107,11 @@ structure GameSource {
 structure ChapterTags {
   @keywordField(docValues: false)
   variant: String
-  @keywordField(docValues: false)
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
   event: String
-  @keywordField(docValues: false)
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
   white: String
-  @keywordField(docValues: false)
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
   black: String
   @keywordField(docValues: false)
   whiteFideId: String
@@ -119,7 +119,7 @@ structure ChapterTags {
   blackFideId: String
   @keywordField(docValues: false)
   eco: String
-  @keywordField(docValues: false)
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
   opening: String
 }
 
