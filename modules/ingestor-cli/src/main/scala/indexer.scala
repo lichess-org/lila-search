@@ -48,7 +48,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
         refreshIndexes(res.elastic, index).whenA(!opts.dry)
     if opts.index != Index.Study then
       logger.warn(
-        s"Reindexing is only supported for the Study2 index. No action taken for ${opts.index.toString}."
+        s"Reindexing is only supported for the Study index. No action taken for ${opts.index.toString}."
       )
     else opts.index.toList.traverse_(go)
 
@@ -86,7 +86,11 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     import opts.{ since, until, dry }
 
     def store_[A: Indexable: HasStringId](sources: List[A]): IO[Unit] =
-      if dry then Logger[IO].info(s"Dry run - would index ${sources.size} docs to ${index.value}")
+      if dry then
+        Logger[IO].info(s"Dry run - would index ${sources.size} docs to ${index.value}")
+          *> sources.traverse_(item =>
+            Logger[IO].debug(s"Dry run - would index ${summon[Indexable[A]].json(item)}")
+          )
       else index.storeBulk(sources)
 
     given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
