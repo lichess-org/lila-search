@@ -87,6 +87,30 @@ lazy val elastic = project
   )
   .dependsOn(core)
 
+lazy val clickhouse = project
+  .in(file("modules/clickhouse"))
+  .settings(
+    name := "clickhouse",
+    commonSettings,
+    publish := {},
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      catsCore,
+      catsEffect,
+      fs2,
+      doobieCore,
+      doobieHikari,
+      clickhouseJdbc,
+      clickhouseHttpClient,
+      lz4Java,
+      log4Cats,
+      logback,
+      weaver
+    ),
+    Compile / mainClass := Some("lila.search.clickhouse.ConnectionExample")
+  )
+  .dependsOn(core)
+
 lazy val `lila-mongo` = project
   .in(file("modules/lila-mongo"))
   .settings(
