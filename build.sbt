@@ -105,9 +105,11 @@ lazy val clickhouse = project
       lz4Java,
       log4Cats,
       logback,
-      weaver
+      weaver,
+      testContainers
     ),
-    Compile / mainClass := Some("lila.search.clickhouse.ConnectionExample")
+    Compile / mainClass := Some("lila.search.clickhouse.ConnectionExample"),
+    Test / fork := true
   )
   .dependsOn(core)
 

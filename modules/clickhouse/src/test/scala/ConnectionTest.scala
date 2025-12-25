@@ -2,76 +2,119 @@ package lila.search
 package clickhouse
 
 import cats.effect.*
+import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
 import weaver.*
 
-object ConnectionTest extends SimpleIOSuite:
+object ConnectionTest extends IOSuite:
 
-  // Configuration for local Docker ClickHouse instance
-  val config = CHTransactor.Config(
-    host = "localhost",
-    port = 8123,
-    database = "lichess",
-    user = "default",
-    password = ""
-  )
+  override type Res = Transactor[IO]
 
-  test("ClickHouse connection - ping"):
-    CHTransactor.makeSimple(config).use: xa =>
-      sql"SELECT 1".query[Int].unique.transact(xa).map: result =>
+  override def sharedResource: Resource[IO, Res] =
+
+    for
+      config <- ClickHouseContainer.start
+      xa <- CHTransactor.makeSimple(config)
+    yield xa
+
+  test("ClickHouse connection - ping"): xa =>
+    sql"SELECT 1"
+      .query[Int]
+      .unique
+      .transact(xa)
+      .map: result =>
         expect(result == 1)
 
-  test("ClickHouse connection - version check"):
-    CHTransactor.makeSimple(config).use: xa =>
-      sql"SELECT version()".query[String].unique.transact(xa).map: version =>
+  test("ClickHouse connection - version check"): xa =>
+    sql"SELECT version()"
+      .query[String]
+      .unique
+      .transact(xa)
+      .map: version =>
         expect(version.nonEmpty && version.contains("24."))
 
-  test("ClickHouse connection - database exists"):
-    CHTransactor.makeSimple(config).use: xa =>
-      sql"SELECT name FROM system.databases WHERE name = 'lichess'"
-        .query[String]
-        .unique
-        .transact(xa)
-        .map: db =>
-          expect(db == "lichess")
+  test("ClickHouse connection - list databases"): xa =>
+    sql"SELECT name FROM system.databases ORDER BY name"
+      .query[String]
+      .to[List]
+      .transact(xa)
+      .map: databases =>
+        expect(databases.contains("default"))
 
-  test("ClickHouse connection - game table exists"):
-    CHTransactor.makeSimple(config).use: xa =>
-      sql"SELECT name FROM system.tables WHERE database = 'lichess' AND name = 'game'"
-        .query[String]
-        .unique
-        .transact(xa)
-        .map: table =>
-          expect(table == "game")
+  test("ClickHouse connection - create and query table"): xa =>
+    val setup = sql"""
+      CREATE TABLE IF NOT EXISTS default.test_table (
+        id String,
+        value Int32
+      ) ENGINE = MergeTree()
+      ORDER BY id
+    """.update.run
 
-  test("ClickHouse connection - query game table"):
-    CHTransactor.makeSimple(config).use: xa =>
-      sql"SELECT COUNT(*) FROM lichess.game"
-        .query[Long]
-        .unique
-        .transact(xa)
-        .map: count =>
-          expect(count >= 0) // At least 0 rows (could be empty or have test data)
+    val insert = sql"""
+      INSERT INTO default.test_table (id, value) VALUES ('test1', 42)
+    """.update.run
 
-  test("ClickHouse connection - query game sample"):
-    CHTransactor.makeSimple(config).use: xa =>
-      sql"SELECT id, winner, turns FROM lichess.game LIMIT 1"
-        .query[(String, String, Int)]
-        .option
-        .transact(xa)
-        .map:
-          case Some((id, winner, turns)) =>
-            expect(id.nonEmpty && winner.nonEmpty && turns > 0)
-          case None =>
-            // Table might be empty - that's OK for this test
-            success
+    val query = sql"""
+      SELECT id, value FROM default.test_table WHERE id = 'test1'
+    """.query[(String, Int)].unique
 
-  test("ClickHouse connection - HikariCP pooled connection"):
-    CHTransactor.makePooled(config).use: xa =>
-      // Run multiple queries to test connection pooling
-      val queries = List.fill(5):
-        sql"SELECT 1".query[Int].unique.transact(xa)
+    val cleanup = sql"DROP TABLE IF EXISTS default.test_table".update.run
 
-      queries.sequence.map: results =>
-        expect(results.forall(_ == 1))
+    (setup *> insert *> query <* cleanup)
+      .transact(xa)
+      .map:
+        case (id, value) =>
+          expect(id == "test1" && value == 42)
+
+object ConnectionPoolingTest extends IOSuite:
+
+  override type Res = Transactor[IO]
+
+  override def sharedResource: Resource[IO, Res] =
+    val useLocal = sys.env.get("CLICKHOUSE_USE_LOCAL").exists(_ == "true")
+
+    if useLocal then
+      val config = CHTransactor.Config(
+        host = "localhost",
+        port = 8123,
+        database = "default",
+        user = "default",
+        password = ""
+      )
+      CHTransactor.makePooled(config)
+    else
+      for
+        config <- ClickHouseContainer.start
+        xa <- CHTransactor.makePooled(config)
+      yield xa
+
+  test("ClickHouse HikariCP - concurrent queries"): xa =>
+    // Run multiple queries concurrently to test connection pooling
+    val queries = List.fill(10):
+      sql"SELECT 1".query[Int].unique.transact(xa)
+
+    queries.parSequence.map: results =>
+      expect(results.forall(_ == 1))
+
+  test("ClickHouse HikariCP - concurrent writes"): xa =>
+    val tableName = s"test_concurrent_${System.currentTimeMillis()}"
+
+    val setup = (fr"CREATE TABLE IF NOT EXISTS default." ++ Fragment.const(tableName) ++ fr"""(
+        id String,
+        value Int32
+      ) ENGINE = MergeTree()
+      ORDER BY id
+    """).update.run
+
+    val inserts = (1 to 20).toList.map: i =>
+      (fr"INSERT INTO default." ++ Fragment.const(
+        tableName
+      ) ++ fr" (id, value) VALUES (${s"id_$i"}, $i)").update.run.transact(xa)
+
+    val count = (fr"SELECT COUNT(*) FROM default." ++ Fragment.const(tableName)).query[Long].unique
+
+    val cleanup = (fr"DROP TABLE IF EXISTS default." ++ Fragment.const(tableName)).update.run
+
+    (setup.transact(xa) *> inserts.parSequence *> count.transact(xa) <* cleanup.transact(xa)).map: result =>
+      expect(result == 20L)
