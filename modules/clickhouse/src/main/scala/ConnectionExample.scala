@@ -8,17 +8,18 @@ import doobie.implicits.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-/** Example program demonstrating ClickHouse connectivity with Doobie
-  *
-  * Run this with: sbt "clickhouse/run"
-  *
-  * This will:
-  * 1. Connect to ClickHouse
-  * 2. Query the database version
-  * 3. List available databases
-  * 4. Query the game table
-  * 5. Demonstrate batch operations
-  */
+/**
+ * Example program demonstrating ClickHouse connectivity with Doobie
+ *
+ * Run this with: sbt "clickhouse/run"
+ *
+ * This will:
+ * 1. Connect to ClickHouse
+ * 2. Query the database version
+ * 3. List available databases
+ * 4. Query the game table
+ * 5. Demonstrate batch operations
+ */
 object ConnectionExample extends IOApp.Simple:
 
   given Logger[IO] = Slf4jLogger.getLogger[IO]
@@ -32,18 +33,20 @@ object ConnectionExample extends IOApp.Simple:
   )
 
   def run: IO[Unit] =
-    CHTransactor.makePooled(config).use: xa =>
-      for
-        _ <- IO.println("🚀 ClickHouse Connection Example")
-        _ <- IO.println("=" * 50)
-        _ <- checkVersion(xa)
-        _ <- listDatabases(xa)
-        _ <- listTables(xa)
-        _ <- queryGames(xa)
-        _ <- demonstrateBatch(xa)
-        _ <- IO.println("=" * 50)
-        _ <- IO.println("✅ Connection test complete!")
-      yield ()
+    CHTransactor
+      .makePooled(config)
+      .use: xa =>
+        for
+          _ <- IO.println("🚀 ClickHouse Connection Example")
+          _ <- IO.println("=" * 50)
+          _ <- checkVersion(xa)
+          _ <- listDatabases(xa)
+          _ <- listTables(xa)
+          _ <- queryGames(xa)
+          _ <- demonstrateBatch(xa)
+          _ <- IO.println("=" * 50)
+          _ <- IO.println("✅ Connection test complete!")
+        yield ()
 
   def checkVersion(xa: Transactor[IO]): IO[Unit] =
     for
@@ -105,14 +108,16 @@ object ConnectionExample extends IOApp.Simple:
       _ <- IO.println("   Testing connection pooling with concurrent queries...")
 
       // Run 10 queries concurrently to demonstrate connection pooling
-      queries = List.range(0, 10).map: i =>
-        sql"SELECT $i"
-          .query[Int]
-          .unique
-          .transact(xa)
-          .timed
-          .flatMap: (duration, result) =>
-            IO.println(s"   Query $i: $result (${duration.toMillis}ms)")
+      queries = List
+        .range(0, 10)
+        .map: i =>
+          sql"SELECT $i"
+            .query[Int]
+            .unique
+            .transact(xa)
+            .timed
+            .flatMap: (duration, result) =>
+              IO.println(s"   Query $i: $result (${duration.toMillis}ms)")
 
       _ <- queries.parSequence
       _ <- IO.println("   ✅ All queries completed successfully")

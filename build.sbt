@@ -307,7 +307,8 @@ lazy val root = project
     `lila-game-export`,
     `ingestor-core`,
     `ingestor-app`,
-    `ingestor-cli`
+    `ingestor-cli`,
+    clickhouse
   )
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
