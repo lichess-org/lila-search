@@ -1,13 +1,14 @@
 # ClickHouse Game Index Storage Estimation
 
 **Date**: 2025-12-25
-**Scope**: Storage requirements for 10-12 billion games in ClickHouse
+**Scope**: Storage requirements for 10-12 billion games in ClickHouse (baseline metadata schema)
 **Schema Version**: Based on CLICKHOUSE_MIGRATION_PLAN.md v1.0
-**Updated**: Extended analysis with binary move storage (120 bytes/game)
+
+> **Note**: For storage estimation including binary game moves (~120 bytes/game), see `clickhouse_binary_moves_storage_estimation.md`
+
+---
 
 ## Executive Summary
-
-### Baseline Schema (Metadata Only)
 
 **Recommended Disk Provision: 400-500 GB NVMe SSD**
 
@@ -16,24 +17,11 @@
 - **Total Required**: 200-300 GB
 - **With Safety Margin**: 400-500 GB
 
-### Extended Schema (Metadata + Binary Moves)
-
-**Recommended Disk Provision: 1.2-1.5 TB NVMe SSD** ⭐
-
-- **Data + Indexes**: 607 GB (ZSTD3) or 535 GB (ZSTD5)
-- **Operational Overhead**: 250-386 GB
-- **Total Required**: 857-993 GB
-- **With Safety Margin**: 1.2-1.5 TB
-
 **Key Findings**:
-- **Baseline**: ~8-12 bytes per game (50x better than Elasticsearch)
-- **With moves**: ~42-60 bytes per game compressed
-  - Binary moves: 120 bytes raw → 35-50 bytes compressed (2.4-3.4x compression)
-  - Total row: 196 bytes raw → 42-60 bytes compressed
-- **Storage impact**: Adding moves increases storage 4-5x
-- **Compression choice**: ZSTD(3) recommended for best balance
-- Bloom filter index on `uids` array: ~29 GB (significant but necessary)
+- Compressed storage: ~8-12 bytes per game (50x better than Elasticsearch)
+- Bloom filter index on `uids` array: ~25 GB (significant but necessary)
 - Monthly partitioning overhead: ~1.5 GB
+- ClickHouse achieves 97% storage reduction vs Elasticsearch
 
 ---
 
@@ -87,37 +75,9 @@ ALTER TABLE lichess.game ADD INDEX idx_users uids TYPE bloom_filter GRANULARITY 
 ALTER TABLE lichess.game ADD INDEX idx_rating averageRating TYPE minmax GRANULARITY 4;
 ```
 
-### Extended Schema: With Binary Move Data
-
-**New field for storing game moves**:
-
-```sql
--- Add to the schema above:
-    moves String,                           -- Binary encoded moves (~120 bytes)
-```
-
-**Binary Move Encoding Format**:
-- Average game: ~40 half-moves (20 full moves)
-- Binary encoding: ~3 bytes per half-move
-- Total: 40 × 3 = **~120 bytes per game**
-- Variable length: Short games (20 bytes) to long games (300+ bytes)
-
-**ClickHouse Type Choice**:
-- `String`: Variable-length binary data (recommended)
-  - Efficient for games with varying lengths
-  - 1 byte length overhead for strings <256 bytes
-- `FixedString(120)`: Fixed 120 bytes
-  - Wastes space on short games
-  - Slightly faster access (no length lookup)
-  - **Not recommended** due to 50% space waste on average
-
-**Recommended**: `moves String`
-
 ---
 
 ## Per-Row Storage Calculation
-
-### Baseline Schema (Without Moves)
 
 #### Uncompressed Size: ~75 bytes per row
 
@@ -128,19 +88,9 @@ ALTER TABLE lichess.game ADD INDEX idx_rating averageRating TYPE minmax GRANULAR
 | **Regular String** | id | 9 | 8 chars + 1 length byte |
 | **Array(String)** | uids | 26 | 8 bytes overhead + 2×9 bytes |
 | **Nullable Fields** | averageRating, ai, duration, clockInit, clockInc, source | 14 | ~90% fill rate + null bitmap |
-| **TOTAL (baseline)** | | **~75** | Uncompressed bytes per row |
+| **TOTAL** | | **~75** | Uncompressed bytes per row |
 
-### Extended Schema (With Binary Moves)
-
-#### Uncompressed Size: ~195 bytes per row
-
-| Field Type | Fields | Bytes | Notes |
-|------------|--------|-------|-------|
-| **Baseline fields** | (all fields above) | 75 | From baseline calculation |
-| **Binary Moves** | moves String | 121 | 120 bytes data + 1 byte length |
-| **TOTAL (with moves)** | | **~196** | Uncompressed bytes per row |
-
-### Compressed Size (Baseline): ~8-12 bytes per row
+### Compressed Size: ~8-12 bytes per row
 
 ClickHouse uses **columnar storage with LZ4 compression**. Compression ratios by field type:
 
@@ -154,58 +104,14 @@ ClickHouse uses **columnar storage with LZ4 compression**. Compression ratios by
 
 **Weighted Average Compression (baseline fields)**: 7.5x (range: 6-10x)
 
-**Compressed bytes per row (baseline)**:
+**Compressed bytes per row**:
 - Conservative (6x compression): 75 / 6 = **12.5 bytes**
 - Realistic (7.5x compression): 75 / 7.5 = **10 bytes**
 - Optimistic (10x compression): 75 / 10 = **7.5 bytes**
 
-### Compressed Size (With Binary Moves): ~55-65 bytes per row
-
-**Binary Move Data Compression Analysis**:
-
-Binary chess moves have **moderate** compressibility:
-- ✅ **Opening moves are highly repetitive**: e4, d4, Nf3, Nf6 appear millions of times
-- ✅ **Common middlegame patterns**: Castling, pawn pushes, piece development
-- ⚠️ **Already binary encoded**: Less room for compression than text
-- ⚠️ **Variable game lengths**: Introduces some entropy
-
-**Move Field Compression Ratios**:
-
-| Codec | Uncompressed | Compressed | Ratio | Notes |
-|-------|-------------|-----------|-------|-------|
-| **LZ4** (default) | 120 bytes | **50 bytes** | 2.4x | Fast decompression, moderate compression |
-| **ZSTD(1)** | 120 bytes | **45 bytes** | 2.7x | Better compression, slight CPU cost |
-| **ZSTD(3)** | 120 bytes | **40 bytes** | 3.0x | Good balance for batch ingestion |
-| **ZSTD(5)** | 120 bytes | **35 bytes** | 3.4x | Best for archival, higher CPU |
-
-**Compression Explanation**:
-- Binary chess moves use 2-3 bytes per half-move (from square, to square, piece type, capture/promotion flags)
-- Opening sequences (1.e4 e5 2.Nf3 Nc6 3.Bb5) are identical across millions of games
-- LZ4 finds these repeated byte sequences and encodes them efficiently
-- ZSTD uses dictionary compression to further reduce common patterns
-
-**Combined Storage (Baseline + Moves)**:
-
-Using **LZ4** compression (default):
-- Baseline fields compressed: 10 bytes
-- Moves field compressed: 50 bytes
-- **Total: ~60 bytes per game**
-
-Using **ZSTD(3)** compression:
-- Baseline fields compressed: 8.5 bytes (slightly better than LZ4)
-- Moves field compressed: 40 bytes
-- **Total: ~48 bytes per game**
-
-Using **ZSTD(5)** compression:
-- Baseline fields compressed: 7 bytes
-- Moves field compressed: 35 bytes
-- **Total: ~42 bytes per game**
-
 ---
 
 ## Data Storage Estimates
-
-### Baseline Schema (Without Moves)
 
 #### For 10 Billion Games
 
@@ -226,42 +132,6 @@ Using **ZSTD(5)** compression:
 | Optimistic (10x) | 7.5 | **90 GB** |
 
 **Recommended Estimate: 120 GB**
-
----
-
-### Extended Schema (With Binary Moves)
-
-#### For 10 Billion Games
-
-| Compression Codec | Bytes/Row | Data Size | Notes |
-|------------------|-----------|-----------|-------|
-| **LZ4** (default) | 60 | **600 GB** | Fast queries, moderate compression |
-| **ZSTD(3)** | 48 | **480 GB** | Good balance, recommended for batch ingestion |
-| **ZSTD(5)** | 42 | **420 GB** | Best compression, acceptable for 2-hour batches |
-
-**Recommended Estimate: 480 GB (ZSTD3)** or **420 GB (ZSTD5)**
-
-#### For 12 Billion Games
-
-| Compression Codec | Bytes/Row | Data Size | Notes |
-|------------------|-----------|-----------|-------|
-| **LZ4** (default) | 60 | **720 GB** | Fast queries, moderate compression |
-| **ZSTD(3)** | 48 | **576 GB** | Good balance, recommended for batch ingestion |
-| **ZSTD(5)** | 42 | **504 GB** | Best compression, acceptable for 2-hour batches |
-
-**Recommended Estimate: 576 GB (ZSTD3)** or **504 GB (ZSTD5)**
-
-#### Storage Impact Summary
-
-**Adding binary moves increases storage by**:
-- **LZ4**: 100 GB → 600 GB (6x increase)
-- **ZSTD(3)**: 100 GB → 480 GB (4.8x increase)
-- **ZSTD(5)**: 100 GB → 420 GB (4.2x increase)
-
-**Why such a large increase?**
-- Baseline metadata is tiny (10 bytes compressed) and highly compressible (7.5x ratio)
-- Binary moves are larger (120 bytes raw) and less compressible (2.4-3.4x ratio)
-- Moves dominate storage: they're 62% of uncompressed data but 80-85% of compressed data
 
 ---
 
@@ -356,35 +226,9 @@ MinMax indexes store min/max values per granule (8192 rows).
 
 ---
 
-### Extended Schema (With Binary Moves)
-
-#### For 10 Billion Games
-
-| Compression | Data | Indexes | Total | Use Case |
-|------------|------|---------|-------|----------|
-| **LZ4** | 600 GB | 26 GB | **626 GB** | Real-time/low-latency queries |
-| **ZSTD(3)** | 480 GB | 26 GB | **506 GB** | Balanced (recommended) |
-| **ZSTD(5)** | 420 GB | 26 GB | **446 GB** | Storage-optimized |
-
-**Recommended: 506 GB (ZSTD3)** or **446 GB (ZSTD5)**
-
-#### For 12 Billion Games
-
-| Compression | Data | Indexes | Total | Use Case |
-|------------|------|---------|-------|----------|
-| **LZ4** | 720 GB | 31 GB | **751 GB** | Real-time/low-latency queries |
-| **ZSTD(3)** | 576 GB | 31 GB | **607 GB** | Balanced (recommended) |
-| **ZSTD(5)** | 504 GB | 31 GB | **535 GB** | Storage-optimized |
-
-**Recommended: 607 GB (ZSTD3)** or **535 GB (ZSTD5)**
-
----
-
 ## Operational Overhead
 
 ClickHouse requires additional space for efficient operation:
-
-### Baseline Schema (Without Moves)
 
 #### 1. Merge Operations (20-30% of data)
 
@@ -427,42 +271,7 @@ Games continue to be added over time. Provide buffer for:
 
 ---
 
-### Extended Schema (With Binary Moves)
-
-#### 1. Merge Operations (20-30% of data)
-
-**Required space**: 20-30% of data size
-- **LZ4** (720 GB data): **144-216 GB**
-- **ZSTD(3)** (576 GB data): **115-173 GB**
-- **ZSTD(5)** (504 GB data): **101-151 GB**
-
-#### 2. WAL and Temporary Data
-
-With larger row sizes, temporary buffers need more space:
-
-**Required space**: **20-40 GB**
-
-#### 3. Growth Buffer (20-30%)
-
-**Required space**: 20-30% of current data
-- **LZ4**: **144-216 GB**
-- **ZSTD(3)**: **115-173 GB**
-- **ZSTD(5)**: **101-151 GB**
-
-#### Total Operational Overhead (Extended Schema, 12B games)
-
-| Component | LZ4 | ZSTD(3) | ZSTD(5) |
-|-----------|-----|---------|---------|
-| Merge Operations | 144-216 GB | 115-173 GB | 101-151 GB |
-| WAL & Temp | 20-40 GB | 20-40 GB | 20-40 GB |
-| Growth Buffer | 144-216 GB | 115-173 GB | 101-151 GB |
-| **TOTAL** | **308-472 GB** | **250-386 GB** | **222-342 GB** |
-
----
-
 ## Final Storage Recommendations
-
-### Baseline Schema (Without Moves)
 
 #### For 10 Billion Games
 
@@ -486,84 +295,17 @@ With larger row sizes, temporary buffers need more space:
 
 ---
 
-### Extended Schema (With Binary Moves) - 12 Billion Games
-
-#### Option 1: LZ4 Compression (Fast Queries)
-
-| Component | Space Required |
-|-----------|---------------|
-| Data (compressed) | 720 GB |
-| Indexes | 31 GB |
-| Operational Overhead | 308-472 GB |
-| **Total Required** | **1,059-1,223 GB** |
-| **Recommended Provision** | **1.5-2 TB NVMe SSD** |
-
-**Use when**: Query latency is critical, p99 must be <100ms
-
-#### Option 2: ZSTD(3) Compression (Balanced) ⭐ RECOMMENDED
-
-| Component | Space Required |
-|-----------|---------------|
-| Data (compressed) | 576 GB |
-| Indexes | 31 GB |
-| Operational Overhead | 250-386 GB |
-| **Total Required** | **857-993 GB** |
-| **Recommended Provision** | **1.2-1.5 TB NVMe SSD** |
-
-**Use when**: Balanced storage and performance, 2-hour batch ingestion
-
-**Why ZSTD(3)?**
-- ✅ **20% smaller** than LZ4 (saves ~144 GB)
-- ✅ **Acceptable query latency**: +5-10% vs LZ4 (still well under 100ms)
-- ✅ **Fast enough for batch ingestion**: 292K games in 2 hours = plenty of time
-- ✅ **Better page cache efficiency**: More data fits in memory
-- ✅ **Best cost/performance ratio**
-
-#### Option 3: ZSTD(5) Compression (Storage Optimized)
-
-| Component | Space Required |
-|-----------|---------------|
-| Data (compressed) | 504 GB |
-| Indexes | 31 GB |
-| Operational Overhead | 222-342 GB |
-| **Total Required** | **757-877 GB** |
-| **Recommended Provision** | **1-1.2 TB NVMe SSD** |
-
-**Use when**: Storage cost is primary concern, can tolerate +10-15% query latency
-
-**Trade-offs**:
-- ✅ **30% smaller** than LZ4 (saves ~216 GB)
-- ⚠️ **Slower queries**: +10-15% decompression overhead
-- ⚠️ **Higher CPU during reads**: More decompression work
-- ✅ **Still acceptable**: p99 latency ~120ms vs 100ms with LZ4
-
----
-
 ### Recommended Disk Provision
 
-#### Baseline Schema (Without Moves)
 **Primary Recommendation: 400-500 GB NVMe SSD**
 
-#### Extended Schema (With Binary Moves)
-**Primary Recommendation: 1.2-1.5 TB NVMe SSD with ZSTD(3) compression** ⭐
+#### Why This Size?
 
-**Alternative**: 1 TB NVMe SSD with ZSTD(5) if storage budget is tight
-
-#### Why These Sizes?
-
-**Baseline Schema**:
 1. **Handles 12 billion games** with comfortable headroom
 2. **Efficient merges**: No disk pressure during background operations
 3. **Future growth**: 20-30% buffer for continued game additions
 4. **Query performance**: Space for temporary results and caching
 5. **Safety margin**: Prevents emergency situations from disk fullness
-
-**Extended Schema with Moves**:
-1. **Handles 12B games + moves** with 30-50% headroom
-2. **ZSTD(3) balance**: Best compression without sacrificing query performance
-3. **Merge operations**: Enough space for background merges (need 2x data during merge)
-4. **Growth buffer**: Room for 1-2 more years of games (~7-10M games/year)
-5. **Production safety**: Alerts trigger at 80% usage, still have breathing room
 
 #### Disk Type: NVMe SSD (Critical!)
 
@@ -3286,108 +3028,6 @@ Each granule:
 
 ---
 
-## Quick Reference: Storage Options Summary
-
-### Decision Matrix (12 Billion Games)
-
-| Schema Type | Compression | Total Disk | Cost/Month* | Query p99 | Ingestion Time | Recommendation |
-|-------------|-------------|-----------|-------------|-----------|----------------|----------------|
-| **Baseline** (metadata only) | LZ4 | 400 GB | $40 | 80ms | N/A | ✅ If no moves needed |
-| **Extended** (+ moves) LZ4 | LZ4 | 1.5 TB | $150 | 100ms | 30 min | ⚠️ If latency critical |
-| **Extended** (+ moves) ZSTD3 | ZSTD(3) | 1.2 TB | $120 | 105-110ms | 35 min | ⭐ **RECOMMENDED** |
-| **Extended** (+ moves) ZSTD5 | ZSTD(5) | 1 TB | $100 | 115-120ms | 45 min | ✅ If storage budget tight |
-
-*Approximate cloud NVMe SSD cost (AWS gp3, $0.10/GB/month)
-
-### When to Choose Each Option
-
-#### Baseline Schema (No Moves)
-**Use when**:
-- Search index only needs metadata (player names, ratings, game type, etc.)
-- Move data not required for search queries
-- Want minimal storage footprint
-- Budget: $40-60/month
-
-**Don't use when**:
-- Need to search by opening moves
-- Want to display game moves in search results
-- Need move-based analysis or filtering
-
-#### Extended + LZ4
-**Use when**:
-- Query latency is mission-critical (p99 < 100ms strict requirement)
-- Real-time search with instant results
-- CPU budget is limited
-- Storage cost is not a concern
-- Budget: $150-200/month
-
-**Don't use when**:
-- Storage budget is constrained
-- Doing batch ingestion (2-hour windows)
-- Query latency of 110ms is acceptable
-
-#### Extended + ZSTD(3) ⭐ RECOMMENDED
-**Use when**:
-- Want best balance of storage and performance
-- 2-hour batch ingestion (292K games/batch)
-- Query p99 of 105-110ms is acceptable
-- Want to save 20% storage vs LZ4
-- Most production deployments
-- Budget: $120-150/month
-
-**This is the sweet spot for most use cases**
-
-#### Extended + ZSTD(5)
-**Use when**:
-- Storage cost is primary concern
-- Can tolerate +10-15% query latency vs LZ4
-- Query p99 of 115-120ms is acceptable
-- Want to save 30% storage vs LZ4
-- Batch ingestion with plenty of time (45 min for 292K games)
-- Budget: $100-120/month
-
-**Don't use when**:
-- Query latency is critical
-- CPU budget is very limited
-- Compression time impacts user experience
-
----
-
-## Storage Scaling (Extended Schema with Moves)
-
-### Growth Projection
-
-| Games | LZ4 | ZSTD(3) | ZSTD(5) |
-|-------|-----|---------|---------|
-| **10 billion** | 626 GB | 506 GB | 446 GB |
-| **12 billion** | 751 GB | 607 GB | 535 GB |
-| **15 billion** | 939 GB | 759 GB | 669 GB |
-| **20 billion** | 1.25 TB | 1.01 TB | 891 GB |
-
-**With operational overhead (40%)**: Add 40% to data size for merges, WAL, and growth buffer.
-
-| Games | LZ4 (Total) | ZSTD(3) (Total) | ZSTD(5) (Total) |
-|-------|-------------|-----------------|-----------------|
-| **12 billion** | **1.5 TB** | **1.2 TB** | **1 TB** |
-| **15 billion** | **1.9 TB** | **1.5 TB** | **1.3 TB** |
-| **20 billion** | **2.5 TB** | **2 TB** | **1.8 TB** |
-
-### Annual Growth Planning (3.5M games/year)
-
-| Year | Total Games | Incremental Storage (ZSTD3) | Cumulative Storage |
-|------|-------------|----------------------------|-------------------|
-| **2025** | 12.0B | - | 1.2 TB |
-| **2026** | 12.35B | +35 GB | 1.24 TB |
-| **2027** | 12.70B | +35 GB | 1.28 TB |
-| **2028** | 13.05B | +35 GB | 1.31 TB |
-| **2029** | 13.40B | +35 GB | 1.35 TB |
-
-**Storage growth**: ~35 GB/year (3.5M games × 48 bytes compressed)
-
-**Recommendation**: 1.5 TB disk provides **~8 years of runway** at current growth rate.
-
----
-
 ## References
 
 1. [ClickHouse Documentation: Table Engines](https://clickhouse.com/docs/en/engines/table-engines/)
@@ -3395,9 +3035,11 @@ Each granule:
 3. [ClickHouse Documentation: Primary Keys and Indexes](https://clickhouse.com/docs/en/guides/improving-query-performance/sparse-primary-indexes)
 4. [ClickHouse Documentation: Bloom Filter Index](https://clickhouse.com/docs/en/guides/improving-query-performance/skipping-indexes)
 5. CLICKHOUSE_MIGRATION_PLAN.md (this repository)
+6. `clickhouse_binary_moves_storage_estimation.md` - Binary game moves storage analysis
 
 ---
 
-**Last Updated**: 2025-12-25 (Extended with binary move storage analysis)
+**Last Updated**: 2025-12-25
 **Author**: Storage estimation analysis
-**Status**: Comprehensive estimate including binary move storage options
+**Status**: Baseline schema storage estimate (metadata only)
+**Related**: See `clickhouse_binary_moves_storage_estimation.md` for binary move storage analysis
