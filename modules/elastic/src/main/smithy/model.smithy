@@ -104,6 +104,41 @@ structure GameSource {
   source: Integer
 }
 
+structure ChapterTags {
+  @keywordField(docValues: false)
+  variant: String
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
+  event: String
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
+  white: String
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
+  black: String
+  @keywordField(docValues: false)
+  whiteFideId: String
+  @keywordField(docValues: false)
+  blackFideId: String
+  @keywordField(docValues: false)
+  eco: String
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
+  opening: String
+}
+
+structure Chapter {
+  @required
+  @keywordField(docValues: false)
+  id: String
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
+  name: String
+  @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms")
+  description: String
+  @nestedField(dynamic: "false")
+  tags: ChapterTags
+}
+
+list Chapters {
+  member: Chapter
+}
+
 structure Study2Source {
   @required
   @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms", keywordSubfield: {name: "raw", normalizer: "lowercase"})
@@ -119,6 +154,8 @@ structure Study2Source {
   @default
   @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms", docValues: false)
   topics: Strings
+  @nestedField(dynamic: "false")
+  chapters: Chapters
   @required
   @intField
   likes: Integer

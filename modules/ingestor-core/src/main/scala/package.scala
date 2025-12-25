@@ -12,12 +12,7 @@ import java.time.Instant
 extension (index: Index)
 
   def ingestValue: String =
-    index match
-      case Index.Game => "game"
-      case Index.Forum => "forum"
-      case Index.Ublog => "ublog"
-      case Index.Study => "study2_2"
-      case Index.Team => "team"
+    index.value
 
   def updateElastic[A: Indexable: HasStringId](
       result: Repo.Result[A]

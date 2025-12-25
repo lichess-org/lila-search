@@ -20,8 +20,15 @@ object MappingGenerator:
         fields.toList.flatMap { field =>
           // Use jsonName if present, otherwise use the Smithy field label
           val fieldName = field.hints.get[smithy.api.JsonName].map(_.value).getOrElse(field.label)
-          generateField(fieldName, field.hints)
+          generateField(fieldName, field.hints, field.schema)
         }
+      case Schema.OptionSchema(underlying) =>
+        // Unwrap optional schemas and process the underlying structure
+        generateFields(underlying)
+      case Schema.CollectionSchema(_, _, _, member) =>
+        // Unwrap collection schemas and process the member schema
+        // For nested fields, the mapping defines the structure of each element
+        generateFields(member)
       case _ => Nil
 
   private def generateTextField(fieldName: String, hints: Hints): Option[ElasticField] =
@@ -76,10 +83,26 @@ object MappingGenerator:
       .map: traitData =>
         booleanField(fieldName).copy(docValues = traitData.docValues)
 
-  private def generateField(fieldName: String, hints: Hints): Option[ElasticField] =
+  private def generateNestedField(
+      fieldName: String,
+      hints: Hints,
+      fieldSchema: Schema[?]
+  ): Option[ElasticField] =
+    hints
+      .get[es.NestedField]
+      .map: traitData =>
+        val nestedFields = generateFields(fieldSchema)
+        nestedField(fieldName).copy(
+          dynamic = traitData.dynamic,
+          includeInParent = traitData.includeInParent,
+          properties = nestedFields
+        )
+
+  private def generateField(fieldName: String, hints: Hints, schema: Schema[?]): Option[ElasticField] =
     generateTextField(fieldName, hints) <+>
       generateKeywordField(fieldName, hints) <+>
       generateDateField(fieldName, hints) <+>
       generateShortField(fieldName, hints) <+>
       generateIntField(fieldName, hints) <+>
-      generateBooleanField(fieldName, hints)
+      generateBooleanField(fieldName, hints) <+>
+      generateNestedField(fieldName, hints, schema)

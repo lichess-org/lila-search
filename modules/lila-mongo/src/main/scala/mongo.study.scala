@@ -42,37 +42,57 @@ object StudyRepo:
       study: MongoDatabase[IO],
       local: MongoDatabase[IO],
       config: IngestorConfig.Study
-  )(using LoggerFactory[IO]): IO[Repo[DbStudy]] =
+  )(using LoggerFactory[IO]): IO[Repo[(DbStudy, Option[List[StudyChapterData]])]] =
     given Logger[IO] = LoggerFactory[IO].getLogger
-    (study.getCollectionWithCodec[DbStudy]("study"), local.getCollection("oplog.rs"))
-      .mapN(apply(config))
+    (
+      study.getCollectionWithCodec[DbStudy]("study"),
+      local.getCollection("oplog.rs"),
+      ChapterRepo(study)
+    ).mapN(apply(config))
 
   def apply(config: IngestorConfig.Study)(
       studies: MongoCollection[IO, DbStudy],
-      oplogs: MongoCollection[IO, Document]
-  )(using Logger[IO]): Repo[DbStudy] = new:
+      oplogs: MongoCollection[IO, Document],
+      chapters: ChapterRepo
+  )(using Logger[IO]): Repo[(DbStudy, Option[List[StudyChapterData]])] = new:
 
-    def watch(since: Option[Instant]): fs2.Stream[IO, Result[DbStudy]] =
+    def watch(since: Option[Instant]): fs2.Stream[IO, Result[(DbStudy, Option[List[StudyChapterData]])]] =
       StreamUtils
         .intervalStream(since, config.interval)
         .meteredStartImmediately(config.interval)
         .flatMap(fetchAll)
 
-    def fetchAll(since: Instant, until: Instant): fs2.Stream[IO, Result[DbStudy]] =
+    def fetchAll(
+        since: Instant,
+        until: Instant
+    ): fs2.Stream[IO, Result[(DbStudy, Option[List[StudyChapterData]])]] =
       fs2.Stream.eval(info"Fetching studies from $since to $until") *>
         pullForIndex(since, until)
+          .evalMap(enrichWithChapters)
           .map(Result(_, Nil, None))
           .merge(pullForDelete(since, until).map(Result(Nil, _, None)))
           .merge(pullForLikes(since, until).map(Result(Nil, Nil, _, None)))
         ++ fs2.Stream(Result(Nil, Nil, until.some))
 
-    override def fetchUpdate(since: Instant, until: Instant): fs2.Stream[IO, List[DbStudy]] =
+    override def fetchUpdate(
+        since: Instant,
+        until: Instant
+    ): fs2.Stream[IO, List[(DbStudy, Option[List[StudyChapterData]])]] =
       fs2.Stream.eval(info"Fetching created/updated studies from $since to $until") *>
         pullForIndex(since, until)
+          .evalMap(enrichWithChapters)
 
     override def fetchDelete(since: Instant, until: Instant): fs2.Stream[IO, List[Id]] =
       fs2.Stream.eval(info"Fetching deleted studies from $since to $until") *>
         pullForDelete(since, until)
+
+    private def enrichWithChapters(
+        studies: List[DbStudy]
+    ): IO[List[(DbStudy, Option[List[StudyChapterData]])]] =
+      val studyIds = studies.map(_.id)
+      chapters.byStudyIds(studyIds).map { chapterMap =>
+        studies.map(study => (study, chapterMap.get(study.id)))
+      }
 
     def pullForIndex(since: Instant, until: Instant): fs2.Stream[IO, List[DbStudy]] =
       // filter out relay: https://github.com/lichess-org/lila/blob/d1ebb8bdc744125d0024fa643b3817fa34814035/modules/study/src/main/BSONHandlers.scala#L392

@@ -62,3 +62,12 @@ structure booleanField {
     /// Whether to store doc values for sorting/aggregations
     docValues: Boolean
 }
+
+/// Marks a field as an Elasticsearch nested field
+@trait(selector: "member")
+structure nestedField {
+    /// Controls whether new fields can be added dynamically (e.g., "true", "false", "strict")
+    dynamic: String
+    /// Whether to include nested fields in parent document
+    includeInParent: Boolean
+}

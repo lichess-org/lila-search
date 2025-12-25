@@ -8,8 +8,11 @@ import java.time.Instant
 trait Repo[A]:
   def watch(since: Option[Instant]): fs2.Stream[IO, Repo.Result[A]]
   def fetchAll(since: Instant, until: Instant): fs2.Stream[IO, Repo.Result[A]]
+
+  // Fetching created/updated documents from $since to $until
   def fetchUpdate(since: Instant, until: Instant): fs2.Stream[IO, List[A]] =
     fetchAll(since, until).map(_.toIndex)
+
   def fetchDelete(since: Instant, until: Instant): fs2.Stream[IO, List[Id]] =
     fetchAll(since, until).map(_.toDelete)
 

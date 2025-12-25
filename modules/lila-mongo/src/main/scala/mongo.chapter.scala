@@ -5,43 +5,41 @@ import cats.effect.IO
 import cats.syntax.all.*
 import chess.format.pgn.Tag
 import io.circe.*
-import mongo4cats.bson.{ BsonValue, Document }
+import io.circe.derivation.Configuration
 import mongo4cats.circe.*
 import mongo4cats.database.MongoDatabase
-import mongo4cats.operations.{ Accumulator, Aggregate, Filter }
+import mongo4cats.operations.{ Aggregate, Filter }
 import org.typelevel.log4cats.Logger
 
 import Repo.*
 
 trait ChapterRepo:
-  // Aggregate chapters data and convert them to StudyChapterText by their study ids
-  def byStudyIds(ids: List[String]): IO[Map[String, StudyChapterData]]
+  // Get chapters by their study ids, returning a list of chapters per study
+  def byStudyIds(ids: List[String]): IO[Map[String, List[StudyChapterData]]]
 
 case class StudyChapterData(
-    _id: String,
-    name: List[String],
-    tags: List[List[Tag]],
-    comments: List[List[List[String]]],
-    description: List[String],
-    conceal: List[Int],
-    practice: List[Boolean],
-    gamebook: List[Boolean]
-) derives Codec.AsObject:
-  def chapterTexts: String =
-    (conceal.map(_ => "conceal puzzle") ++
-      practice.collect { case true => "practice" } ++
-      gamebook.collect { case true => "gamebook" } ++
-      relevantTags ++ comments.flatten.flatten ++ description)
-      .mkString("", ", ", " ")
+    id: String,
+    studyId: String,
+    name: String,
+    tags: List[Tag],
+    description: Option[String]
+):
 
-  def chapterNames = name
-    .collect { case c if !StudyChapterData.defaultNameRegex.matches(c) => c }
-    .mkString(" ")
+  def chapterName: Option[String] =
+    if StudyChapterData.defaultNameRegex.matches(name) then None else Some(name)
 
-  def relevantTags = tags.flatten.collect:
+  def relevantTags: List[String] = tags.collect:
     case t if StudyChapterData.relevantPgnTags.contains(t.name) => t.value
 
 object StudyChapterData:
+
+  private given Configuration = Configuration.default.withTransformMemberNames:
+    case "id" => "_id"
+    case other => other
+
+  given Decoder[StudyChapterData] = Decoder.derivedConfigured[StudyChapterData]
+  given Encoder[StudyChapterData] = new Encoder[StudyChapterData]:
+    final def apply(a: StudyChapterData): Json = ??? // Not needed for now
 
   given Decoder[Tag] = Decoder.decodeString.emap: s =>
     s.split(":", 2) match
@@ -72,47 +70,25 @@ object ChapterRepo:
     val name = "name"
     val studyId = "studyId"
     val tags = "tags"
-    val conceal = "conceal"
     val description = "description"
-    val practice = "practice"
-    val gamebook = "gamebook"
-
-    // accumulates comments into a list
-    val comments = "comments"
-    val commentTexts = "comments.v.co.text"
 
   object Query:
 
     import Aggregate.*
-    import Accumulator.*
-
-    val rootElementsAsArray = addFields(F.comments -> Document("$objectToArray" -> BsonValue.string("$root")))
-
-    val groupBy = group(
-      F.studyId.dollarPrefix,
-      push(F.comments, F.commentTexts.dollarPrefix)
-        .combinedWith(push(F.name, F.name.dollarPrefix))
-        .combinedWith(push(F.tags, F.tags.dollarPrefix))
-        .combinedWith(push(F.description, F.description.dollarPrefix))
-        .combinedWith(push(F.gamebook, F.gamebook.dollarPrefix))
-        .combinedWith(push(F.conceal, F.conceal.dollarPrefix))
-        .combinedWith(push(F.practice, F.practice.dollarPrefix))
-    )
 
     def aggregate(studyIds: List[String]): Aggregate =
-      val filter = matchBy(Filter.in(F.studyId, studyIds))
-      List(rootElementsAsArray, groupBy).fold(filter)(_.combinedWith(_))
+      matchBy(Filter.in(F.studyId, studyIds))
 
   def apply(mongo: MongoDatabase[IO])(using Logger[IO]): IO[ChapterRepo] =
     mongo.getCollection("study_chapter_flat").map(apply)
 
   def apply(coll: MongoCollection)(using Logger[IO]): ChapterRepo = new:
-    def byStudyIds(ids: List[String]): IO[Map[String, StudyChapterData]] =
+    def byStudyIds(ids: List[String]): IO[Map[String, List[StudyChapterData]]] =
       coll
         .aggregateWithCodec[StudyChapterData](Query.aggregate(ids))
-        // .flatTap(docs => Logger[IO].debug(s"Received $docs chapters"))
         .stream
         .compile
         .toList
-        .flatTap(docs => Logger[IO].debug(s"Received ${docs.toString} chapters"))
-        .map(_.map(x => x._id -> x).toMap)
+        .flatTap(docs => Logger[IO].debug(s"Received ${docs.size} chapters for ${ids.size} studies"))
+        .map: chapters =>
+          chapters.groupBy(_.studyId)
