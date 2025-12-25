@@ -16,13 +16,14 @@ object CHTransactor:
   ):
     def jdbcUrl: String = s"jdbc:clickhouse://$host:$port/$database"
 
-  /** Create a HikariCP connection pool for ClickHouse
-    *
-    * This is the recommended approach for production use as it provides:
-    * - Connection pooling for better performance
-    * - Connection validation and health checks
-    * - Proper resource management
-    */
+  /**
+   * Create a HikariCP connection pool for ClickHouse
+   *
+   * This is the recommended approach for production use as it provides:
+   * - Connection pooling for better performance
+   * - Connection validation and health checks
+   * - Proper resource management
+   */
   def makePooled(config: Config): Resource[IO, HikariTransactor[IO]] =
     for
       ce <- ExecutionContexts.fixedThreadPool[IO](8) // Adjust pool size as needed
@@ -44,10 +45,11 @@ object CHTransactor:
             ds.setLeakDetectionThreshold(30000) // 30 seconds
     yield xa
 
-  /** Create a simple connection (for testing/development)
-    *
-    * This is simpler but doesn't provide connection pooling. Use makePooled() for production.
-    */
+  /**
+   * Create a simple connection (for testing/development)
+   *
+   * This is simpler but doesn't provide connection pooling. Use makePooled() for production.
+   */
   def makeSimple(config: Config): Resource[IO, Transactor[IO]] =
     Resource
       .pure:
