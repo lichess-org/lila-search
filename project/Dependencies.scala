@@ -18,7 +18,7 @@ object Dependencies {
     val fs2 = "3.12.2"
     val fs2Data = "1.12.0"
     val http4s = "0.23.33"
-    val mongo4cats = "0.7.16"
+    val mongo4cats = "0.7.17"
     val otel4s = "0.14.0"
     val otel4sHttp4s = "0.15.0"
   }
@@ -62,7 +62,7 @@ object Dependencies {
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j" % "2.7.1"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.23"
-  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.11"
+  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.12"
 
   val otel4sCore = "org.typelevel" %% "otel4s-core" % V.otel4s
   val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
