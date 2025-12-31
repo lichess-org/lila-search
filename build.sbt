@@ -87,6 +87,32 @@ lazy val elastic = project
   )
   .dependsOn(core)
 
+lazy val clickhouse = project
+  .in(file("modules/clickhouse"))
+  .settings(
+    name := "clickhouse",
+    commonSettings,
+    publish := {},
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      catsCore,
+      catsEffect,
+      fs2,
+      doobieCore,
+      doobieHikari,
+      clickhouseJdbc,
+      clickhouseHttpClient,
+      lz4Java,
+      log4Cats,
+      logback,
+      weaver,
+      testContainers
+    ),
+    Compile / mainClass := Some("lila.search.clickhouse.ConnectionExample"),
+    Test / fork := true
+  )
+  .dependsOn(core)
+
 lazy val `lila-mongo` = project
   .in(file("modules/lila-mongo"))
   .settings(
@@ -281,7 +307,8 @@ lazy val root = project
     `lila-game-export`,
     `ingestor-core`,
     `ingestor-app`,
-    `ingestor-cli`
+    `ingestor-cli`,
+    clickhouse
   )
 
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
