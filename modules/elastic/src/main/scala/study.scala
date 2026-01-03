@@ -75,17 +75,15 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
     )
 
   private def machChapterQuery(text: String) =
-    if !Study.useNestedChapters then matchNoneQuery()
-    else
-      nestedQuery(
-        "chapters",
-        boolQuery().should(
-          multiMatchQuery(text)
-            .fields("chapters.name", "chapters.description")
-            .analyzer("english_with_chess_synonyms"),
-          tagQuery(text)
-        )
+    nestedQuery(
+      "chapters",
+      boolQuery().should(
+        multiMatchQuery(text)
+          .fields("chapters.name", "chapters.description")
+          .analyzer("english_with_chess_synonyms"),
+        tagQuery(text)
       )
+    )
 
   def tagQuery(input: String): NestedQuery =
     nestedQuery(
@@ -128,8 +126,6 @@ object Mapping:
   def fields = MappingGenerator.generateFields(es.Study2Source.schema)
 
 object Study:
-
-  lazy val useNestedChapters = sys.env.get("STUDY_WITH_CHAPTERS").filter(_.toLowerCase == "true").isDefined
 
   enum Field(val field: String):
     case Name extends Field(s"${Fields.name}.${Fields.nameRaw}")
