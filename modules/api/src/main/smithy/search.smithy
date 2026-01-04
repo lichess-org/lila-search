@@ -89,6 +89,20 @@ structure Study {
   text: String
   sorting: StudySorting
   userId: String
+  
+  // Chapter-level filters
+  chapterName: String
+  chapterDescription: String
+  
+  // Tag-level filters
+  variant: String
+  eco: String
+  opening: String
+  playerWhite: String
+  playerBlack: String
+  whiteFideId: String
+  blackFideId: String
+  event: String
 }
 
 structure Game {
