@@ -3,6 +3,7 @@ package test
 
 import akka.actor.ActorSystem
 import cats.effect.{ IO, Resource }
+import cats.syntax.all.*
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.Indexable
 import lila.search.app.{ App, AppConfig, AppResources, ElasticConfig, HttpServerConfig }
@@ -56,6 +57,38 @@ object CompatSuite extends weaver.IOSuite:
   test("count endpoint"): client =>
     val query = Query.Team("foo")
     IO.fromFuture(IO(client.count(query))).map(expect.same(_, lila.search.spec.CountOutput(0)))
+
+  test("study chapter and tag filters"): client =>
+    val searchQueries = List(
+      Query.Study(text = "", userId = None, sorting = None, chapterName = Some("opening trap")),
+      Query.Study(text = "", userId = None, sorting = None, eco = Some("B90")),
+      Query.Study(text = "", userId = None, sorting = None, playerWhite = Some("Magnus Carlsen")),
+      Query.Study(text = "", userId = None, sorting = None, opening = Some("King's Indian")),
+      Query.Study(
+        text = "repertoire",
+        userId = None,
+        sorting = None,
+        eco = Some("E97"),
+        opening = Some("King's Indian")
+      ),
+      Query.Study(text = "", userId = None, sorting = None, variant = Some("standard")),
+      Query.Study(text = "", userId = None, sorting = None, event = Some("World Championship")),
+      Query.Study(
+        text = "",
+        userId = None,
+        sorting = None,
+        whiteFideId = Some("1503014"),
+        blackFideId = Some("2020009")
+      )
+    )
+    val countQuery = Query.Study(text = "", userId = None, sorting = None, chapterName = Some("sicilian"))
+    for
+      searches <- searchQueries.traverse(q => IO.fromFuture(IO(client.search(q, from, size))))
+      count <- IO.fromFuture(IO(client.count(countQuery)))
+    yield expect.all(
+      searches.forall(_ == SearchOutput(Nil)),
+      count == CountOutput(0)
+    )
 
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", false, shutdownTimeout = 1, false),
