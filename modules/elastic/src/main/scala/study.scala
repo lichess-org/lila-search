@@ -126,10 +126,8 @@ case class Study(
   // Build chapter-level filter queries (single nested)
   private def chapterFilters: List[Query] =
     List(
-      chapterName.map(name => 
-        nestedQuery("chapters", matchQuery("chapters.name", name))
-      ),
-      chapterDescription.map(desc => 
+      chapterName.map(name => nestedQuery("chapters", matchQuery("chapters.name", name))),
+      chapterDescription.map(desc =>
         nestedQuery("chapters", matchQuery("chapters.description", desc))
       )
     ).flatten
