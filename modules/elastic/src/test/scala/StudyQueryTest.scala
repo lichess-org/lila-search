@@ -22,7 +22,7 @@ object StudyQueryTest extends SimpleIOSuite:
           case nq: NestedQuery => nq.path == path || containsNestedQuery(nq.query, path)
           case other => containsNestedQuery(other, path)
         }
-      case nq: NestedQuery => 
+      case nq: NestedQuery =>
         nq.path == path || containsNestedQuery(nq.query, path)
       case _ => false
 
