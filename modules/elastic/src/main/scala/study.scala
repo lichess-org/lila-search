@@ -9,21 +9,21 @@ import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
 import lila.search.study.Study.Sorting
 
 case class Study(
-  text: String,
-  sorting: Option[Sorting],
-  userId: Option[String],
-  // Chapter-level filters
-  chapterName: Option[String] = None,
-  chapterDescription: Option[String] = None,
-  // Tag-level filters
-  variant: Option[String] = None,
-  eco: Option[String] = None,
-  opening: Option[String] = None,
-  playerWhite: Option[String] = None,
-  playerBlack: Option[String] = None,
-  whiteFideId: Option[String] = None,
-  blackFideId: Option[String] = None,
-  event: Option[String] = None
+    text: String,
+    sorting: Option[Sorting],
+    userId: Option[String],
+    // Chapter-level filters
+    chapterName: Option[String] = None,
+    chapterDescription: Option[String] = None,
+    // Tag-level filters
+    variant: Option[String] = None,
+    eco: Option[String] = None,
+    opening: Option[String] = None,
+    playerWhite: Option[String] = None,
+    playerBlack: Option[String] = None,
+    whiteFideId: Option[String] = None,
+    blackFideId: Option[String] = None,
+    event: Option[String] = None
 ):
 
   def searchDef(from: From, size: Size): SearchRequest =
@@ -127,9 +127,7 @@ case class Study(
   private def chapterFilters: List[Query] =
     List(
       chapterName.map(name => nestedQuery("chapters", matchQuery("chapters.name", name))),
-      chapterDescription.map(desc =>
-        nestedQuery("chapters", matchQuery("chapters.description", desc))
-      )
+      chapterDescription.map(desc => nestedQuery("chapters", matchQuery("chapters.description", desc)))
     ).flatten
 
   // Build tag-level filter queries (double nested)
@@ -146,14 +144,15 @@ case class Study(
       playerBlack.map(b => matchQuery("chapters.tags.black", b)),
       event.map(e => matchQuery("chapters.tags.event", e))
     ).flatten
-    
+
     if tagQueries.isEmpty then Nil
-    else List(
-      nestedQuery(
-        "chapters",
-        nestedQuery("chapters.tags", boolQuery().must(tagQueries))
+    else
+      List(
+        nestedQuery(
+          "chapters",
+          nestedQuery("chapters.tags", boolQuery().must(tagQueries))
+        )
       )
-    )
 
   // Combine all filters (chapter + tag)
   private def allFilters: List[Query] = chapterFilters ++ tagFilters
