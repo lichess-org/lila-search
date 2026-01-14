@@ -57,6 +57,89 @@ object CompatSuite extends weaver.IOSuite:
     val query = Query.Team("foo")
     IO.fromFuture(IO(client.count(query))).map(expect.same(_, lila.search.spec.CountOutput(0)))
 
+  test("search study by chapter name"): client =>
+    val query = Query.Study(
+      text = "",
+      userId = None,
+      sorting = None,
+      chapterName = Some("opening trap")
+    )
+    IO.fromFuture(IO(client.search(query, from, size))).map(expect.same(_, SearchOutput(Nil)))
+
+  test("search study by ECO code"): client =>
+    val query = Query.Study(
+      text = "",
+      userId = None,
+      sorting = None,
+      eco = Some("B90")
+    )
+    IO.fromFuture(IO(client.search(query, from, size))).map(expect.same(_, SearchOutput(Nil)))
+
+  test("search study by player white"): client =>
+    val query = Query.Study(
+      text = "",
+      userId = None,
+      sorting = None,
+      playerWhite = Some("Magnus Carlsen")
+    )
+    IO.fromFuture(IO(client.search(query, from, size))).map(expect.same(_, SearchOutput(Nil)))
+
+  test("search study by opening name"): client =>
+    val query = Query.Study(
+      text = "",
+      userId = None,
+      sorting = None,
+      opening = Some("King's Indian")
+    )
+    IO.fromFuture(IO(client.search(query, from, size))).map(expect.same(_, SearchOutput(Nil)))
+
+  test("search study with combined filters"): client =>
+    val query = Query.Study(
+      text = "repertoire",
+      userId = None,
+      sorting = None,
+      eco = Some("E97"),
+      opening = Some("King's Indian")
+    )
+    IO.fromFuture(IO(client.search(query, from, size))).map(expect.same(_, SearchOutput(Nil)))
+
+  test("count study with chapter filters"): client =>
+    val query = Query.Study(
+      text = "",
+      userId = None,
+      sorting = None,
+      chapterName = Some("sicilian")
+    )
+    IO.fromFuture(IO(client.count(query))).map(expect.same(_, lila.search.spec.CountOutput(0)))
+
+  test("search study by variant"): client =>
+    val query = Query.Study(
+      text = "",
+      userId = None,
+      sorting = None,
+      variant = Some("standard")
+    )
+    IO.fromFuture(IO(client.search(query, from, size))).map(expect.same(_, SearchOutput(Nil)))
+
+  test("search study by event"): client =>
+    val query = Query.Study(
+      text = "",
+      userId = None,
+      sorting = None,
+      event = Some("World Championship")
+    )
+    IO.fromFuture(IO(client.search(query, from, size))).map(expect.same(_, SearchOutput(Nil)))
+
+  test("search study by FIDE IDs"): client =>
+    val query = Query.Study(
+      text = "",
+      userId = None,
+      sorting = None,
+      whiteFideId = Some("1503014"),
+      blackFideId = Some("2020009")
+    )
+    IO.fromFuture(IO(client.search(query, from, size))).map(expect.same(_, SearchOutput(Nil)))
+
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", false, shutdownTimeout = 1, false),
     elastic = ElasticConfig(uri"http://0.0.0.0:9200")
