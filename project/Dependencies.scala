@@ -14,6 +14,7 @@ object Dependencies {
     val ciris = "3.12.0"
     val chess = "17.14.1"
     val decline = "2.5.0"
+    val doobie = "1.0.0-RC5"
     val elastic4s = "9.1.1"
     val fs2 = "3.12.2"
     val fs2Data = "1.12.0"
@@ -75,6 +76,13 @@ object Dependencies {
 
   val declineCore = "com.monovore" %% "decline" % V.decline
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
+
+  // Doobie (for ClickHouse)
+  val doobieCore = "org.tpolecat" %% "doobie-core" % V.doobie
+  val doobieHikari = "org.tpolecat" %% "doobie-hikari" % V.doobie
+  val clickhouseJdbc = "com.clickhouse" % "clickhouse-jdbc" % "0.6.5"
+  val clickhouseHttpClient = "com.clickhouse" % "clickhouse-http-client" % "0.6.5"
+  val lz4Java = "org.lz4" % "lz4-java" % "1.8.0" // Required for ClickHouse compression
 
   val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
   val weaver = "org.typelevel" %% "weaver-cats" % "0.11.3" % Test
