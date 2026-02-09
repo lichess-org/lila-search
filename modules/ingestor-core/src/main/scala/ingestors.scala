@@ -16,8 +16,8 @@ object Ingestors:
 
   def apply(
       lichess: MongoDatabase[IO],
-      // study: MongoDatabase[IO],
-      // local: MongoDatabase[IO],
+      study: MongoDatabase[IO],
+      local: MongoDatabase[IO],
       store: KVStore,
       elastic: ESClient[IO],
       config: IngestorConfig
@@ -25,16 +25,16 @@ object Ingestors:
     (
       ForumRepo(lichess, config.forum),
       UblogRepo(lichess, config.ublog),
-      // StudyRepo(study, local, config.study),
+      StudyRepo(study, local, config.study),
       GameRepo(lichess, config.game),
       TeamRepo(lichess, config.team)
-    ).flatMapN: (forums, ublogs, games, teams) =>
+    ).flatMapN: (forums, ublogs, study2s, games, teams) =>
       given KVStore = store
       given ESClient[IO] = elastic
       List(
         watch(Index.Forum, forums, config.forum.startAt),
         watch(Index.Ublog, ublogs, config.ublog.startAt),
-        // watch(Index.Study, study2s, config.study.startAt),
+        watch(Index.Study, study2s, config.study.startAt),
         watch(Index.Game, games, config.game.startAt),
         watch(Index.Team, teams, config.team.startAt)
       ).parSequence_

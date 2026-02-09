@@ -49,4 +49,4 @@ object App extends IOApp.Simple:
 class IngestorApp(res: AppResources, config: AppConfig)(using Logger[IO], LoggerFactory[IO]):
   def run(): IO[Unit] =
     Logger[IO].info("Ingestor started") *>
-      Ingestors(res.lichess, res.store, res.elastic, config.ingestor)
+      Ingestors(res.lichess, res.study, res.studyLocal, res.store, res.elastic, config.ingestor)
