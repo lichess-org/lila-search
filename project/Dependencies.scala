@@ -19,7 +19,7 @@ object Dependencies {
     val fs2Data = "1.12.0"
     val http4s = "0.23.33"
     val mongo4cats = "0.7.17"
-    val otel4s = "0.14.0"
+    val otel4s = "0.16.1"
     val otel4sHttp4s = "0.15.0"
   }
 
