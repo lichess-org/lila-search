@@ -13,7 +13,7 @@ object Dependencies {
     val catsMtl = "1.6.0"
     val ciris = "3.12.0"
     val chess = "17.14.1"
-    val decline = "2.5.0"
+    val decline = "2.6.0"
     val elastic4s = "9.1.1"
     val fs2 = "3.12.2"
     val fs2Data = "1.12.0"
