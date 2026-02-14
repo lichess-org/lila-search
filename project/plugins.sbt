@@ -14,4 +14,4 @@ addSbtPlugin("com.siriusxm" % "sbt-snapshot4s" % "0.2.5")
 
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.6")
 
-addSbtPlugin("org.typelevel" % "sbt-tpolecat" % "0.5.2")
+addSbtPlugin("org.typelevel" % "sbt-tpolecat" % "0.5.3")
