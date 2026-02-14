@@ -61,7 +61,7 @@ object Dependencies {
   val circe = "io.circe" %% "circe-core" % "0.14.15"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j" % "2.7.1"
-  val logback = "ch.qos.logback" % "logback-classic" % "1.5.23"
+  val logback = "ch.qos.logback" % "logback-classic" % "1.5.30"
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.12"
 
   val otel4sCore = "org.typelevel" %% "otel4s-core" % V.otel4s
