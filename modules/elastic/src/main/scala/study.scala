@@ -8,7 +8,23 @@ import com.sksamuel.elastic4s.requests.searches.queries.{ NestedQuery, Query }
 import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
 import lila.search.study.Study.Sorting
 
-case class Study(text: String, sorting: Option[Sorting], userId: Option[String]):
+case class Study(
+    text: String,
+    sorting: Option[Sorting],
+    userId: Option[String],
+    // Chapter-level filters
+    chapterName: Option[String] = None,
+    chapterDescription: Option[String] = None,
+    // Tag-level filters
+    variant: Option[String] = None,
+    eco: Option[String] = None,
+    opening: Option[String] = None,
+    playerWhite: Option[String] = None,
+    playerBlack: Option[String] = None,
+    whiteFideId: Option[String] = None,
+    blackFideId: Option[String] = None,
+    event: Option[String] = None
+):
 
   def searchDef(from: From, size: Size): SearchRequest =
     search(Index.Study.value)
@@ -33,7 +49,8 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
     boolQuery()
       .must(
         matcher ::
-          parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList
+          parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList ++
+          allFilters
       )
       .should(
         List(
@@ -52,7 +69,8 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
       .must(
         matcher ::
           termQuery(Fields.owner, owner) ::
-          parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList
+          parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList ++
+          allFilters
       )
       .should(
         List(
@@ -104,6 +122,40 @@ case class Study(text: String, sorting: Option[Sorting], userId: Option[String])
         )
         .minimumShouldMatch(1)
     )
+
+  // Build chapter-level filter queries (single nested)
+  private def chapterFilters: List[Query] =
+    List(
+      chapterName.map(name => nestedQuery("chapters", matchQuery("chapters.name", name))),
+      chapterDescription.map(desc => nestedQuery("chapters", matchQuery("chapters.description", desc)))
+    ).flatten
+
+  // Build tag-level filter queries (double nested)
+  private def tagFilters: List[Query] =
+    val tagQueries = List(
+      // Keyword fields use termQuery for exact matching
+      variant.map(v => termQuery("chapters.tags.variant", v)),
+      eco.map(e => termQuery("chapters.tags.eco", e)),
+      whiteFideId.map(id => termQuery("chapters.tags.whiteFideId", id)),
+      blackFideId.map(id => termQuery("chapters.tags.blackFideId", id)),
+      // Text fields use matchQuery for full-text search
+      opening.map(o => matchQuery("chapters.tags.opening", o)),
+      playerWhite.map(w => matchQuery("chapters.tags.white", w)),
+      playerBlack.map(b => matchQuery("chapters.tags.black", b)),
+      event.map(e => matchQuery("chapters.tags.event", e))
+    ).flatten
+
+    if tagQueries.isEmpty then Nil
+    else
+      List(
+        nestedQuery(
+          "chapters",
+          nestedQuery("chapters.tags", boolQuery().must(tagQueries))
+        )
+      )
+
+  // Combine all filters (chapter + tag)
+  private def allFilters: List[Query] = chapterFilters ++ tagFilters
 
   private val selectPublic = termQuery(Fields.public, true)
 
