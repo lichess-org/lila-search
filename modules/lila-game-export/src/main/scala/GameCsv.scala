@@ -38,7 +38,7 @@ object GameCsv:
       rated = game.rated.getOrElse(false),
       perf = perfId(game.variantOrDefault, game.speed),
       winnerColor = game.winnerColor.fold(3)(if _ then 1 else 2),
-      date = game.movedAt.toEpochMilli,
+      date = game.date.toEpochMilli,
       analysed = game.analysed.getOrElse(false),
       uids = game.players.mkString(","),
       winner = game.winnerId.getOrElse(""),
@@ -60,7 +60,7 @@ object GameCsv:
       case _ => None
 
   private def durationSeconds(g: DbGame): Option[Int] =
-    val seconds = (g.movedAt.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
+    val seconds = (g.date.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
     Option.when(seconds < 60 * 60 * 12)(seconds.toInt)
 
   private def perfId(variant: chess.variant.Variant, speed: chess.Speed): Int =

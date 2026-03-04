@@ -112,7 +112,6 @@ object GameRepo:
 
   object F:
     val createdAt = "ca"
-    val updatedAt = "ua"
 
 type PlayerId = String
 case class DbGame(
@@ -120,7 +119,7 @@ case class DbGame(
     players: List[PlayerId], // us
     winnerId: Option[PlayerId], // wid
     createdAt: Instant, // ca
-    movedAt: Instant, // ua
+    movedAt: Option[Instant], // ua
     ply: Int, // t
     analysed: Option[Boolean], // an
     whitePlayer: Option[DbPlayer], // p0
@@ -148,6 +147,7 @@ case class DbGame(
   def speed: Speed = Speed(clockConfig)
   def loser: Option[PlayerId] = players.find(_.some != winnerId)
   def aiLevel: Option[Int] = whitePlayer.flatMap(_.aiLevel).orElse(blackPlayer.flatMap(_.aiLevel))
+  def date: Instant = movedAt.getOrElse(createdAt)
 
   def shouldDebug =
     whitePlayer.isEmpty || blackPlayer.isEmpty
