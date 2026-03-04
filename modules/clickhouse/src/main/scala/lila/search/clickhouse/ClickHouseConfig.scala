@@ -1,0 +1,23 @@
+package lila.search
+package clickhouse
+
+import cats.syntax.all.*
+import ciris.*
+
+case class ClickHouseConfig(
+    url: String,
+    user: String,
+    password: String,
+    maxPoolSize: Int
+)
+
+object ClickHouseConfig:
+  def config: ConfigValue[Effect, ClickHouseConfig] = (
+    env("CLICKHOUSE_URL")
+      .or(prop("clickhouse.url"))
+      .as[String]
+      .default("jdbc:clickhouse://127.0.0.1:8123/lichess"),
+    env("CLICKHOUSE_USER").or(prop("clickhouse.user")).as[String].default("default"),
+    env("CLICKHOUSE_PASSWORD").or(prop("clickhouse.password")).as[String].default(""),
+    env("CLICKHOUSE_MAX_POOL_SIZE").or(prop("clickhouse.max.pool.size")).as[Int].default(10)
+  ).parMapN(ClickHouseConfig.apply)

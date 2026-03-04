@@ -3,7 +3,9 @@ package app
 
 import cats.effect.*
 import cats.mtl.Handle.*
+import cats.syntax.all.*
 import io.github.arainko.ducktape.*
+import lila.search.clickhouse.ClickHouseClient
 import lila.search.forum.Forum
 import lila.search.game.Game
 import lila.search.spec.*
@@ -15,27 +17,92 @@ import smithy4s.Timestamp
 
 import java.time.Instant
 
-class SearchServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends SearchService[IO]:
+class SearchServiceImpl(
+    esClient: ESClient[IO],
+    chClient: ClickHouseClient[IO],
+    gameBackend: GameSearchBackend
+)(using LoggerFactory[IO])
+    extends SearchService[IO]:
 
   import SearchServiceImpl.given
 
   private val logger: Logger[IO] = LoggerFactory[IO].getLogger
 
   override def count(query: Query): IO[CountOutput] =
+    query match
+      case q: Query.Game => gameCount(q)
+      case _ => esCount(query)
+
+  override def search(query: Query, from: From, size: Size): IO[SearchOutput] =
+    query match
+      case q: Query.Game => gameSearch(q, from, size)
+      case _ => esSearch(query, from, size)
+
+  // --- game dispatch ---
+
+  private def gameSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
+    gameBackend match
+      case GameSearchBackend.ElasticOnly => esSearch(q, from, size)
+      case GameSearchBackend.ClickHouseOnly => chSearch(q, from, size)
+      case GameSearchBackend.Shadow => shadowSearch(q, from, size)
+
+  private def gameCount(q: Query.Game): IO[CountOutput] =
+    gameBackend match
+      case GameSearchBackend.ElasticOnly => esCount(q)
+      case GameSearchBackend.ClickHouseOnly => chCount(q)
+      case GameSearchBackend.Shadow => shadowCount(q)
+
+  // --- shadow: CH is primary, ES runs in a detached fiber for comparison only ---
+  // CH errors propagate normally. ES errors are logged and swallowed — they never
+  // affect the response.
+
+  private def shadowSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
+    for
+      chFiber <- chSearch(q, from, size).start
+      _ <- compareShadow(esSearch(q, from, size), chFiber.joinWithNever).start
+      result <- chFiber.joinWithNever
+    yield result
+
+  private def shadowCount(q: Query.Game): IO[CountOutput] =
+    for
+      chFiber <- chCount(q).start
+      _ <- compareShadow(esCount(q), chFiber.joinWithNever).start
+      result <- chFiber.joinWithNever
+    yield result
+
+  private def compareShadow[A](esIO: IO[A], chIO: IO[A]): IO[Unit] =
+    (esIO.attempt, chIO)
+      .parMapN:
+        case (Right(es), ch) if es != ch =>
+          logger.warn(s"[shadow] mismatch: ch=${ch.toString} es=${es.toString}"): IO[Unit]
+        case (Left(e), _) =>
+          logger.warn(e)("[shadow] ES read failed"): IO[Unit]
+        case _ => IO.unit
+      .flatten
+
+  // --- per-backend wrappers ---
+
+  private def chSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
+    chClient.searchGames(q.to[Game], from, size).map(ids => SearchOutput(ids.map(Id.apply)))
+
+  private def chCount(q: Query.Game): IO[CountOutput] =
+    chClient.countGames(q.to[Game]).map(n => CountOutput(n.toInt))
+
+  private def esSearch(query: Query, from: From, size: Size): IO[SearchOutput] =
+    allow:
+      esClient.search(query, from, size)
+    .rescue: e =>
+      logger.error(e.asException)(s"Error in search: query=${query.toString}") *>
+        IO.raiseError(InternalServerError("Internal server error"))
+    .map(SearchOutput.apply)
+
+  private def esCount(query: Query): IO[CountOutput] =
     allow:
       esClient.count(query)
     .rescue: e =>
       logger.error(e.asException)(s"Error in count: query=${query.toString}") *>
         IO.raiseError(InternalServerError("Internal server error"))
     .map(CountOutput.apply)
-
-  override def search(query: Query, from: From, size: Size): IO[SearchOutput] =
-    allow:
-      esClient.search(query, from, size)
-    .rescue: e =>
-      logger.error(e.asException)(s"Error in search: query=${query.toString}, from=$from, size=$size") *>
-        IO.raiseError(InternalServerError("Internal server error"))
-    .map(SearchOutput.apply)
 
 object SearchServiceImpl:
 

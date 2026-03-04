@@ -76,6 +76,11 @@ object Dependencies {
   val declineCore = "com.monovore" %% "decline" % V.decline
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
+  val doobieCore             = "org.tpolecat"   %% "doobie-core"                     % "1.0.0-RC7"
+  val doobieHikari           = "org.tpolecat"   %% "doobie-hikari"                   % "1.0.0-RC7"
+  val clickhouseJdbc         = "com.clickhouse"  % "clickhouse-jdbc"                 % "0.7.2"
+  val testContainersClickHouse = "com.dimafeng" %% "testcontainers-scala-clickhouse" % "0.44.1" % Test
+
   val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
   val weaver = "org.typelevel" %% "weaver-cats" % "0.11.3" % Test
   val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.11.3" % Test

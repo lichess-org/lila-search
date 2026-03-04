@@ -38,7 +38,7 @@ object App extends IOApp.Simple:
       MeterProvider[IO]
   ): Resource[IO, Unit] =
     for
-      apiRoutes <- Routes(res, config.server)
+      apiRoutes <- Routes(res, config)
       httpRoutes = apiRoutes <+> MkPrometheusRoutes
       _ <- MkHttpServer.newEmber(config.server, httpRoutes.orNotFound)
       _ <- Logger[IO].info(s"BuildInfo: ${BuildInfo.toString}").toResource

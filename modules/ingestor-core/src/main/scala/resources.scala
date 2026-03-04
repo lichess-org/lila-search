@@ -3,6 +3,7 @@ package ingestor
 
 import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
+import lila.search.clickhouse.ClickHouseClient
 import mongo4cats.database.MongoDatabase
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.otel4s.middleware.metrics.OtelMetrics
@@ -13,7 +14,8 @@ class AppResources(
     val study: MongoDatabase[IO],
     val studyLocal: MongoDatabase[IO],
     val elastic: ESClient[IO],
-    val store: KVStore
+    val store: KVStore,
+    val clickhouse: ClickHouseClient[IO]
 )
 
 object AppResources:
@@ -24,7 +26,8 @@ object AppResources:
       conf.mongo.makeStudyMongoClient,
       conf.mongo.makeStudyOplogClient,
       makeElasticClient(conf.elastic),
-      KVStore(conf.kvStorePath).toResource
+      KVStore(conf.kvStorePath).toResource,
+      ClickHouseClient.resource(conf.clickhouse)
     ).parMapN(AppResources.apply)
 
   private def makeElasticClient(conf: ElasticConfig)(using MeterProvider[IO]): Resource[IO, ESClient[IO]] =

@@ -5,6 +5,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import ciris.*
 import ciris.http4s.*
+import lila.search.clickhouse.ClickHouseConfig
 import org.http4s.Uri
 import org.http4s.implicits.*
 
@@ -23,14 +24,16 @@ object AppConfig:
     MongoConfigLoader.config,
     ElasticConfig.config,
     IngestorConfigLoader.config,
-    kvStorePath
+    kvStorePath,
+    ClickHouseConfig.config
   ).parMapN(AppConfig.apply)
 
 case class AppConfig(
     mongo: MongoConfig,
     elastic: ElasticConfig,
     ingestor: IngestorConfig,
-    kvStorePath: String
+    kvStorePath: String,
+    clickhouse: ClickHouseConfig
 )
 
 private def studyDatabase =

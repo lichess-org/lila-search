@@ -130,6 +130,28 @@ lazy val `lila-game-export` = project
   )
   .dependsOn(`lila-mongo`)
 
+lazy val clickhouse = project
+  .in(file("modules/clickhouse"))
+  .settings(
+    name := "clickhouse",
+    commonSettings,
+    publish := {},
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      catsCore,
+      catsEffect,
+      fs2,
+      doobieCore,
+      doobieHikari,
+      clickhouseJdbc,
+      cirisCore,
+      log4Cats,
+      weaver,
+      testContainersClickHouse
+    )
+  )
+  .dependsOn(core, elastic, `lila-mongo`)
+
 lazy val `ingestor-app` = project
   .in(file("modules/ingestor-app"))
   .enablePlugins(JavaAppPackaging, BuildInfoPlugin, DockerPlugin)
@@ -172,7 +194,7 @@ lazy val `ingestor-cli` = project
     Compile / doc / sources := Seq.empty,
     Compile / run / fork := true
   )
-  .dependsOn(elastic, core, `ingestor-core`)
+  .dependsOn(elastic, core, `ingestor-core`, clickhouse)
 
 lazy val `ingestor-core` = project
   .in(file("modules/ingestor-core"))
@@ -206,7 +228,7 @@ lazy val `ingestor-core` = project
     Compile / doc / sources := Seq.empty,
     Test / scalacOptions += "-Wconf:msg=interpolation uses toString:s"
   )
-  .dependsOn(elastic, core, `lila-mongo`)
+  .dependsOn(elastic, core, `lila-mongo`, clickhouse)
 
 lazy val client = project
   .in(file("modules/client"))
@@ -256,7 +278,7 @@ lazy val app = project
     Compile / doc / sources := Seq.empty,
     Compile / run / fork := true
   )
-  .dependsOn(api, elastic)
+  .dependsOn(api, elastic, clickhouse)
 
 val e2e = project
   .in(file("modules/e2e"))
@@ -277,6 +299,7 @@ lazy val root = project
     client,
     e2e,
     elastic,
+    clickhouse,
     `lila-mongo`,
     `lila-game-export`,
     `ingestor-core`,

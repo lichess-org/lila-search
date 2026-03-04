@@ -4,6 +4,8 @@ package ingestor
 import cats.effect.*
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
+import lila.search.clickhouse.ClickHouseClient
+import lila.search.ingestor.game.GameCHIngestor
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
@@ -20,6 +22,7 @@ object Ingestors:
       local: MongoDatabase[IO],
       store: KVStore,
       elastic: ESClient[IO],
+      clickhouse: ClickHouseClient[IO],
       config: IngestorConfig
   )(using LoggerFactory[IO]): IO[Unit] =
     (
@@ -28,16 +31,15 @@ object Ingestors:
       StudyRepo(study, local, config.study),
       GameRepo(lichess, config.game),
       TeamRepo(lichess, config.team)
-      // ).flatMapN: (forums, ublogs, study2s, games, teams) =>
-    ).flatMapN: (forums, study2s, teams) =>
+    ).flatMapN: (forums, study2s, games, teams) =>
       given KVStore = store
       given ESClient[IO] = elastic
       List(
         watch(Index.Forum, forums, config.forum.startAt),
         // watch(Index.Ublog, ublogs, config.ublog.startAt),
         watch(Index.Study, study2s, config.study.startAt),
-        watch(Index.Game, games, config.game.startAt),
-        watch(Index.Team, teams, config.team.startAt)
+        watch(Index.Team, teams, config.team.startAt),
+        GameCHIngestor.watch(games, clickhouse, config.game.startAt)
       ).parSequence_
 
   // Watch mode with default start time (from store or config)

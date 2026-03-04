@@ -5,6 +5,7 @@ import cats.effect.IO
 import cats.mtl.Handle
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
+import lila.search.ingestor.game.GameCHIngestor
 import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
@@ -23,7 +24,6 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
   given logger: Logger[IO] = LoggerFactory[IO].getLogger
   given registry: IndexRegistry = IndexRegistry(
-    GameRepo(res.lichess, config.ingestor.game),
     ForumRepo(res.lichess, config.ingestor.forum),
     UblogRepo(res.lichess, config.ingestor.ublog),
     StudyRepo(res.study, res.studyLocal, config.ingestor.study),
@@ -34,10 +34,13 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
   def index(opts: IndexOpts): IO[Unit] =
 
-    def go(index: Index) =
-      putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
-        runIndex(index, opts) *>
-        refreshIndexes(res.elastic, index).whenA(opts.refresh && !opts.dry)
+    def go(index: Index) = index match
+      case Index.Game =>
+        runIndex(index, opts)
+      case other =>
+        putMappingsIfNotExists(res.elastic, other).whenA(!opts.dry) *>
+          runIndex(other, opts) *>
+          refreshIndexes(res.elastic, other).whenA(opts.refresh && !opts.dry)
 
     opts.index.toList.traverse_(go)
 
@@ -53,32 +56,30 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     else opts.index.toList.traverse_(go)
 
   def runIndex(index: Index, opts: IndexOpts): IO[Unit] =
-    given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
-    val im = registry(index)
-    im.withRepo: repo =>
-      val stream =
-        if opts.watch then repo.watch(opts.since.some)
-        else repo.fetchAll(opts.since, opts.until)
-      val f: Repo.Result[im.Out] => IO[Unit] =
-        if opts.dry then
-          result =>
-            result.toIndex.traverse_(item => Logger[IO].info(s"Dry run - would index ${item.id}")) *>
-              result.toDelete.traverse_(id => Logger[IO].info(s"Dry run - would delete ${id.value}"))
-        else index.updateElastic
+    index match
+      case Index.Game =>
+        GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
+          if opts.watch then GameCHIngestor.watch(repo, res.clickhouse, opts.since.some)
+          else GameCHIngestor.fetchAll(repo, res.clickhouse, opts.since, opts.until)
+      case other =>
+        given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${other.value}.ingestor")
+        val im = registry(other)
+        im.withRepo: repo =>
+          val stream =
+            if opts.watch then repo.watch(opts.since.some)
+            else repo.fetchAll(opts.since, opts.until)
+          val f: Repo.Result[im.Out] => IO[Unit] =
+            if opts.dry then
+              result =>
+                result.toIndex.traverse_(item => Logger[IO].info(s"Dry run - would index ${item.id}")) *>
+                  result.toDelete.traverse_(id => Logger[IO].info(s"Dry run - would delete ${id.value}"))
+            else other.updateElastic
 
-      stream
-        .evalMap(f)
-        .compile
-        .drain
+          stream
+            .evalMap(f)
+            .compile
+            .drain
 
-  /**
-   * Reindex all documents in the index, while handling deletions that occur during the process.
-   *
-   * Reindexing process:
-   *   1. Fetch all documents from the source and index them
-   *   2. Start a background process to log deleted IDs every hour
-   *   3. After indexing is complete, read the deleted IDs log and delete those from the index
-   */
   def runReindex(
       index: Index,
       opts: ReindexOpts

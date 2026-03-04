@@ -12,11 +12,11 @@ import smithy4s.http4s.SimpleRestJsonBuilder
 
 def Routes(
     resources: AppResources,
-    config: HttpServerConfig
+    config: AppConfig
 )(using LoggerFactory[IO], MeterProvider[IO]): Resource[IO, HttpRoutes[IO]] =
 
   val healthServiceImpl = HealthServiceImpl(resources.esClient)
-  val searchServiceImpl = SearchServiceImpl(resources.esClient)
+  val searchServiceImpl = SearchServiceImpl(resources.esClient, resources.chClient, config.gameBackend)
 
   val search: Resource[IO, HttpRoutes[IO]] =
     SimpleRestJsonBuilder.routes(searchServiceImpl).resource
@@ -33,7 +33,7 @@ def Routes(
       .map(_.reduceK)
 
   val allRoutes =
-    if config.enableDocs then apiRoutes.map(_ <+> docs)
+    if config.server.enableDocs then apiRoutes.map(_ <+> docs)
     else apiRoutes
 
-  allRoutes.evalMap(routes => MkMiddleware(config).map(md => md.apply(routes)))
+  allRoutes.evalMap(routes => MkMiddleware(config.server).map(md => md.apply(routes)))
