@@ -5,6 +5,8 @@ import cats.effect.IO
 import lila.search.game.{ Fields, Game, Sorting }
 import weaver.IOSuite
 
+import java.time.Instant
+
 object GameSearchSuite extends IOSuite:
   override type Res = ClickHouseClient[IO]
   override def sharedResource = ClickHouseContainerSetup.resource
@@ -74,9 +76,8 @@ object GameSearchSuite extends IOSuite:
   }
 
   test("sort by date descending") { ch =>
-    // Use far-future epoch millis to ensure these games sort above any concurrent test data
-    val earlyDate = 1_000_000_000_000L
-    val lateDate = 2_000_000_000_000L
+    val earlyDate = Instant.ofEpochSecond(1_000_000_000L)
+    val lateDate = Instant.ofEpochSecond(2_000_000_000L)
     for
       _ <- ch.upsertGameRows(
         List(

@@ -9,6 +9,7 @@ import lila.search.game.{ Fields, Game, Sorting }
 import lila.search.{ From, Size }
 
 object GameSearch:
+  import GameRow.given
 
   def search(q: Game, from: From, size: Size): ConnectionIO[List[String]] =
     (fr"SELECT id FROM games FINAL" ++ whereClause(q) ++ orderClause(q.sorting) ++
@@ -55,7 +56,7 @@ object GameSearch:
       ).flatten :::
       rangeFilters("turns", q.turns.a, q.turns.b) :::
       rangeFilters("avg_rating", q.averageRating.a, q.averageRating.b) :::
-      rangeFilters("date", q.date.map(_.toEpochMilli).a, q.date.map(_.toEpochMilli).b) :::
+      rangeFilters("date", q.date.a, q.date.b) :::
       rangeFilters("duration", q.duration.a, q.duration.b) :::
       aiLevelFilters
 

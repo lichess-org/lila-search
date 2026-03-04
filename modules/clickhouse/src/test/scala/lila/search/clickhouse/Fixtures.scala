@@ -4,6 +4,7 @@ package clickhouse
 import lila.search.clickhouse.game.GameRow
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 object Fixtures:
 
@@ -14,7 +15,7 @@ object Fixtures:
       rated: Boolean = false,
       perf: Int = 1,
       aiLevel: Option[Int] = None,
-      date: Long = Instant.now().toEpochMilli,
+      date: Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS),
       status: Int = 30,
       avgRating: Option[Int] = None
   ): GameRow =

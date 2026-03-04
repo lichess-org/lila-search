@@ -21,7 +21,7 @@ object GameCHIngestor:
       .flatMap(repo.watch)
       .evalMap: result =>
         ch.upsertGameRows(result.toIndex.map(toRow)) *>
-          ch.deleteGames(result.toDelete.map(_.value)) *>
+          ch.deleteGames(result.toDelete.map(_.value)) *> // no need to delete
           result.timestamp.traverse_(summon[KVStore].put("game", _))
       .compile
       .drain
@@ -47,7 +47,7 @@ object GameCHIngestor:
       rated = gs.rated,
       perf = gs.perf,
       winnerColor = gs.winnerColor,
-      date = g.movedAt.toEpochMilli,
+      date = g.movedAt,
       analysed = gs.analysed,
       uids = gs.uids.getOrElse(Nil),
       winner = gs.winner,

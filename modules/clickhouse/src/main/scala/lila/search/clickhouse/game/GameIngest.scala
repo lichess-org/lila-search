@@ -6,6 +6,7 @@ import doobie.*
 import doobie.implicits.*
 
 object GameIngest:
+  import GameRow.given
 
   def upsertGame(r: GameRow): ConnectionIO[Int] =
     val uidsLit = Fragment.const(r.uids.map(u => s"'${u.replace("'", "\\'")}'").mkString("[", ",", "]"))

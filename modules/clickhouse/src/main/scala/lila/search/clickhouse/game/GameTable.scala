@@ -5,6 +5,7 @@ import cats.data.NonEmptyList
 import doobie.*
 import doobie.enumerated.JdbcType
 
+import java.time.Instant
 import scala.jdk.CollectionConverters.*
 
 object GameTable:
@@ -16,7 +17,7 @@ object GameTable:
       rated        Bool,
       perf         Int32,
       winner_color Int32,
-      date         Int64,
+      date         DateTime,
       analysed     Bool,
       uids         Array(String),
       winner       Nullable(String),
@@ -42,7 +43,7 @@ case class GameRow(
     rated: Boolean,
     perf: Int,
     winnerColor: Int,
-    date: Long,
+    date: Instant,
     analysed: Boolean,
     uids: List[String],
     winner: Option[String],
@@ -58,6 +59,10 @@ case class GameRow(
 )
 
 object GameRow:
+  // ClickHouse DateTime maps to java.sql.Timestamp via JDBC.
+  given Meta[Instant] =
+    Meta[java.sql.Timestamp].timap(_.toInstant)(java.sql.Timestamp.from)
+
   // ClickHouse JDBC returns Array(String) as java.util.List via getObject().
   // For INSERT, array literals must be built via Fragment.const — JDBC parameter
   // binding does not work for ClickHouse array columns.

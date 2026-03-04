@@ -5,6 +5,8 @@ import cats.effect.IO
 import lila.search.game.{ Fields, Game, Sorting }
 import weaver.IOSuite
 
+import java.time.Instant
+
 object GameSortingSuite extends IOSuite:
   override type Res = ClickHouseClient[IO]
   override def sharedResource = ClickHouseContainerSetup.resource
@@ -14,9 +16,9 @@ object GameSortingSuite extends IOSuite:
 
   test("sort by date desc returns newest first") { ch =>
     val games = List(
-      Fixtures.game(id = "sd1", players = List(s"${u}date1"), date = 1_000L),
-      Fixtures.game(id = "sd2", players = List(s"${u}date1"), date = 2_000L),
-      Fixtures.game(id = "sd3", players = List(s"${u}date1"), date = 3_000L)
+      Fixtures.game(id = "sd1", players = List(s"${u}date1"), date = Instant.ofEpochSecond(1_000L)),
+      Fixtures.game(id = "sd2", players = List(s"${u}date1"), date = Instant.ofEpochSecond(2_000L)),
+      Fixtures.game(id = "sd3", players = List(s"${u}date1"), date = Instant.ofEpochSecond(3_000L))
     )
     for
       _ <- ch.upsertGameRows(games)
@@ -30,9 +32,9 @@ object GameSortingSuite extends IOSuite:
 
   test("sort by date asc returns oldest first") { ch =>
     val games = List(
-      Fixtures.game(id = "sa1", players = List(s"${u}date2"), date = 1_000L),
-      Fixtures.game(id = "sa2", players = List(s"${u}date2"), date = 2_000L),
-      Fixtures.game(id = "sa3", players = List(s"${u}date2"), date = 3_000L)
+      Fixtures.game(id = "sa1", players = List(s"${u}date2"), date = Instant.ofEpochSecond(1_000L)),
+      Fixtures.game(id = "sa2", players = List(s"${u}date2"), date = Instant.ofEpochSecond(2_000L)),
+      Fixtures.game(id = "sa3", players = List(s"${u}date2"), date = Instant.ofEpochSecond(3_000L))
     )
     for
       _ <- ch.upsertGameRows(games)
@@ -110,8 +112,8 @@ object GameSortingSuite extends IOSuite:
 
   test("unknown sort field falls back to date desc") { ch =>
     val games = List(
-      Fixtures.game(id = "sf1", players = List(s"${u}fallback1"), date = 1_000L),
-      Fixtures.game(id = "sf2", players = List(s"${u}fallback1"), date = 2_000L)
+      Fixtures.game(id = "sf1", players = List(s"${u}fallback1"), date = Instant.ofEpochSecond(1_000L)),
+      Fixtures.game(id = "sf2", players = List(s"${u}fallback1"), date = Instant.ofEpochSecond(2_000L))
     )
     for
       _ <- ch.upsertGameRows(games)
