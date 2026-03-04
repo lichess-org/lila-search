@@ -29,7 +29,6 @@ object Fixtures:
       winnerColor = winnerColor,
       date = date,
       analysed = false,
-      uids = players,
       winner = None,
       loser = None,
       avgRating = avgRating,

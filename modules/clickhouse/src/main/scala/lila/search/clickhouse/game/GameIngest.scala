@@ -9,18 +9,16 @@ object GameIngest:
   import GameRow.given
 
   def upsertGame(r: GameRow): ConnectionIO[Int] =
-    val uidsLit = Fragment.const(r.uids.map(u => s"'${u.replace("'", "\\'")}'").mkString("[", ",", "]"))
-    (fr"""INSERT INTO games
+    sql"""INSERT INTO games
          (id,status,turns,rated,perf,winner_color,date,analysed,
-          uids,winner,loser,avg_rating,ai_level,duration,clock_init,clock_inc,
-          white_user,black_user,source)
+          white_user,black_user,winner,loser,avg_rating,ai_level,duration,clock_init,clock_inc,
+          source)
          VALUES (
          ${r.id},${r.status},${r.turns},${r.rated},${r.perf},${r.winnerColor},
-         ${r.date},${r.analysed},""" ++
-      uidsLit ++
-      fr""",${r.winner},${r.loser},${r.avgRating},${r.aiLevel},
+         ${r.date},${r.analysed},
+         ${r.whiteUser},${r.blackUser},${r.winner},${r.loser},${r.avgRating},${r.aiLevel},
          ${r.duration},${r.clockInit},${r.clockInc},
-         ${r.whiteUser},${r.blackUser},${r.source})""").update.run
+         ${r.source})""".update.run
 
   def upsertGames(rows: List[GameRow]): ConnectionIO[Unit] =
     rows.traverse_(upsertGame)

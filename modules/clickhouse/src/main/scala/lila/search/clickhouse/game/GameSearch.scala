@@ -29,7 +29,7 @@ object GameSearch:
         fr"WHERE" ++ frags.toList.intercalate(fr" AND ")
 
   private def filters(q: Game): List[Fragment] =
-    val userFilters = List(q.user1, q.user2).flatten.map(u => fr"has(uids, $u)")
+    val userFilters = List(q.user1, q.user2).flatten.map(u => fr"(white_user = $u OR black_user = $u)")
     val perfFilter = Option.when(q.perf.nonEmpty)(
       Fragment.const(s"perf IN (${q.perf.mkString(",")})")
     )

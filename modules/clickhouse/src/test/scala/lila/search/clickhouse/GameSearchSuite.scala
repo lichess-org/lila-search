@@ -82,7 +82,9 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(white.contains("r1")) and expect(!white.contains("r2")) and expect(black.isEmpty) and expect(draw.size == 1) and expect(draw.contains("r2"))
+    yield expect(white.contains("r1")) and expect(!white.contains("r2")) and expect(black.isEmpty) and expect(
+      draw.size == 1
+    ) and expect(draw.contains("r2"))
   }
 
   test("hasAi filter") { ch =>
