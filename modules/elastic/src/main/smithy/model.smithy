@@ -84,7 +84,7 @@ structure GameSource {
   @intField(docValues: false)
   duration: Integer
   @jsonName("ct")
-  @intField(docValues: false)
+  @shortField(docValues: false)
   clockInit: Integer
   @jsonName("ci")
   @shortField(docValues: false)
