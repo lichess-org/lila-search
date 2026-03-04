@@ -59,6 +59,32 @@ object GameSearchSuite extends IOSuite:
     yield expect(ids.contains("r1")) and expect(!ids.contains("r2"))
   }
 
+  test("winner color filter") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(id = "r1", players = List("user_rated1"), rated = true, winnerColor = Some(1)),
+          Fixtures.game(id = "r2", players = List("user_rated1"), rated = false, winnerColor = Some(3))
+        )
+      )
+      white <- ch.searchGames(
+        Game(user1 = Some("user_rated1"), winnerColor = Some(1)),
+        From(0),
+        Size(10)
+      )
+      black <- ch.searchGames(
+        Game(winnerColor = Some(2)),
+        From(0),
+        Size(10)
+      )
+      draw <- ch.searchGames(
+        Game(winnerColor = Some(3)),
+        From(0),
+        Size(10)
+      )
+    yield expect(white.contains("r1")) and expect(!white.contains("r2")) and expect(black.isEmpty) and expect(draw.size == 1) and expect(draw.contains("r2"))
+  }
+
   test("hasAi filter") { ch =>
     for
       _ <- ch.upsertGameRows(

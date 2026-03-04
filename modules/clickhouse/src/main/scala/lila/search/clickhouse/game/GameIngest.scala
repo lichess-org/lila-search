@@ -31,5 +31,6 @@ object GameIngest:
   def deleteGame(id: String): ConnectionIO[Int] =
     sql"ALTER TABLE games DELETE WHERE id = $id SETTINGS mutations_sync = 1".update.run
 
+  // todo batch delete with multiple ids, but for now we only have single deletes in the tests
   def deleteGames(ids: List[String]): ConnectionIO[Unit] =
     ids.traverse_(deleteGame)

@@ -12,11 +12,11 @@ object GameTable:
   val ddl: String = """
     CREATE TABLE IF NOT EXISTS games (
       id           String,
-      status       Int32,
-      turns        Int32,
+      status       Int32, // Int8
+      turns        Int32, // Int16
       rated        Bool,
       perf         Int32,
-      winner_color Int32,
+      winner_color Nullable(Int8), // null => unknown, 1 => white, 2 => black, 3 => draw
       date         DateTime,
       analysed     Bool,
       uids         Array(String),
@@ -42,7 +42,7 @@ case class GameRow(
     turns: Int,
     rated: Boolean,
     perf: Int,
-    winnerColor: Int,
+    winnerColor: Option[Int],
     date: Instant,
     analysed: Boolean,
     uids: List[String],

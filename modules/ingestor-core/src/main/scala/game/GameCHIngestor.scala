@@ -39,25 +39,4 @@ object GameCHIngestor:
       .drain
 
   private def toRow(g: DbGame): GameRow =
-    val gs = Translate.game(g)
-    GameRow(
-      id = g.id,
-      status = gs.status,
-      turns = gs.turns,
-      rated = gs.rated,
-      perf = gs.perf,
-      winnerColor = gs.winnerColor,
-      date = g.movedAt,
-      analysed = gs.analysed,
-      uids = gs.uids.getOrElse(Nil),
-      winner = gs.winner,
-      loser = gs.loser,
-      avgRating = gs.averageRating,
-      aiLevel = gs.ai,
-      duration = gs.duration,
-      clockInit = gs.clockInit,
-      clockInc = gs.clockInc,
-      whiteUser = gs.whiteUser,
-      blackUser = gs.blackUser,
-      source = gs.source
-    )
+    Translate.toGameRow(g)

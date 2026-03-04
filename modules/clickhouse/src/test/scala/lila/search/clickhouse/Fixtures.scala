@@ -17,7 +17,8 @@ object Fixtures:
       aiLevel: Option[Int] = None,
       date: Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS),
       status: Int = 30,
-      avgRating: Option[Int] = None
+      avgRating: Option[Int] = None,
+      winnerColor: Option[Int] = None
   ): GameRow =
     GameRow(
       id = id,
@@ -25,7 +26,7 @@ object Fixtures:
       turns = turns,
       rated = rated,
       perf = perf,
-      winnerColor = 3,
+      winnerColor = winnerColor,
       date = date,
       analysed = false,
       uids = players,

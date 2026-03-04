@@ -30,6 +30,30 @@ object Translate:
       source = g.source
     )
 
+  import lila.search.clickhouse.game.GameRow
+  def toGameRow(g: DbGame): GameRow =
+    GameRow(
+      id = g.id,
+      status = g.status,
+      turns = (g.ply + 1) / 2,
+      rated = g.rated.getOrElse(false),
+      perf = perfId(g.variantOrDefault, g.speed),
+      winnerColor = g.winnerColor.fold(3)(if _ then 1 else 2),
+      date = g.movedAt,
+      analysed = g.analysed.getOrElse(false),
+      uids = g.players,
+      winner = g.winnerId,
+      loser = g.loser,
+      avgRating = averageUsersRating(g),
+      aiLevel = g.aiLevel,
+      duration = durationSeconds(g),
+      clockInit = g.clockInit,
+      clockInc = g.clockInc,
+      whiteUser = g.whiteId,
+      blackUser = g.blackId,
+      source = g.source
+    )
+
   // Helper: calculate average users rating
   private def averageUsersRating(g: DbGame): Option[Int] =
     List(g.whitePlayer.flatMap(_.rating), g.blackPlayer.flatMap(_.rating)).flatten match
