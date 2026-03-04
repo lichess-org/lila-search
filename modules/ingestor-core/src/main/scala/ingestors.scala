@@ -26,7 +26,7 @@ object Ingestors:
       ForumRepo(lichess, config.forum),
       // UblogRepo(lichess, config.ublog),
       StudyRepo(study, local, config.study),
-      // GameRepo(lichess, config.game),
+      GameRepo(lichess, config.game),
       TeamRepo(lichess, config.team)
       // ).flatMapN: (forums, ublogs, study2s, games, teams) =>
     ).flatMapN: (forums, study2s, teams) =>
@@ -36,7 +36,7 @@ object Ingestors:
         watch(Index.Forum, forums, config.forum.startAt),
         // watch(Index.Ublog, ublogs, config.ublog.startAt),
         watch(Index.Study, study2s, config.study.startAt),
-        // watch(Index.Game, games, config.game.startAt),
+        watch(Index.Game, games, config.game.startAt),
         watch(Index.Team, teams, config.team.startAt)
       ).parSequence_
 
