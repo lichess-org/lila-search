@@ -74,7 +74,7 @@ structure GameSource {
   @shortField(docValues: true)
   averageRating: Integer
   @jsonName("i")
-  @shortField(docValues: false)
+  @byteField(docValues: false)
   ai: Integer
   @required
   @jsonName("d")

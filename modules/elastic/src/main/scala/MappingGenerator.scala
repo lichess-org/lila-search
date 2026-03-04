@@ -65,6 +65,12 @@ object MappingGenerator:
           docValues = traitData.docValues
         )
 
+  private def generateByteField(fieldName: String, hints: Hints): Option[ElasticField] =
+    hints
+      .get[es.ByteField]
+      .map: traitData =>
+        byteField(fieldName).copy(docValues = traitData.docValues)
+
   private def generateShortField(fieldName: String, hints: Hints): Option[ElasticField] =
     hints
       .get[es.ShortField]
@@ -102,6 +108,7 @@ object MappingGenerator:
     generateTextField(fieldName, hints) <+>
       generateKeywordField(fieldName, hints) <+>
       generateDateField(fieldName, hints) <+>
+      generateByteField(fieldName, hints) <+>
       generateShortField(fieldName, hints) <+>
       generateIntField(fieldName, hints) <+>
       generateBooleanField(fieldName, hints) <+>
