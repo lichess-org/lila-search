@@ -36,7 +36,8 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
     def go(index: Index) = index match
       case Index.Game =>
-        runIndex(index, opts)
+        res.clickhouse.createTable.whenA(!opts.dry) *>
+          runIndex(index, opts)
       case other =>
         putMappingsIfNotExists(res.elastic, other).whenA(!opts.dry) *>
           runIndex(other, opts) *>
