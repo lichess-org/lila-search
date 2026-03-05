@@ -11,12 +11,15 @@ object IndexRegistry:
   import com.sksamuel.elastic4s.Indexable
 
   given [A] => Schema[A] => Indexable[A] = a => writeToString(a)
+  given Indexable[DbGame] = a => writeToString(Translate.game(a))
   given Indexable[DbForum] = a => writeToString(Translate.forum(a))
   given Indexable[DbUblog] = a => writeToString(Translate.ublog(a))
   given Indexable[(DbStudy, Option[List[StudyChapterData]])] = (study, chapters) =>
     writeToString(Translate.study(study, chapters))
   given Indexable[DbTeam] = a => writeToString(Translate.team(a))
 
+  given HasStringId[DbGame]:
+    extension (a: DbGame) def id: String = a.id
   given HasStringId[DbForum]:
     extension (a: DbForum) def id: String = a.id
   given HasStringId[DbUblog]:
@@ -27,6 +30,7 @@ object IndexRegistry:
     extension (a: DbTeam) def id: String = a.id
 
   type Of[I <: Index] = I match
+    case Index.Game.type => DbGame
     case Index.Forum.type => DbForum
     case Index.Ublog.type => DbUblog
     case Index.Study.type => (DbStudy, Option[List[StudyChapterData]])
@@ -41,6 +45,7 @@ object IndexRegistry:
       repo.flatMap(f(_))
 
 class IndexRegistry(
+    game: IO[Repo[DbGame]],
     forum: IO[Repo[DbForum]],
     ublog: IO[Repo[DbUblog]],
     study: IO[Repo[(DbStudy, Option[List[StudyChapterData]])]],
@@ -49,6 +54,9 @@ class IndexRegistry(
   import com.sksamuel.elastic4s.Indexable
   import IndexRegistry.{ IndexMapping, Of, given }
 
+  /**
+   * Helper to create an IndexMapping from a repo
+   */
   private def makeMapping[A: Indexable: HasStringId](r: IO[Repo[A]]): IndexMapping =
     new IndexMapping:
       type Out = A
@@ -57,11 +65,14 @@ class IndexRegistry(
       def hasId = summon[HasStringId[A]]
 
   def apply(index: Index): IndexMapping = index match
+    case Index.Game => makeMapping[DbGame](game)
     case Index.Forum => makeMapping[DbForum](forum)
     case Index.Ublog => makeMapping[DbUblog](ublog)
     case Index.Study => makeMapping[(DbStudy, Option[List[StudyChapterData]])](study)
     case Index.Team => makeMapping[DbTeam](team)
-    case Index.Game => throw new UnsupportedOperationException("Game index is managed by ClickHouse")
 
+  /**
+   * Get a specific repo when the index is statically known
+   */
   def get[I <: Index](using ev: ValueOf[I]): IO[Repo[Of[I]]] =
     apply(ev.value).repo.asInstanceOf[IO[Repo[Of[I]]]]

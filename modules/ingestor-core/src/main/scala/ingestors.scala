@@ -39,7 +39,7 @@ object Ingestors:
         // watch(Index.Ublog, ublogs, config.ublog.startAt),
         watch(Index.Study, study2s, config.study.startAt),
         watch(Index.Team, teams, config.team.startAt),
-        GameCHIngestor.watch(games, clickhouse, config.game.startAt)
+        GameCHIngestor.watch(Index.Game, games, clickhouse, config.game.startAt, dry = false)
       ).parSequence_
 
   // Watch mode with default start time (from store or config)

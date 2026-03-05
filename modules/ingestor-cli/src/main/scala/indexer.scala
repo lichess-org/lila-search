@@ -5,9 +5,9 @@ import cats.effect.IO
 import cats.mtl.Handle
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
-import lila.search.ingestor.game.GameCHIngestor
 import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
+import lila.search.ingestor.game.GameCHIngestor 
 
 import java.time.Instant
 
@@ -24,6 +24,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
   given logger: Logger[IO] = LoggerFactory[IO].getLogger
   given registry: IndexRegistry = IndexRegistry(
+    GameRepo(res.lichess, config.ingestor.game),
     ForumRepo(res.lichess, config.ingestor.forum),
     UblogRepo(res.lichess, config.ingestor.ublog),
     StudyRepo(res.study, res.studyLocal, config.ingestor.study),
@@ -37,11 +38,13 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     def go(index: Index) = index match
       case Index.Game =>
         res.clickhouse.createTable.whenA(!opts.dry) *>
-          runIndex(index, opts)
-      case other =>
-        putMappingsIfNotExists(res.elastic, other).whenA(!opts.dry) *>
-          runIndex(other, opts) *>
-          refreshIndexes(res.elastic, other).whenA(opts.refresh && !opts.dry)
+          GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
+            if opts.watch then GameCHIngestor.watch(index, repo, res.clickhouse, opts.since.some, opts.dry)
+            else GameCHIngestor.fetchAll(index, repo, res.clickhouse, opts.since, opts.until, opts.dry)
+      case _ =>
+        putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
+          runIndex(index, opts) *>
+          refreshIndexes(res.elastic, index).whenA(opts.refresh && !opts.dry)
 
     opts.index.toList.traverse_(go)
 
@@ -56,30 +59,24 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
       )
     else opts.index.toList.traverse_(go)
 
-  def runIndex(index: Index, opts: IndexOpts): IO[Unit] =
-    index match
-      case Index.Game =>
-        GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
-          if opts.watch then GameCHIngestor.watch(repo, res.clickhouse, opts.since.some)
-          else GameCHIngestor.fetchAll(repo, res.clickhouse, opts.since, opts.until)
-      case other =>
-        given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${other.value}.ingestor")
-        val im = registry(other)
-        im.withRepo: repo =>
-          val stream =
-            if opts.watch then repo.watch(opts.since.some)
-            else repo.fetchAll(opts.since, opts.until)
-          val f: Repo.Result[im.Out] => IO[Unit] =
-            if opts.dry then
-              result =>
-                result.toIndex.traverse_(item => Logger[IO].info(s"Dry run - would index ${item.id}")) *>
-                  result.toDelete.traverse_(id => Logger[IO].info(s"Dry run - would delete ${id.value}"))
-            else other.updateElastic
+  def runIndex(other: Index, opts: IndexOpts): IO[Unit] =
+    given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${other.value}.ingestor")
+    val im = registry(other)
+    im.withRepo: repo =>
+      val stream =
+        if opts.watch then repo.watch(opts.since.some)
+        else repo.fetchAll(opts.since, opts.until)
+      val f: Repo.Result[im.Out] => IO[Unit] =
+        if opts.dry then
+          result =>
+            result.toIndex.traverse_(item => Logger[IO].info(s"Dry run - would index ${item.id}")) *>
+              result.toDelete.traverse_(id => Logger[IO].info(s"Dry run - would delete ${id.value}"))
+        else other.updateElastic
 
-          stream
-            .evalMap(f)
-            .compile
-            .drain
+      stream
+        .evalMap(f)
+        .compile
+        .drain
 
   def runReindex(
       index: Index,
