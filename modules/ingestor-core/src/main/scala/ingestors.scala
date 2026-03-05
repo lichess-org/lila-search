@@ -13,8 +13,6 @@ import java.time.Instant
 
 object Ingestors:
 
-  import IndexRegistry.given
-
   def apply(
       lichess: MongoDatabase[IO],
       study: MongoDatabase[IO],

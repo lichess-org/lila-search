@@ -10,7 +10,7 @@ import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.ElasticError
 import lila.search.clickhouse.ClickHouseConfig
 import lila.search.es.*
-import lila.search.ingestor.IndexRegistry.given
+import lila.search.ingestor.given
 import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }

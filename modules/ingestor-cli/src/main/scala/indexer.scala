@@ -23,13 +23,6 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
   import Indexer.*
 
   given logger: Logger[IO] = LoggerFactory[IO].getLogger
-  given registry: IndexRegistry = IndexRegistry(
-    GameRepo(res.lichess, config.ingestor.game),
-    ForumRepo(res.lichess, config.ingestor.forum),
-    UblogRepo(res.lichess, config.ingestor.ublog),
-    StudyRepo(res.study, res.studyLocal, config.ingestor.study),
-    TeamRepo(res.lichess, config.ingestor.team)
-  )
   given KVStore = res.store
   given ESClient[IO] = res.elastic
 
@@ -64,24 +57,35 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
       )
     else opts.index.toList.traverse_(go)
 
-  def runIndex(other: Index, opts: IndexOpts): IO[Unit] =
-    val im = registry(other)
-    im.withRepo: repo =>
-      val ingestor: Ingestor[im.Out] =
-        if opts.dry then DryRunIngestor(other)
-        else ESIngestor(other, res.elastic)
+  private def runES[A: Indexable: HasStringId](
+      index: Index,
+      repo: IO[Repo[A]],
+      opts: IndexOpts
+  ): IO[Unit] =
+    repo.flatMap: r =>
+      val ingestor: Ingestor[A] =
+        if opts.dry then DryRunIngestor(index)
+        else ESIngestor(index, res.elastic)
       val stream =
-        if opts.watch then repo.watch(opts.since.some)
-        else repo.fetchAll(opts.since, opts.until)
+        if opts.watch then r.watch(opts.since.some)
+        else r.fetchAll(opts.since, opts.until)
       ingestor.ingest(stream)
 
-  def runReindex(
+  def runIndex(index: Index, opts: IndexOpts): IO[Unit] = index match
+    case Index.Forum => runES(index, ForumRepo(res.lichess, config.ingestor.forum), opts)
+    case Index.Ublog => runES(index, UblogRepo(res.lichess, config.ingestor.ublog), opts)
+    case Index.Study => runES(index, StudyRepo(res.study, res.studyLocal, config.ingestor.study), opts)
+    case Index.Team => runES(index, TeamRepo(res.lichess, config.ingestor.team), opts)
+    case Index.Game => runES(index, GameRepo(res.lichess, config.ingestor.game), opts)
+
+  private def runReindexES[A: Indexable: HasStringId](
       index: Index,
+      repo: IO[Repo[A]],
       opts: ReindexOpts
   ): IO[Unit] =
     import opts.{ dry, since, until }
 
-    def store_[A: Indexable: HasStringId](sources: List[A]): IO[Unit] =
+    def store_(sources: List[A]): IO[Unit] =
       if dry then
         Logger[IO].info(s"Dry run - would index ${sources.size} docs to ${index.value}")
           *> sources.traverse_(item =>
@@ -91,14 +95,21 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
     given Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
     val now = until.getOrElse(Instant.now())
-    registry(index).withRepo: repo =>
-      repo
+    repo.flatMap: r =>
+      r
         .fetchUpdate(since.getOrElse(Instant.EPOCH), now)
         .evalTap(store_)
         .map(_.size)
         .compile
         .fold(0)(_ + _)
         .flatMap(total => logger.info(s"Reindexed $total documents for ${index.value}"))
+
+  def runReindex(index: Index, opts: ReindexOpts): IO[Unit] = index match
+    case Index.Forum => runReindexES(index, ForumRepo(res.lichess, config.ingestor.forum), opts)
+    case Index.Ublog => runReindexES(index, UblogRepo(res.lichess, config.ingestor.ublog), opts)
+    case Index.Study => runReindexES(index, StudyRepo(res.study, res.studyLocal, config.ingestor.study), opts)
+    case Index.Team => runReindexES(index, TeamRepo(res.lichess, config.ingestor.team), opts)
+    case Index.Game => IO.raiseError(RuntimeException("Game index uses ClickHouse, not ES"))
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index)(using Logger[IO]): IO[Unit] =
     Handle

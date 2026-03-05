@@ -4,8 +4,30 @@ package ingestor
 import cats.effect.*
 import cats.mtl.Handle.*
 import cats.syntax.all.*
+import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.sksamuel.elastic4s.Indexable
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
+import smithy4s.json.Json.given
+import smithy4s.schema.Schema
+
+given [A] => Schema[A] => Indexable[A] = a => writeToString(a)
+given Indexable[DbGame] = a => writeToString(Translate.game(a))
+given Indexable[DbForum] = a => writeToString(Translate.forum(a))
+given Indexable[DbUblog] = a => writeToString(Translate.ublog(a))
+given Indexable[(DbStudy, Option[List[StudyChapterData]])] = (study, chapters) =>
+  writeToString(Translate.study(study, chapters))
+given Indexable[DbTeam] = a => writeToString(Translate.team(a))
+
+given HasStringId[DbGame]:
+  extension (a: DbGame) def id: String = a.id
+given HasStringId[DbForum]:
+  extension (a: DbForum) def id: String = a.id
+given HasStringId[DbUblog]:
+  extension (a: DbUblog) def id: String = a.id
+given HasStringId[(DbStudy, Option[List[StudyChapterData]])]:
+  extension (a: (DbStudy, Option[List[StudyChapterData]])) def id: String = a._1.id
+given HasStringId[DbTeam]:
+  extension (a: DbTeam) def id: String = a.id
 
 class DryRunIngestor[A](index: Index)(using LoggerFactory[IO]) extends Ingestor[A]:
 
