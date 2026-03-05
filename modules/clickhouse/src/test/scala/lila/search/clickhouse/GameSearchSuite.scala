@@ -214,9 +214,9 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "ar1", players = List("user_avgr1"), avgRating = 1000),
-          Fixtures.game(id = "ar2", players = List("user_avgr1"), avgRating = 1500),
-          Fixtures.game(id = "ar3", players = List("user_avgr1"), avgRating = 2000)
+          Fixtures.game(id = "ar1", players = List("user_avgr1"), whiteRating = 1000, blackRating = 1000),
+          Fixtures.game(id = "ar2", players = List("user_avgr1"), whiteRating = 1500, blackRating = 1500),
+          Fixtures.game(id = "ar3", players = List("user_avgr1"), whiteRating = 2000, blackRating = 2000)
         )
       )
       // min only
@@ -350,28 +350,32 @@ object GameSearchSuite extends IOSuite:
             id = "combo1",
             players = List("user_combo1"),
             turns = 50,
-            avgRating = 1500,
+            whiteRating = 1500,
+            blackRating = 1500,
             duration = 300
           ),
           Fixtures.game(
             id = "combo2",
             players = List("user_combo1"),
             turns = 80,
-            avgRating = 1500,
+            whiteRating = 1500,
+            blackRating = 1500,
             duration = 300
           ),
           Fixtures.game(
             id = "combo3",
             players = List("user_combo1"),
             turns = 50,
-            avgRating = 2000,
+            whiteRating = 2000,
+            blackRating = 2000,
             duration = 300
           ),
           Fixtures.game(
             id = "combo4",
             players = List("user_combo1"),
             turns = 50,
-            avgRating = 1500,
+            whiteRating = 1500,
+            blackRating = 1500,
             duration = 60
           )
         )

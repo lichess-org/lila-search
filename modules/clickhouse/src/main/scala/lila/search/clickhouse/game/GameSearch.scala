@@ -59,7 +59,7 @@ object GameSearch:
         q.clockInc.map(c => fr"clock_inc = $c")
       ).flatten :::
       rangeFilters("turns", q.turns.a, q.turns.b) :::
-      rangeFilters("avg_rating", q.averageRating.a, q.averageRating.b) :::
+      rangeFilters("(white_rating + black_rating) / 2", q.averageRating.a, q.averageRating.b) :::
       rangeFilters("date", q.date.a, q.date.b) :::
       rangeFilters("duration", q.duration.a, q.duration.b) :::
       aiLevelFilters
@@ -74,7 +74,7 @@ object GameSearch:
     val col = s.f match
       case Fields.date => "date"
       case Fields.turns => "turns"
-      case Fields.averageRating => "avg_rating"
+      case Fields.averageRating => "(white_rating + black_rating) / 2"
       case _ => "date"
     val dir = if s.order.equalsIgnoreCase("asc") then "ASC" else "DESC"
     Fragment.const(s"ORDER BY $col $dir")
