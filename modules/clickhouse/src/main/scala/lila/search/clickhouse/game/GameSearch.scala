@@ -1,7 +1,6 @@
 package lila.search
 package clickhouse.game
 
-import cats.data.NonEmptyList
 import cats.syntax.all.*
 import doobie.*
 import doobie.implicits.*
@@ -23,16 +22,11 @@ object GameSearch:
       .unique
 
   private def whereClause(q: Game): Fragment =
-    NonEmptyList
-      .fromList(filters(q))
-      .fold(Fragment.empty): frags =>
-        fr"WHERE" ++ frags.toList.intercalate(fr" AND ")
+    Fragments.whereAndOpt(filters(q))
 
   private def filters(q: Game): List[Fragment] =
     val userFilters = List(q.user1, q.user2).flatten.map(u => fr"(white_user = $u OR black_user = $u)")
-    val perfFilter = Option.when(q.perf.nonEmpty)(
-      Fragment.const(s"perf IN (${q.perf.mkString(",")})")
-    )
+    val perfFilter  = q.perf.toNel.map(perfs => Fragments.in(fr"perf", perfs))
     val hasAiFilter = q.hasAi.map(a => if a then fr"ai_level != 0" else fr"ai_level = 0")
     val aiLevelFilters =
       if q.hasAi.getOrElse(true) then rangeFilters("ai_level", q.aiLevel.a, q.aiLevel.b)
@@ -72,9 +66,9 @@ object GameSearch:
 
   private def orderClause(s: Sorting): Fragment =
     val col = s.f match
-      case Fields.date => "date"
-      case Fields.turns => "turns"
+      case Fields.date          => "date"
+      case Fields.turns         => "turns"
       case Fields.averageRating => "(white_rating + black_rating) / 2"
-      case _ => "date"
+      case _                    => "date"
     val dir = if s.order.equalsIgnoreCase("asc") then "ASC" else "DESC"
     Fragment.const(s"ORDER BY $col $dir")
