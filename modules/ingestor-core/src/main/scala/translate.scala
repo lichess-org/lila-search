@@ -57,7 +57,8 @@ object Translate:
       clockInc = g.clockInc,
       whiteUser = g.whiteId.getOrElse(""),
       blackUser = g.blackId.getOrElse(""),
-      source = g.source
+      source = g.source,
+      chess960Position = g.chess960Position.getOrElse(1000)
     )
 
   // Helper: calculate average users rating

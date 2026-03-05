@@ -32,6 +32,7 @@ object GameTable:
       clock_init   Nullable(UInt16) CODEC(ZSTD(1)),
       clock_inc    Nullable(UInt16) CODEC(ZSTD(1)),
       source       Nullable(UInt8) CODEC(ZSTD(1)),
+      chess960_pos UInt16 CODEC(ZSTD(1)),
 
       INDEX idx_white white_user TYPE bloom_filter(0.01) GRANULARITY 1,
       INDEX idx_black black_user TYPE bloom_filter(0.01) GRANULARITY 1
@@ -59,7 +60,8 @@ case class GameRow(
     clockInc: Option[Int],
     whiteUser: String,
     blackUser: String,
-    source: Option[Int]
+    source: Option[Int],
+    chess960Position: Int // chess960 has 960 positions from 0 to 959, 1000 means it's not a chess960 game
 )
 
 enum WinnerColor(val value: Int):

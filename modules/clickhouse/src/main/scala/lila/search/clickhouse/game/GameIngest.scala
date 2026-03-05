@@ -12,13 +12,13 @@ object GameIngest:
     sql"""INSERT INTO games
          (id,status,turns,rated,perf,winner_color,date,analysed,
           white_user,black_user,white_rating,black_rating,ai_level,duration,clock_init,clock_inc,
-          source)
+          source,chess960_pos)
          VALUES (
          ${r.id},${r.status},${r.turns},${r.rated},${r.perf},${r.winnerColor},
          ${r.date},${r.analysed},
          ${r.whiteUser},${r.blackUser},${r.whiteRating},${r.blackRating},${r.aiLevel},
          ${r.duration},${r.clockInit},${r.clockInc},
-         ${r.source})""".update.run
+         ${r.source},${r.chess960Position})""".update.run
 
   def upsertGames(rows: List[GameRow]): ConnectionIO[Unit] =
     rows.traverse_(upsertGame)

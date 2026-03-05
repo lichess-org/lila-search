@@ -23,7 +23,8 @@ object Fixtures:
       duration: Int = 0,
       clockInit: Option[Int] = None,
       clockInc: Option[Int] = None,
-      source: Option[Int] = None
+      source: Option[Int] = None,
+      chess960Position: Int = 1000
   ): GameRow =
     GameRow(
       id = id,
@@ -42,5 +43,6 @@ object Fixtures:
       clockInc = clockInc,
       whiteUser = players.headOption.getOrElse(""),
       blackUser = players.lift(1).getOrElse(""),
-      source = source
+      source = source,
+      chess960Position = chess960Position
     )

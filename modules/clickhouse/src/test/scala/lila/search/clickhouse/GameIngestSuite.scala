@@ -43,3 +43,31 @@ object GameIngestSuite extends IOSuite:
       ids <- ch.searchGames(Game(user1 = Some("ingest_eve")), From(0), Size(10))
     yield expect(ids.toSet == Set("h1", "h2", "h3"))
   }
+
+  test("upsert game with chess960 position") { ch =>
+    val g = Fixtures.game(id = "c960_1", players = List("ingest_960"), chess960Position = 518)
+    for
+      _ <- ch.upsertGameRows(List(g))
+      ids <- ch.searchGames(Game(user1 = Some("ingest_960")), From(0), Size(10))
+    yield expect(ids.contains("c960_1"))
+  }
+
+  test("upsert game with default chess960 position (non-960 game)") { ch =>
+    val g = Fixtures.game(id = "c960_2", players = List("ingest_non960"))
+    for
+      _ <- ch.upsertGameRows(List(g))
+      ids <- ch.searchGames(Game(user1 = Some("ingest_non960")), From(0), Size(10))
+    yield expect(ids.contains("c960_2"))
+  }
+
+  test("batch upsert with mixed chess960 positions") { ch =>
+    val games = List(
+      Fixtures.game(id = "c960_3", players = List("ingest_mix960"), chess960Position = 0),
+      Fixtures.game(id = "c960_4", players = List("ingest_mix960"), chess960Position = 959),
+      Fixtures.game(id = "c960_5", players = List("ingest_mix960"), chess960Position = 1000)
+    )
+    for
+      _ <- ch.upsertGameRows(games)
+      ids <- ch.searchGames(Game(user1 = Some("ingest_mix960")), From(0), Size(10))
+    yield expect(ids.toSet == Set("c960_3", "c960_4", "c960_5"))
+  }
