@@ -46,8 +46,8 @@ object Translate:
       duration = durationSeconds(g),
       clockInit = g.clockInit,
       clockInc = g.clockInc,
-      whiteUser = g.whiteId,
-      blackUser = g.blackId,
+      whiteUser = g.whiteId.getOrElse(""),
+      blackUser = g.blackId.getOrElse(""),
       source = g.source
     )
 

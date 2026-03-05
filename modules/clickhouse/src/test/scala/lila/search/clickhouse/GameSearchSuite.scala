@@ -2,8 +2,8 @@ package lila.search
 package clickhouse
 
 import cats.effect.IO
-import lila.search.game.{ Fields, Game, Sorting }
 import lila.search.Range
+import lila.search.game.{ Fields, Game, Sorting }
 import weaver.IOSuite
 
 import java.time.Instant

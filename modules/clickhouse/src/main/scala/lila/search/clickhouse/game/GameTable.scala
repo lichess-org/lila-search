@@ -6,6 +6,13 @@ import doobie.*
 import java.time.Instant
 
 object GameTable:
+  // follow best practices: https://clickhouse.com/docs/best-practices/select-data-types
+  // - Use Strict Types
+  // - Avoid nullable Columns
+  // - Minimize Numeric Precision
+  // - Optimize Date and Time Precision
+  // - Leverage LowCardinality and Specialized Types
+  // - Enums for data validation
   val ddl: String = """
     CREATE TABLE IF NOT EXISTS games (
       id           String CODEC(LZ4),
@@ -16,8 +23,8 @@ object GameTable:
       winner_color Nullable(Int8) CODEC(ZSTD(1)),
       date         DateTime CODEC(Delta, ZSTD(1)),
       analysed     Bool CODEC(ZSTD(1)),
-      white_user   Nullable(String) CODEC(ZSTD(1)),
-      black_user   Nullable(String) CODEC(ZSTD(1)),
+      white_user   String CODEC(ZSTD(1)),
+      black_user   String CODEC(ZSTD(1)),
       avg_rating   Nullable(UInt16) CODEC(ZSTD(1)),
       ai_level     Nullable(UInt8) CODEC(ZSTD(1)),
       duration     Nullable(UInt16) CODEC(ZSTD(1)),
@@ -48,8 +55,8 @@ case class GameRow(
     duration: Option[Int],
     clockInit: Option[Int],
     clockInc: Option[Int],
-    whiteUser: Option[String],
-    blackUser: Option[String],
+    whiteUser: String,
+    blackUser: String,
     source: Option[Int]
 )
 

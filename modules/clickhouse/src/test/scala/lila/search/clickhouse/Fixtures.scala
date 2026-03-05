@@ -38,7 +38,7 @@ object Fixtures:
       duration = duration,
       clockInit = clockInit,
       clockInc = clockInc,
-      whiteUser = players.headOption,
-      blackUser = players.lift(1),
+      whiteUser = players.headOption.getOrElse(""),
+      blackUser = players.lift(1).getOrElse(""),
       source = source
     )
