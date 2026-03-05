@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.mtl.Handle
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
-import lila.search.ingestor.game.GameCHIngestor
+import lila.search.ingestor.game.CHGameIngestor
 import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
@@ -39,8 +39,13 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
       case Index.Game =>
         res.clickhouse.createTable.whenA(!opts.dry) *>
           GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
-            if opts.watch then GameCHIngestor.watch(index, repo, res.clickhouse, opts.since.some, opts.dry)
-            else GameCHIngestor.fetchAll(index, repo, res.clickhouse, opts.since, opts.until, opts.dry)
+            val ingestor: Ingestor[DbGame] =
+              if opts.dry then DryRunIngestor(index)
+              else CHGameIngestor(res.clickhouse)
+            val stream =
+              if opts.watch then fs2.Stream.eval(opts.since.some.pure[IO]).flatMap(repo.watch)
+              else repo.fetchAll(opts.since, opts.until)
+            ingestor.ingest(stream)
       case _ =>
         putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
           runIndex(index, opts) *>
@@ -60,29 +65,21 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     else opts.index.toList.traverse_(go)
 
   def runIndex(other: Index, opts: IndexOpts): IO[Unit] =
-    given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${other.value}.ingestor")
     val im = registry(other)
     im.withRepo: repo =>
+      val ingestor: Ingestor[im.Out] =
+        if opts.dry then DryRunIngestor(other)
+        else ESIngestor(other, res.elastic)
       val stream =
         if opts.watch then repo.watch(opts.since.some)
         else repo.fetchAll(opts.since, opts.until)
-      val f: Repo.Result[im.Out] => IO[Unit] =
-        if opts.dry then
-          result =>
-            result.toIndex.traverse_(item => Logger[IO].info(s"Dry run - would index ${item.id}")) *>
-              result.toDelete.traverse_(id => Logger[IO].info(s"Dry run - would delete ${id.value}"))
-        else other.updateElastic
-
-      stream
-        .evalMap(f)
-        .compile
-        .drain
+      ingestor.ingest(stream)
 
   def runReindex(
       index: Index,
       opts: ReindexOpts
   ): IO[Unit] =
-    import opts.{ since, until, dry }
+    import opts.{ dry, since, until }
 
     def store_[A: Indexable: HasStringId](sources: List[A]): IO[Unit] =
       if dry then
@@ -92,7 +89,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
           )
       else index.storeBulk(sources)
 
-    given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
+    given Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
     val now = until.getOrElse(Instant.now())
     registry(index).withRepo: repo =>
       repo
