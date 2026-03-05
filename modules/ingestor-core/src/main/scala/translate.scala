@@ -5,6 +5,7 @@ import cats.syntax.all.*
 import chess.Speed
 import chess.variant.Variant
 import lila.search.es.*
+import chess.Status
 
 object Translate:
 
@@ -38,8 +39,14 @@ object Translate:
       turns = (g.ply + 1) / 2,
       rated = g.rated.getOrElse(false),
       perf = perfId(g.variantOrDefault, g.speed),
-      winnerColor =
-        g.winnerColor.fold(WinnerColor.Unknown)(if _ then WinnerColor.White else WinnerColor.Black),
+      winnerColor = g.winnerColor match
+        case Some(true) => WinnerColor.White
+        case Some(false) => WinnerColor.Black
+        case None =>
+          // If the game is not finished, we set it to unknown
+          // If the game is finished and there is no winner, it means it's a draw except when the status is UnknownFinish
+          if g.status > Status.Stalemate.id && g.status != Status.UnknownFinish.id then WinnerColor.Draw
+          else WinnerColor.Unknown,
       date = g.movedAt,
       analysed = g.analysed.getOrElse(false),
       avgRating = averageUsersRating(g).getOrElse(0),
