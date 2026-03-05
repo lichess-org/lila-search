@@ -11,9 +11,8 @@ import org.http4s.Uri
 import org.http4s.implicits.*
 
 enum GameSearchBackend:
-  case ElasticOnly // pre-migration or emergency rollback
-  case Shadow // CH primary + ES shadow read for comparison (default)
-  case ClickHouseOnly // post-migration, ES shadow reads removed
+  case ElasticOnly
+  case ClickHouseOnly
 
 object AppConfig:
 
@@ -30,11 +29,10 @@ object AppConfig:
     env("GAME_SEARCH_BACKEND")
       .or(prop("game.search.backend"))
       .as[String]
-      .default("shadow")
+      .default("elastic")
       .map:
         case "elastic" => GameSearchBackend.ElasticOnly
         case "clickhouse" => GameSearchBackend.ClickHouseOnly
-        case _ => GameSearchBackend.Shadow
 
 case class AppConfig(
     server: HttpServerConfig,

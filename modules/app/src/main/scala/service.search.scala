@@ -3,7 +3,6 @@ package app
 
 import cats.effect.*
 import cats.mtl.Handle.*
-import cats.syntax.all.*
 import io.github.arainko.ducktape.*
 import lila.search.clickhouse.ClickHouseClient
 import lila.search.forum.Forum
@@ -42,43 +41,13 @@ class SearchServiceImpl(
 
   private def gameSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
     gameBackend match
-      case GameSearchBackend.ElasticOnly => esSearch(q, from, size)
+      case GameSearchBackend.ElasticOnly  => esSearch(q, from, size)
       case GameSearchBackend.ClickHouseOnly => chSearch(q, from, size)
-      case GameSearchBackend.Shadow => shadowSearch(q, from, size)
 
   private def gameCount(q: Query.Game): IO[CountOutput] =
     gameBackend match
-      case GameSearchBackend.ElasticOnly => esCount(q)
+      case GameSearchBackend.ElasticOnly  => esCount(q)
       case GameSearchBackend.ClickHouseOnly => chCount(q)
-      case GameSearchBackend.Shadow => shadowCount(q)
-
-  // --- shadow: CH is primary, ES runs in a detached fiber for comparison only ---
-  // CH errors propagate normally. ES errors are logged and swallowed — they never
-  // affect the response.
-
-  private def shadowSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
-    for
-      chFiber <- chSearch(q, from, size).start
-      _ <- compareShadow(esSearch(q, from, size), chFiber.joinWithNever).start
-      result <- chFiber.joinWithNever
-    yield result
-
-  private def shadowCount(q: Query.Game): IO[CountOutput] =
-    for
-      chFiber <- chCount(q).start
-      _ <- compareShadow(esCount(q), chFiber.joinWithNever).start
-      result <- chFiber.joinWithNever
-    yield result
-
-  private def compareShadow[A](esIO: IO[A], chIO: IO[A]): IO[Unit] =
-    (esIO.attempt, chIO)
-      .parMapN:
-        case (Right(es), ch) if es != ch =>
-          logger.warn(s"[shadow] mismatch: ch=${ch.toString} es=${es.toString}"): IO[Unit]
-        case (Left(e), _) =>
-          logger.warn(e)("[shadow] ES read failed"): IO[Unit]
-        case _ => IO.unit
-      .flatten
 
   // --- per-backend wrappers ---
 

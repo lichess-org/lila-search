@@ -4,12 +4,12 @@ package ingestor
 import cats.effect.*
 import cats.syntax.all.*
 import lila.search.clickhouse.ClickHouseClient
-import lila.search.ingestor.game.CHGameIngestor
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
+import scala.annotation.nowarn
 
 object Ingestors:
 
@@ -19,23 +19,23 @@ object Ingestors:
       local: MongoDatabase[IO],
       store: KVStore,
       elastic: ESClient[IO],
-      clickhouse: ClickHouseClient[IO],
+      @nowarn clickhouse: ClickHouseClient[IO],
       config: IngestorConfig
   )(using LoggerFactory[IO]): IO[Unit] =
     (
       ForumRepo(lichess, config.forum),
       // UblogRepo(lichess, config.ublog),
       StudyRepo(study, local, config.study),
-      GameRepo(lichess, config.game),
+      // GameRepo(lichess, config.game),
       TeamRepo(lichess, config.team)
-    ).flatMapN: (forums, study2s, games, teams) =>
+    ).flatMapN: (forums, study2s, teams) =>
       given KVStore = store
       List(
         run(Index.Forum, forums, ESIngestor(Index.Forum, elastic), config.forum.startAt),
         // run(Index.Ublog, ublogs, ESIngestor(Index.Ublog, elastic), config.ublog.startAt),
         run(Index.Study, study2s, ESIngestor(Index.Study, elastic), config.study.startAt),
-        run(Index.Team, teams, ESIngestor(Index.Team, elastic), config.team.startAt),
-        run(Index.Game, games, CHGameIngestor(clickhouse), config.game.startAt)
+        run(Index.Team, teams, ESIngestor(Index.Team, elastic), config.team.startAt)
+        // run(Index.Game, games, CHGameIngestor(clickhouse), config.game.startAt)
       ).parSequence_
 
   private def run[A](

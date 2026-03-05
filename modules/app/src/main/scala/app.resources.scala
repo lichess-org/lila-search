@@ -17,13 +17,10 @@ object AppResources:
 
   def instance(conf: AppConfig)(using MeterProvider[IO]): Resource[IO, AppResources] =
     val chResource: Resource[IO, ClickHouseClient[IO]] = conf.gameBackend match
-      case GameSearchBackend.ElasticOnly => Resource.pure(ClickHouseClient.noop)
-      case _ => ClickHouseClient.resource(conf.clickhouse)
+      case GameSearchBackend.ElasticOnly    => Resource.pure(ClickHouseClient.noop)
+      case GameSearchBackend.ClickHouseOnly => ClickHouseClient.resource(conf.clickhouse)
 
-    (
-      makeElasticClient(conf.elastic),
-      chResource
-    ).parMapN(AppResources.apply)
+    (makeElasticClient(conf.elastic), chResource).parMapN(AppResources.apply)
 
   private def makeElasticClient(conf: ElasticConfig)(using MeterProvider[IO]): Resource[IO, ESClient[IO]] =
     val metrics = OtelMetrics
