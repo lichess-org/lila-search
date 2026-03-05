@@ -95,5 +95,15 @@ object GameRow:
   given Write[GameRow] = Write[(Half1, Half2)].contramap: r =>
     (
       (r.id, r.status, r.turns, r.rated, r.perf, r.winnerColor, r.date, r.analysed, r.whiteRating),
-      (r.blackRating, r.aiLevel, r.duration, r.clockInit, r.clockInc, r.whiteUser, r.blackUser, r.source, r.chess960Position)
+      (
+        r.blackRating,
+        r.aiLevel,
+        r.duration,
+        r.clockInit,
+        r.clockInc,
+        r.whiteUser,
+        r.blackUser,
+        r.source,
+        r.chess960Position
+      )
     )

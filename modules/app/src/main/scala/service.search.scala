@@ -41,12 +41,12 @@ class SearchServiceImpl(
 
   private def gameSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
     gameBackend match
-      case GameSearchBackend.ElasticOnly  => esSearch(q, from, size)
+      case GameSearchBackend.ElasticOnly => esSearch(q, from, size)
       case GameSearchBackend.ClickHouseOnly => chSearch(q, from, size)
 
   private def gameCount(q: Query.Game): IO[CountOutput] =
     gameBackend match
-      case GameSearchBackend.ElasticOnly  => esCount(q)
+      case GameSearchBackend.ElasticOnly => esCount(q)
       case GameSearchBackend.ClickHouseOnly => chCount(q)
 
   // --- per-backend wrappers ---
