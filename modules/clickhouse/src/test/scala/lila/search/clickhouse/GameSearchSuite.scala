@@ -63,28 +63,65 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "r1", players = List("user_rated1"), rated = true, winnerColor = Some(1)),
-          Fixtures.game(id = "r2", players = List("user_rated1"), rated = false, winnerColor = Some(3))
+          Fixtures.game(id = "wc1", players = List("user_wc1", "user_wc2"), winnerColor = Some(1)),
+          Fixtures.game(id = "wc2", players = List("user_wc1", "user_wc2"), winnerColor = Some(3))
         )
       )
       white <- ch.searchGames(
-        Game(user1 = Some("user_rated1"), winnerColor = Some(1)),
+        Game(user1 = Some("user_wc1"), winnerColor = Some(1)),
         From(0),
         Size(10)
       )
       black <- ch.searchGames(
-        Game(winnerColor = Some(2)),
+        Game(user1 = Some("user_wc1"), winnerColor = Some(2)),
         From(0),
         Size(10)
       )
       draw <- ch.searchGames(
-        Game(winnerColor = Some(3)),
+        Game(user1 = Some("user_wc1"), winnerColor = Some(3)),
         From(0),
         Size(10)
       )
-    yield expect(white.contains("r1")) and expect(!white.contains("r2")) and expect(black.isEmpty) and expect(
+    yield expect(white.contains("wc1")) and expect(!white.contains("wc2")) and expect(
+      black.isEmpty
+    ) and expect(
       draw.size == 1
-    ) and expect(draw.contains("r2"))
+    ) and expect(draw.contains("wc2"))
+  }
+
+  test("winner filter derives from winner_color and users") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          // white wins: winner_color=1, white=user_win1, black=user_win2
+          Fixtures.game(id = "w1", players = List("user_win1", "user_win2"), winnerColor = Some(1)),
+          // black wins: winner_color=2, white=user_win1, black=user_win2
+          Fixtures.game(id = "w2", players = List("user_win1", "user_win2"), winnerColor = Some(2)),
+          // draw: winner_color=3
+          Fixtures.game(id = "w3", players = List("user_win1", "user_win2"), winnerColor = Some(3))
+        )
+      )
+      // user_win1 won game w1 (as white)
+      wonByUser1 <- ch.searchGames(
+        Game(winner = Some("user_win1")),
+        From(0),
+        Size(10)
+      )
+      // user_win2 won game w2 (as black)
+      wonByUser2 <- ch.searchGames(
+        Game(winner = Some("user_win2")),
+        From(0),
+        Size(10)
+      )
+      // user_win1 lost game w2 (as white, black won)
+      lostByUser1 <- ch.searchGames(
+        Game(loser = Some("user_win1")),
+        From(0),
+        Size(10)
+      )
+    yield expect(wonByUser1 == List("w1")) and
+      expect(wonByUser2 == List("w2")) and
+      expect(lostByUser1 == List("w2"))
   }
 
   test("hasAi filter") { ch =>

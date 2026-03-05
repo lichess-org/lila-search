@@ -18,8 +18,6 @@ object GameTable:
       analysed     Bool CODEC(ZSTD(1)),
       white_user   Nullable(String) CODEC(ZSTD(1)),
       black_user   Nullable(String) CODEC(ZSTD(1)),
-      winner       Nullable(String) CODEC(ZSTD(1)),
-      loser        Nullable(String) CODEC(ZSTD(1)),
       avg_rating   Nullable(Int32) CODEC(ZSTD(1)),
       ai_level     Nullable(Int32) CODEC(ZSTD(1)),
       duration     Nullable(Int32) CODEC(ZSTD(1)),
@@ -28,9 +26,7 @@ object GameTable:
       source       Nullable(Int32) CODEC(ZSTD(1)),
 
       INDEX idx_white white_user TYPE bloom_filter(0.01) GRANULARITY 1,
-      INDEX idx_black black_user TYPE bloom_filter(0.01) GRANULARITY 1,
-      INDEX idx_winner winner TYPE bloom_filter(0.01) GRANULARITY 1,
-      INDEX idx_loser loser TYPE bloom_filter(0.01) GRANULARITY 1
+      INDEX idx_black black_user TYPE bloom_filter(0.01) GRANULARITY 1
     ) ENGINE = ReplacingMergeTree()
     PARTITION BY toYYYYMM(date)
     ORDER BY (date, id)
@@ -47,8 +43,6 @@ case class GameRow(
     winnerColor: Option[Int],
     date: Instant,
     analysed: Boolean,
-    winner: Option[String],
-    loser: Option[String],
     avgRating: Option[Int],
     aiLevel: Option[Int],
     duration: Option[Int],

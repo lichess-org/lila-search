@@ -41,8 +41,6 @@ object Translate:
       winnerColor = Some(g.winnerColor.fold(3)(if _ then 1 else 2)),
       date = g.movedAt,
       analysed = g.analysed.getOrElse(false),
-      winner = g.winnerId,
-      loser = g.loser,
       avgRating = averageUsersRating(g),
       aiLevel = g.aiLevel,
       duration = durationSeconds(g),

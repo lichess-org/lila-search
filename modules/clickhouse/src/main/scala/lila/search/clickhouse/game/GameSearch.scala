@@ -40,8 +40,12 @@ object GameSearch:
 
     userFilters :::
       List(
-        q.winner.map(w => fr"winner = $w"),
-        q.loser.map(l => fr"loser = $l"),
+        q.winner.map(w =>
+          fr"((winner_color = 1 AND white_user = $w) OR (winner_color = 2 AND black_user = $w))"
+        ),
+        q.loser.map(l =>
+          fr"((winner_color = 2 AND white_user = $l) OR (winner_color = 1 AND black_user = $l))"
+        ),
         q.winnerColor.map(c => fr"winner_color = $c"),
         perfFilter,
         q.source.map(s => fr"source = $s"),

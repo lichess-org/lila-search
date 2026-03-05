@@ -11,12 +11,12 @@ object GameIngest:
   def upsertGame(r: GameRow): ConnectionIO[Int] =
     sql"""INSERT INTO games
          (id,status,turns,rated,perf,winner_color,date,analysed,
-          white_user,black_user,winner,loser,avg_rating,ai_level,duration,clock_init,clock_inc,
+          white_user,black_user,avg_rating,ai_level,duration,clock_init,clock_inc,
           source)
          VALUES (
          ${r.id},${r.status},${r.turns},${r.rated},${r.perf},${r.winnerColor},
          ${r.date},${r.analysed},
-         ${r.whiteUser},${r.blackUser},${r.winner},${r.loser},${r.avgRating},${r.aiLevel},
+         ${r.whiteUser},${r.blackUser},${r.avgRating},${r.aiLevel},
          ${r.duration},${r.clockInit},${r.clockInc},
          ${r.source})""".update.run
 

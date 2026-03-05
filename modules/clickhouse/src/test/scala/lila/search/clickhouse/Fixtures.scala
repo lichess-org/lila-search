@@ -29,8 +29,6 @@ object Fixtures:
       winnerColor = winnerColor,
       date = date,
       analysed = false,
-      winner = None,
-      loser = None,
       avgRating = avgRating,
       aiLevel = aiLevel,
       duration = None,
