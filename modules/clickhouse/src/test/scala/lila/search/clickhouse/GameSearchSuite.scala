@@ -2,6 +2,7 @@ package lila.search
 package clickhouse
 
 import cats.effect.IO
+import cats.syntax.all.*
 import lila.search.Range
 import lila.search.game.{ Fields, Game, Sorting }
 import weaver.IOSuite
@@ -129,8 +130,8 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "a1", players = List("user_ai1"), aiLevel = Some(5)),
-          Fixtures.game(id = "a2", players = List("user_ai1"), aiLevel = None)
+          Fixtures.game(id = "a1", players = List("user_ai1"), aiLevel = 5),
+          Fixtures.game(id = "a2", players = List("user_ai1"))
         )
       )
       ids <- ch.searchGames(
@@ -213,9 +214,9 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "ar1", players = List("user_avgr1"), avgRating = Some(1000)),
-          Fixtures.game(id = "ar2", players = List("user_avgr1"), avgRating = Some(1500)),
-          Fixtures.game(id = "ar3", players = List("user_avgr1"), avgRating = Some(2000))
+          Fixtures.game(id = "ar1", players = List("user_avgr1"), avgRating = 1000),
+          Fixtures.game(id = "ar2", players = List("user_avgr1"), avgRating = 1500),
+          Fixtures.game(id = "ar3", players = List("user_avgr1"), avgRating = 2000)
         )
       )
       // min only
@@ -245,9 +246,9 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "al1", players = List("user_ail1"), aiLevel = Some(1)),
-          Fixtures.game(id = "al2", players = List("user_ail1"), aiLevel = Some(5)),
-          Fixtures.game(id = "al3", players = List("user_ail1"), aiLevel = Some(8))
+          Fixtures.game(id = "al1", players = List("user_ail1"), aiLevel = 1),
+          Fixtures.game(id = "al2", players = List("user_ail1"), aiLevel = 5),
+          Fixtures.game(id = "al3", players = List("user_ail1"), aiLevel = 8)
         )
       )
       low <- ch.searchGames(
@@ -349,29 +350,29 @@ object GameSearchSuite extends IOSuite:
             id = "combo1",
             players = List("user_combo1"),
             turns = 50,
-            avgRating = Some(1500),
-            duration = Some(300)
+            avgRating = 1500,
+            duration = 300.some
           ),
           Fixtures.game(
             id = "combo2",
             players = List("user_combo1"),
             turns = 80,
-            avgRating = Some(1500),
-            duration = Some(300)
+            avgRating = 1500,
+            duration = 300.some
           ),
           Fixtures.game(
             id = "combo3",
             players = List("user_combo1"),
             turns = 50,
-            avgRating = Some(2000),
-            duration = Some(300)
+            avgRating = 2000,
+            duration = 300.some
           ),
           Fixtures.game(
             id = "combo4",
             players = List("user_combo1"),
             turns = 50,
-            avgRating = Some(1500),
-            duration = Some(60)
+            avgRating = 1500,
+            duration = 60.some
           )
         )
       )

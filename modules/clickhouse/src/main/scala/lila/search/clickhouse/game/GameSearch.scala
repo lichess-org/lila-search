@@ -33,7 +33,7 @@ object GameSearch:
     val perfFilter = Option.when(q.perf.nonEmpty)(
       Fragment.const(s"perf IN (${q.perf.mkString(",")})")
     )
-    val hasAiFilter = q.hasAi.map(a => if a then fr"ai_level IS NOT NULL" else fr"ai_level IS NULL")
+    val hasAiFilter = q.hasAi.map(a => if a then fr"ai_level != 0" else fr"ai_level = 0")
     val aiLevelFilters =
       if q.hasAi.getOrElse(true) then rangeFilters("ai_level", q.aiLevel.a, q.aiLevel.b)
       else Nil

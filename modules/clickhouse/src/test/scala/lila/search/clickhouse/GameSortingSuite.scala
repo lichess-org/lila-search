@@ -80,9 +80,9 @@ object GameSortingSuite extends IOSuite:
 
   test("sort by averageRating desc returns highest rated first") { ch =>
     val games = List(
-      Fixtures.game(id = "sr1", players = List(s"${u}rating1"), avgRating = Some(1200)),
-      Fixtures.game(id = "sr2", players = List(s"${u}rating1"), avgRating = Some(1800)),
-      Fixtures.game(id = "sr3", players = List(s"${u}rating1"), avgRating = Some(1500))
+      Fixtures.game(id = "sr1", players = List(s"${u}rating1"), avgRating = 1200),
+      Fixtures.game(id = "sr2", players = List(s"${u}rating1"), avgRating = 1800),
+      Fixtures.game(id = "sr3", players = List(s"${u}rating1"), avgRating = 1500)
     )
     for
       _ <- ch.upsertGameRows(games)
@@ -96,9 +96,9 @@ object GameSortingSuite extends IOSuite:
 
   test("sort by averageRating asc returns lowest rated first") { ch =>
     val games = List(
-      Fixtures.game(id = "sq1", players = List(s"${u}rating2"), avgRating = Some(1200)),
-      Fixtures.game(id = "sq2", players = List(s"${u}rating2"), avgRating = Some(1800)),
-      Fixtures.game(id = "sq3", players = List(s"${u}rating2"), avgRating = Some(1500))
+      Fixtures.game(id = "sq1", players = List(s"${u}rating2"), avgRating = 1200),
+      Fixtures.game(id = "sq2", players = List(s"${u}rating2"), avgRating = 1800),
+      Fixtures.game(id = "sq3", players = List(s"${u}rating2"), avgRating = 1500)
     )
     for
       _ <- ch.upsertGameRows(games)
