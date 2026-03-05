@@ -43,7 +43,8 @@ object Translate:
       analysed = g.analysed.getOrElse(false),
       avgRating = averageUsersRating(g).getOrElse(0),
       aiLevel = g.aiLevel.getOrElse(0),
-      duration = durationSeconds(g) clockInit = g.clockInit,
+      duration = durationSeconds(g),
+      clockInit = g.clockInit,
       clockInc = g.clockInc,
       whiteUser = g.whiteId.getOrElse(""),
       blackUser = g.blackId.getOrElse(""),
@@ -59,9 +60,12 @@ object Translate:
 
   // Helper: calculate game duration in seconds
   private def durationSeconds(g: DbGame): Int =
-    val seconds = (g.movedAt.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
-    if seconds < 60 * 60 * 12 then seconds.toInt
-    else 60 * 60 * 12 // cap duration to 12 hours for very long games
+    // If there is no clock config, it means it's either a very old game or a correspondence game
+    if g.clockConfig.isEmpty then 0
+    else
+      val seconds = (g.movedAt.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
+      if seconds < 60 * 60 * 12 then seconds.toInt
+      else 60 * 60 * 12 + 1 // cap duration to 12 hours + 1 seconds for very long games
 
   // Helper: determine perf type based on variant and speed
   private def perfId(variant: Variant, speed: Speed): Int =
