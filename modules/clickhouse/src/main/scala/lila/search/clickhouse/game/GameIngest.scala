@@ -8,20 +8,18 @@ import doobie.implicits.*
 object GameIngest:
   import GameRow.given
 
-  def upsertGame(r: GameRow): ConnectionIO[Int] =
-    sql"""INSERT INTO games
-         (id,status,turns,rated,perf,winner_color,date,analysed,
-          white_user,black_user,white_rating,black_rating,ai_level,duration,clock_init,clock_inc,
-          source,chess960_pos)
-         VALUES (
-         ${r.id},${r.status},${r.turns},${r.rated},${r.perf},${r.winnerColor},
-         ${r.date},${r.analysed},
-         ${r.whiteUser},${r.blackUser},${r.whiteRating},${r.blackRating},${r.aiLevel},
-         ${r.duration},${r.clockInit},${r.clockInc},
-         ${r.source},${r.chess960Position})""".update.run
+  // Column order must match GameRow case class field order for Write[GameRow] derivation
+  private val insertSql =
+    """INSERT INTO games
+       (id,status,turns,rated,perf,winner_color,date,analysed,
+        white_rating,black_rating,ai_level,duration,clock_init,clock_inc,
+        white_user,black_user,source,chess960_pos)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
+
+  private val insertUpdate = Update[GameRow](insertSql)
 
   def upsertGames(rows: List[GameRow]): ConnectionIO[Unit] =
-    rows.traverse_(upsertGame)
+    insertUpdate.updateMany(rows).void
 
   // ClickHouse deletes use mutations which are asynchronous by default.
   // mutations_sync=1 waits for the mutation to complete on the local replica,

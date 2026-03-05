@@ -84,3 +84,16 @@ object GameRow:
 
   given Meta[WinnerColor] =
     Meta[Int].timap(WinnerColor.fromInt)(_.value)
+
+  // doobie cannot auto-derive Write for 18-field case classes (tuple too wide),
+  // so we split into two halves and compose via contramap.
+  private type Half1 =
+    (String, Int, Int, Boolean, Int, WinnerColor, Instant, Boolean, Int)
+  private type Half2 =
+    (Int, Int, Int, Option[Int], Option[Int], String, String, Option[Int], Int)
+
+  given Write[GameRow] = Write[(Half1, Half2)].contramap: r =>
+    (
+      (r.id, r.status, r.turns, r.rated, r.perf, r.winnerColor, r.date, r.analysed, r.whiteRating),
+      (r.blackRating, r.aiLevel, r.duration, r.clockInit, r.clockInc, r.whiteUser, r.blackUser, r.source, r.chess960Position)
+    )
