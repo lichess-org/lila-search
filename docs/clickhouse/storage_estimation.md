@@ -11,7 +11,7 @@ Based on the schema in `GameTable.scala` (`ReplacingMergeTree`, partitioned by `
 | `turns` | UInt16 | 2 | |
 | `rated` | Bool | 1 | |
 | `perf` | UInt8 | 1 | |
-| `winner_color` | Nullable(Int8) | 2 | 1 null byte + 1 data |
+| `winner_color` | Enum8 | 1 | 4 values: unknown/white/black/draw |
 | `date` | DateTime | 4 | 32-bit unix timestamp |
 | `analysed` | Bool | 1 | |
 | `white_user` | Nullable(String) | 12 | ~10 char avg username + null byte + length prefix |
@@ -30,7 +30,7 @@ Based on the schema in `GameTable.scala` (`ReplacingMergeTree`, partitioned by `
 
 ClickHouse columnar storage with ZSTD(1) and Delta coding compresses well for this schema:
 
-- **Low-cardinality small integers** (`status`, `perf`, `source` as UInt8, `winner_color` as Int8): very few distinct values in 1-byte columns, 10-50x compression
+- **Low-cardinality small integers** (`status`, `perf`, `source` as UInt8, `winner_color` as Enum8): very few distinct values in 1-byte columns, 10-50x compression
 - **Booleans** (`rated`, `analysed`): essentially bitmaps, 20-50x compression
 - **Delta-coded DateTime** (`date`): ordered by date in sort key so deltas are tiny, 20-50x compression
 - **Nullable columns that are mostly null** (`ai_level`): compress to almost nothing

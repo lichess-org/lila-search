@@ -3,6 +3,7 @@ package clickhouse
 
 import cats.effect.IO
 import lila.search.Range
+import lila.search.clickhouse.game.WinnerColor
 import lila.search.game.{ Fields, Game, Sorting }
 import weaver.IOSuite
 
@@ -64,8 +65,8 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "wc1", players = List("user_wc1", "user_wc2"), winnerColor = Some(1)),
-          Fixtures.game(id = "wc2", players = List("user_wc1", "user_wc2"), winnerColor = Some(3))
+          Fixtures.game(id = "wc1", players = List("user_wc1", "user_wc2"), winnerColor = WinnerColor.White),
+          Fixtures.game(id = "wc2", players = List("user_wc1", "user_wc2"), winnerColor = WinnerColor.Draw)
         )
       )
       white <- ch.searchGames(
@@ -94,12 +95,12 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          // white wins: winner_color=1, white=user_win1, black=user_win2
-          Fixtures.game(id = "w1", players = List("user_win1", "user_win2"), winnerColor = Some(1)),
-          // black wins: winner_color=2, white=user_win1, black=user_win2
-          Fixtures.game(id = "w2", players = List("user_win1", "user_win2"), winnerColor = Some(2)),
-          // draw: winner_color=3
-          Fixtures.game(id = "w3", players = List("user_win1", "user_win2"), winnerColor = Some(3))
+          // white wins: white=user_win1, black=user_win2
+          Fixtures.game(id = "w1", players = List("user_win1", "user_win2"), winnerColor = WinnerColor.White),
+          // black wins: white=user_win1, black=user_win2
+          Fixtures.game(id = "w2", players = List("user_win1", "user_win2"), winnerColor = WinnerColor.Black),
+          // draw
+          Fixtures.game(id = "w3", players = List("user_win1", "user_win2"), winnerColor = WinnerColor.Draw)
         )
       )
       // user_win1 won game w1 (as white)

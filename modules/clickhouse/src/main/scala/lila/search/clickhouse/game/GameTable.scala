@@ -20,7 +20,7 @@ object GameTable:
       turns        UInt16 CODEC(ZSTD(1)),
       rated        Bool CODEC(ZSTD(1)),
       perf         UInt8 CODEC(ZSTD(1)),
-      winner_color Nullable(Int8) CODEC(ZSTD(1)),
+      winner_color Enum8('unknown'=0, 'white'=1, 'black'=2, 'draw'=3) CODEC(ZSTD(1)),
       date         DateTime CODEC(Delta, ZSTD(1)),
       analysed     Bool CODEC(ZSTD(1)),
       white_user   String CODEC(ZSTD(1)),
@@ -47,7 +47,7 @@ case class GameRow(
     turns: Int,
     rated: Boolean,
     perf: Int,
-    winnerColor: Option[Int],
+    winnerColor: WinnerColor,
     date: Instant,
     analysed: Boolean,
     avgRating: Int,
@@ -60,7 +60,23 @@ case class GameRow(
     source: Option[Int]
 )
 
+enum WinnerColor(val value: Int):
+  case Unknown extends WinnerColor(0)
+  case White extends WinnerColor(1)
+  case Black extends WinnerColor(2)
+  case Draw extends WinnerColor(3)
+
+object WinnerColor:
+  def fromInt(v: Int): WinnerColor = v match
+    case 1 => WinnerColor.White
+    case 2 => WinnerColor.Black
+    case 3 => WinnerColor.Draw
+    case _ => WinnerColor.Unknown
+
 object GameRow:
   // ClickHouse DateTime maps to java.sql.Timestamp via JDBC.
   given Meta[Instant] =
     Meta[java.sql.Timestamp].timap(_.toInstant)(java.sql.Timestamp.from)
+
+  given Meta[WinnerColor] =
+    Meta[Int].timap(WinnerColor.fromInt)(_.value)

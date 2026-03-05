@@ -30,7 +30,7 @@ object Translate:
       source = g.source
     )
 
-  import lila.search.clickhouse.game.GameRow
+  import lila.search.clickhouse.game.{ GameRow, WinnerColor }
   def toGameRow(g: DbGame): GameRow =
     GameRow(
       id = g.id,
@@ -38,7 +38,8 @@ object Translate:
       turns = (g.ply + 1) / 2,
       rated = g.rated.getOrElse(false),
       perf = perfId(g.variantOrDefault, g.speed),
-      winnerColor = Some(g.winnerColor.fold(3)(if _ then 1 else 2)),
+      winnerColor =
+        g.winnerColor.fold(WinnerColor.Unknown)(if _ then WinnerColor.White else WinnerColor.Black),
       date = g.movedAt,
       analysed = g.analysed.getOrElse(false),
       avgRating = averageUsersRating(g).getOrElse(0),

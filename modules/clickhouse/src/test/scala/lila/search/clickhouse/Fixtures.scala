@@ -1,7 +1,7 @@
 package lila.search
 package clickhouse
 
-import lila.search.clickhouse.game.GameRow
+import lila.search.clickhouse.game.{ GameRow, WinnerColor }
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -18,7 +18,7 @@ object Fixtures:
       date: Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS),
       status: Int = 30,
       avgRating: Int = 0,
-      winnerColor: Option[Int] = None,
+      winnerColor: WinnerColor = WinnerColor.Unknown,
       duration: Int = 0,
       clockInit: Option[Int] = None,
       clockInc: Option[Int] = None,

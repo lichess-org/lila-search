@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS games (
   turns        Int32 CODEC(ZSTD(1)),
   rated        Bool CODEC(ZSTD(1)),
   perf         Int32 CODEC(ZSTD(1)),
-  winner_color Nullable(Int8) CODEC(ZSTD(1)),
+  winner_color Enum8('unknown'=0, 'white'=1, 'black'=2, 'draw'=3) CODEC(ZSTD(1)),
   date         DateTime CODEC(Delta, ZSTD(1)),
   analysed     Bool CODEC(ZSTD(1)),
   white_user   Nullable(String) CODEC(ZSTD(1)),
