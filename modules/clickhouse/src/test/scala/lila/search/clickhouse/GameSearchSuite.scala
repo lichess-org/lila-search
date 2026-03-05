@@ -3,6 +3,7 @@ package clickhouse
 
 import cats.effect.IO
 import lila.search.game.{ Fields, Game, Sorting }
+import lila.search.Range
 import weaver.IOSuite
 
 import java.time.Instant
@@ -174,4 +175,215 @@ object GameSearchSuite extends IOSuite:
       n <- ch.countGames(Game(user1 = Some("user_count1"), rated = Some(true)))
       ids <- ch.searchGames(Game(user1 = Some("user_count1"), rated = Some(true)), From(0), Size(100))
     yield expect(n == ids.size.toLong)
+  }
+
+  test("white_user filter") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(id = "wu1", players = List("white_alice", "black_bob")),
+          Fixtures.game(id = "wu2", players = List("white_carol", "black_bob"))
+        )
+      )
+      ids <- ch.searchGames(
+        Game(whiteUser = Some("white_alice")),
+        From(0),
+        Size(10)
+      )
+    yield expect(ids.contains("wu1")) and expect(!ids.contains("wu2"))
+  }
+
+  test("black_user filter") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(id = "bu1", players = List("white_dave", "black_eve")),
+          Fixtures.game(id = "bu2", players = List("white_dave", "black_frank"))
+        )
+      )
+      ids <- ch.searchGames(
+        Game(blackUser = Some("black_eve")),
+        From(0),
+        Size(10)
+      )
+    yield expect(ids.contains("bu1")) and expect(!ids.contains("bu2"))
+  }
+
+  test("avg_rating range filter") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(id = "ar1", players = List("user_avgr1"), avgRating = Some(1000)),
+          Fixtures.game(id = "ar2", players = List("user_avgr1"), avgRating = Some(1500)),
+          Fixtures.game(id = "ar3", players = List("user_avgr1"), avgRating = Some(2000))
+        )
+      )
+      // min only
+      above1200 <- ch.searchGames(
+        Game(user1 = Some("user_avgr1"), averageRating = Range(Some(1200), None)),
+        From(0),
+        Size(10)
+      )
+      // max only
+      below1600 <- ch.searchGames(
+        Game(user1 = Some("user_avgr1"), averageRating = Range(None, Some(1600))),
+        From(0),
+        Size(10)
+      )
+      // both min and max
+      between <- ch.searchGames(
+        Game(user1 = Some("user_avgr1"), averageRating = Range(Some(1200), Some(1800))),
+        From(0),
+        Size(10)
+      )
+    yield expect(above1200.toSet == Set("ar2", "ar3")) and
+      expect(below1600.toSet == Set("ar1", "ar2")) and
+      expect(between == List("ar2"))
+  }
+
+  test("ai_level range filter") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(id = "al1", players = List("user_ail1"), aiLevel = Some(1)),
+          Fixtures.game(id = "al2", players = List("user_ail1"), aiLevel = Some(5)),
+          Fixtures.game(id = "al3", players = List("user_ail1"), aiLevel = Some(8))
+        )
+      )
+      low <- ch.searchGames(
+        Game(user1 = Some("user_ail1"), aiLevel = Range(None, Some(3))),
+        From(0),
+        Size(10)
+      )
+      high <- ch.searchGames(
+        Game(user1 = Some("user_ail1"), aiLevel = Range(Some(4), Some(6))),
+        From(0),
+        Size(10)
+      )
+    yield expect(low == List("al1")) and expect(high == List("al2"))
+  }
+
+  test("duration range filter") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(id = "du1", players = List("user_dur1"), duration = Some(60)),
+          Fixtures.game(id = "du2", players = List("user_dur1"), duration = Some(300)),
+          Fixtures.game(id = "du3", players = List("user_dur1"), duration = Some(600))
+        )
+      )
+      short <- ch.searchGames(
+        Game(user1 = Some("user_dur1"), duration = Range(None, Some(120))),
+        From(0),
+        Size(10)
+      )
+      mid <- ch.searchGames(
+        Game(user1 = Some("user_dur1"), duration = Range(Some(200), Some(400))),
+        From(0),
+        Size(10)
+      )
+      long <- ch.searchGames(
+        Game(user1 = Some("user_dur1"), duration = Range(Some(500), None)),
+        From(0),
+        Size(10)
+      )
+    yield expect(short == List("du1")) and
+      expect(mid == List("du2")) and
+      expect(long == List("du3"))
+  }
+
+  test("clock_init exact filter") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(id = "ci1", players = List("user_ci1"), clockInit = Some(300)),
+          Fixtures.game(id = "ci2", players = List("user_ci1"), clockInit = Some(600))
+        )
+      )
+      ids <- ch.searchGames(
+        Game(user1 = Some("user_ci1"), clockInit = Some(300)),
+        From(0),
+        Size(10)
+      )
+    yield expect(ids.contains("ci1")) and expect(!ids.contains("ci2"))
+  }
+
+  test("clock_inc exact filter") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(id = "cinc1", players = List("user_cinc1"), clockInc = Some(0)),
+          Fixtures.game(id = "cinc2", players = List("user_cinc1"), clockInc = Some(5))
+        )
+      )
+      ids <- ch.searchGames(
+        Game(user1 = Some("user_cinc1"), clockInc = Some(5)),
+        From(0),
+        Size(10)
+      )
+    yield expect(ids.contains("cinc2")) and expect(!ids.contains("cinc1"))
+  }
+
+  test("source filter") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(id = "src1", players = List("user_src1"), source = Some(1)),
+          Fixtures.game(id = "src2", players = List("user_src1"), source = Some(2)),
+          Fixtures.game(id = "src3", players = List("user_src1"), source = Some(3))
+        )
+      )
+      ids <- ch.searchGames(
+        Game(user1 = Some("user_src1"), source = Some(2)),
+        From(0),
+        Size(10)
+      )
+    yield expect(ids == List("src2"))
+  }
+
+  test("combined range filters narrow results") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(
+            id = "combo1",
+            players = List("user_combo1"),
+            turns = 50,
+            avgRating = Some(1500),
+            duration = Some(300)
+          ),
+          Fixtures.game(
+            id = "combo2",
+            players = List("user_combo1"),
+            turns = 80,
+            avgRating = Some(1500),
+            duration = Some(300)
+          ),
+          Fixtures.game(
+            id = "combo3",
+            players = List("user_combo1"),
+            turns = 50,
+            avgRating = Some(2000),
+            duration = Some(300)
+          ),
+          Fixtures.game(
+            id = "combo4",
+            players = List("user_combo1"),
+            turns = 50,
+            avgRating = Some(1500),
+            duration = Some(60)
+          )
+        )
+      )
+      ids <- ch.searchGames(
+        Game(
+          user1 = Some("user_combo1"),
+          turns = Range(Some(30), Some(60)),
+          averageRating = Range(Some(1400), Some(1600)),
+          duration = Range(Some(200), Some(400))
+        ),
+        From(0),
+        Size(10)
+      )
+    yield expect(ids == List("combo1"))
   }

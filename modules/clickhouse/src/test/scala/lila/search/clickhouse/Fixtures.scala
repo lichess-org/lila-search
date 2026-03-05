@@ -18,7 +18,11 @@ object Fixtures:
       date: Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS),
       status: Int = 30,
       avgRating: Option[Int] = None,
-      winnerColor: Option[Int] = None
+      winnerColor: Option[Int] = None,
+      duration: Option[Int] = None,
+      clockInit: Option[Int] = None,
+      clockInc: Option[Int] = None,
+      source: Option[Int] = None
   ): GameRow =
     GameRow(
       id = id,
@@ -31,10 +35,10 @@ object Fixtures:
       analysed = false,
       avgRating = avgRating,
       aiLevel = aiLevel,
-      duration = None,
-      clockInit = None,
-      clockInc = None,
+      duration = duration,
+      clockInit = clockInit,
+      clockInc = clockInc,
       whiteUser = players.headOption,
       blackUser = players.lift(1),
-      source = None
+      source = source
     )
