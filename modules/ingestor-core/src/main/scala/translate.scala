@@ -22,7 +22,7 @@ object Translate:
       loser = g.loser,
       averageRating = averageUsersRating(g),
       ai = g.aiLevel,
-      duration = durationSeconds(g),
+      duration = durationSeconds(g).some,
       clockInit = g.clockInit,
       clockInc = g.clockInc,
       whiteUser = g.whiteId,
@@ -43,8 +43,7 @@ object Translate:
       analysed = g.analysed.getOrElse(false),
       avgRating = averageUsersRating(g).getOrElse(0),
       aiLevel = g.aiLevel.getOrElse(0),
-      duration = durationSeconds(g),
-      clockInit = g.clockInit,
+      duration = durationSeconds(g) clockInit = g.clockInit,
       clockInc = g.clockInc,
       whiteUser = g.whiteId.getOrElse(""),
       blackUser = g.blackId.getOrElse(""),
@@ -59,9 +58,10 @@ object Translate:
       case _ => None
 
   // Helper: calculate game duration in seconds
-  private def durationSeconds(g: DbGame): Option[Int] =
+  private def durationSeconds(g: DbGame): Int =
     val seconds = (g.movedAt.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
-    Option.when(seconds < 60 * 60 * 12)(seconds.toInt)
+    if seconds < 60 * 60 * 12 then seconds.toInt
+    else 60 * 60 * 12 // cap duration to 12 hours for very long games
 
   // Helper: determine perf type based on variant and speed
   private def perfId(variant: Variant, speed: Speed): Int =

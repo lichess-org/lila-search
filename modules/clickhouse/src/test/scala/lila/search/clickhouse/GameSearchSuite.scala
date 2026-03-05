@@ -2,7 +2,6 @@ package lila.search
 package clickhouse
 
 import cats.effect.IO
-import cats.syntax.all.*
 import lila.search.Range
 import lila.search.game.{ Fields, Game, Sorting }
 import weaver.IOSuite
@@ -268,9 +267,9 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "du1", players = List("user_dur1"), duration = Some(60)),
-          Fixtures.game(id = "du2", players = List("user_dur1"), duration = Some(300)),
-          Fixtures.game(id = "du3", players = List("user_dur1"), duration = Some(600))
+          Fixtures.game(id = "du1", players = List("user_dur1"), duration = 60),
+          Fixtures.game(id = "du2", players = List("user_dur1"), duration = 300),
+          Fixtures.game(id = "du3", players = List("user_dur1"), duration = 600)
         )
       )
       short <- ch.searchGames(
@@ -351,28 +350,28 @@ object GameSearchSuite extends IOSuite:
             players = List("user_combo1"),
             turns = 50,
             avgRating = 1500,
-            duration = 300.some
+            duration = 300
           ),
           Fixtures.game(
             id = "combo2",
             players = List("user_combo1"),
             turns = 80,
             avgRating = 1500,
-            duration = 300.some
+            duration = 300
           ),
           Fixtures.game(
             id = "combo3",
             players = List("user_combo1"),
             turns = 50,
             avgRating = 2000,
-            duration = 300.some
+            duration = 300
           ),
           Fixtures.game(
             id = "combo4",
             players = List("user_combo1"),
             turns = 50,
             avgRating = 1500,
-            duration = 60.some
+            duration = 60
           )
         )
       )

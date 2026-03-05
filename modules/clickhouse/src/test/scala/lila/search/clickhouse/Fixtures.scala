@@ -19,7 +19,7 @@ object Fixtures:
       status: Int = 30,
       avgRating: Int = 0,
       winnerColor: Option[Int] = None,
-      duration: Option[Int] = None,
+      duration: Int = 0,
       clockInit: Option[Int] = None,
       clockInc: Option[Int] = None,
       source: Option[Int] = None
