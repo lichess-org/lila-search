@@ -14,6 +14,7 @@ object ClickHouseTransactor:
     hikariConfig.setJdbcUrl(config.url)
     hikariConfig.setUsername(config.user)
     hikariConfig.setPassword(config.password)
+    hikariConfig.setMaximumPoolSize(config.maxPoolSize)
     hikariConfig.setAutoCommit(true)
     // ClickHouse does not support transactions; use a void strategy
     // to prevent doobie from calling setAutoCommit/commit/rollback.
