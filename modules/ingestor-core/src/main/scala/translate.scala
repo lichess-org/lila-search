@@ -2,10 +2,9 @@ package lila.search
 package ingestor
 
 import cats.syntax.all.*
-import chess.Speed
 import chess.variant.Variant
+import chess.{ Speed, Status }
 import lila.search.es.*
-import chess.Status
 
 object Translate:
 

@@ -6,10 +6,9 @@ import cats.syntax.all.*
 import lila.search.clickhouse.ClickHouseClient
 import lila.search.clickhouse.game.GameRow
 import lila.search.ingestor.{ DbGame, KVStore, Repo, Translate }
-import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
-import org.typelevel.log4cats.LoggerFactory
 
 object GameCHIngestor:
 

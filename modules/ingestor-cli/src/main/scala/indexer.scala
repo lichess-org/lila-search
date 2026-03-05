@@ -5,9 +5,9 @@ import cats.effect.IO
 import cats.mtl.Handle
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
+import lila.search.ingestor.game.GameCHIngestor
 import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
-import lila.search.ingestor.game.GameCHIngestor 
 
 import java.time.Instant
 

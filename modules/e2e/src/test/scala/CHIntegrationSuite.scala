@@ -64,8 +64,8 @@ object CHIntegrationSuite extends IOSuite:
   )
 
   private def fixture(
-      id: String = "testgame1",
-      players: List[String] = List("alice", "bob"),
+      id: String,
+      players: List[String],
       turns: Int = 40,
       rated: Boolean = false,
       perf: Int = 1,
@@ -97,7 +97,8 @@ object CHIntegrationSuite extends IOSuite:
       clockInc = clockInc,
       whiteUser = players.headOption.getOrElse(""),
       blackUser = players.lift(1).getOrElse(""),
-      source = source
+      source = source,
+      chess960Position = 1000
     )
 
   test("game search via CH"): ch =>
