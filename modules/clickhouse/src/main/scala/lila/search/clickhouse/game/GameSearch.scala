@@ -26,10 +26,10 @@ object GameSearch:
 
   private def filters(q: Game): List[Fragment] =
     val userFilters = List(q.user1, q.user2).flatten.map(u => fr"(white_user = $u OR black_user = $u)")
-    val perfFilter  = q.perf.toNel.map(perfs => Fragments.in(fr"perf", perfs))
+    val perfFilter = q.perf.toNel.map(perfs => Fragments.in(fr"perf", perfs))
     val hasAiFilter = q.hasAi.map(a => if a then fr"ai_level != 0" else fr"ai_level = 0")
     val aiLevelFilters =
-      if q.hasAi.getOrElse(true) then rangeFilters("ai_level", q.aiLevel.a, q.aiLevel.b)
+      if q.hasAi.getOrElse(true) then rangeFilters(Columns.aiLevel, q.aiLevel.a, q.aiLevel.b)
       else Nil
 
     userFilters :::
@@ -52,23 +52,32 @@ object GameSearch:
         q.clockInit.map(c => fr"clock_init = $c"),
         q.clockInc.map(c => fr"clock_inc = $c")
       ).flatten :::
-      rangeFilters("turns", q.turns.a, q.turns.b) :::
-      rangeFilters("(white_rating + black_rating) / 2", q.averageRating.a, q.averageRating.b) :::
-      rangeFilters("date", q.date.a, q.date.b) :::
-      rangeFilters("duration", q.duration.a, q.duration.b) :::
+      rangeFilters(Columns.turns, q.turns.a, q.turns.b) :::
+      rangeFilters(Columns.averageRating, q.averageRating.a, q.averageRating.b) :::
+      rangeFilters(Columns.date, q.date.a, q.date.b) :::
+      rangeFilters(Columns.duration, q.duration.a, q.duration.b) :::
       aiLevelFilters
 
-  private def rangeFilters[A: Put](col: String, min: Option[A], max: Option[A]): List[Fragment] =
+  // ClickHouse column expressions used in ORDER BY and range filters.
+  // Defined as Fragment.const constants so they cannot be confused with user input.
+  private object Columns:
+    val date = Fragment.const("date")
+    val turns = Fragment.const("turns")
+    val averageRating = Fragment.const("(white_rating + black_rating) / 2")
+    val aiLevel = Fragment.const("ai_level")
+    val duration = Fragment.const("duration")
+
+  private def rangeFilters[A: Put](col: Fragment, min: Option[A], max: Option[A]): List[Fragment] =
     List(
-      min.map(v => Fragment.const(s"$col >=") ++ fr"$v"),
-      max.map(v => Fragment.const(s"$col <=") ++ fr"$v")
+      min.map(v => col ++ fr">= $v"),
+      max.map(v => col ++ fr"<= $v")
     ).flatten
 
   private def orderClause(s: Sorting): Fragment =
     val col = s.f match
-      case Fields.date          => "date"
-      case Fields.turns         => "turns"
-      case Fields.averageRating => "(white_rating + black_rating) / 2"
-      case _                    => "date"
-    val dir = if s.order.equalsIgnoreCase("asc") then "ASC" else "DESC"
-    Fragment.const(s"ORDER BY $col $dir")
+      case Fields.date => Columns.date
+      case Fields.turns => Columns.turns
+      case Fields.averageRating => Columns.averageRating
+      case _ => Columns.date
+    val dir = Fragment.const(if s.order.equalsIgnoreCase("asc") then "ASC" else "DESC")
+    fr"ORDER BY" ++ col ++ dir
