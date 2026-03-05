@@ -285,7 +285,7 @@ val e2e = project
   .settings(
     publish := {},
     publish / skip := true,
-    libraryDependencies ++= Seq(testContainers, weaver)
+    libraryDependencies ++= Seq(testContainers, testContainersClickHouse, weaver)
   )
   .dependsOn(client, app, `ingestor-core`)
 
