@@ -6,10 +6,8 @@ import cats.mtl.Handle
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
 import lila.search.ingestor.game.CHGameIngestor
-import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
+import lila.search.ingestor.opts.IndexOpts
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
-
-import java.time.Instant
 
 object Indexer:
 
@@ -46,17 +44,6 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
     opts.index.toList.traverse_(go)
 
-  def reindex(opts: ReindexOpts) =
-    def go(index: Index) =
-      putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
-        runReindex(index, opts) *>
-        refreshIndexes(res.elastic, index).whenA(!opts.dry)
-    if opts.index != Index.Study then
-      logger.warn(
-        s"Reindexing is only supported for the Study index. No action taken for ${opts.index.toString}."
-      )
-    else opts.index.toList.traverse_(go)
-
   private def runES[A: Indexable: HasStringId](
       index: Index,
       repo: IO[Repo[A]],
@@ -77,39 +64,6 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     case Index.Study => runES(index, StudyRepo(res.study, res.studyLocal, config.ingestor.study), opts)
     case Index.Team => runES(index, TeamRepo(res.lichess, config.ingestor.team), opts)
     case Index.Game => runES(index, GameRepo(res.lichess, config.ingestor.game), opts)
-
-  private def runReindexES[A: Indexable: HasStringId](
-      index: Index,
-      repo: IO[Repo[A]],
-      opts: ReindexOpts
-  ): IO[Unit] =
-    import opts.{ dry, since, until }
-
-    def store_(sources: List[A]): IO[Unit] =
-      if dry then
-        Logger[IO].info(s"Dry run - would index ${sources.size} docs to ${index.value}")
-          *> sources.traverse_(item =>
-            Logger[IO].debug(s"Dry run - would index ${summon[Indexable[A]].json(item)}")
-          )
-      else index.storeBulk(sources)
-
-    given Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
-    val now = until.getOrElse(Instant.now())
-    repo.flatMap: r =>
-      r
-        .fetchUpdate(since.getOrElse(Instant.EPOCH), now)
-        .evalTap(store_)
-        .map(_.size)
-        .compile
-        .fold(0)(_ + _)
-        .flatMap(total => logger.info(s"Reindexed $total documents for ${index.value}"))
-
-  def runReindex(index: Index, opts: ReindexOpts): IO[Unit] = index match
-    case Index.Forum => runReindexES(index, ForumRepo(res.lichess, config.ingestor.forum), opts)
-    case Index.Ublog => runReindexES(index, UblogRepo(res.lichess, config.ingestor.ublog), opts)
-    case Index.Study => runReindexES(index, StudyRepo(res.study, res.studyLocal, config.ingestor.study), opts)
-    case Index.Team => runReindexES(index, TeamRepo(res.lichess, config.ingestor.team), opts)
-    case Index.Game => IO.raiseError(RuntimeException("Game index uses ClickHouse, not ES"))
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index)(using Logger[IO]): IO[Unit] =
     Handle
