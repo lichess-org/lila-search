@@ -2,62 +2,53 @@
 
 Target: 10B+ games, growing continuously.
 
-## Current Schema (problems)
+## Optimization Checklist
 
-```sql
-ENGINE = ReplacingMergeTree()
-ORDER BY id
--- No partitioning, no compression codecs, no skip indices
--- uids Array(String) column is redundant with white_user/black_user
-```
+### Schema Optimizations
 
-- `ORDER BY id` provides no benefit for queries (most filter by user + date range)
-- No partition pruning — every query scans all data
-- Default LZ4 compression everywhere — suboptimal for sorted/low-cardinality columns
-- `has(uids, $username)` scans the full Array column; white_user/black_user already exist
+- [x] **Partitioning** — `PARTITION BY toYYYYMM(date)` (monthly, ~192 partitions for 16 years)
+- [x] **Sort key** — `ORDER BY (date, id)` instead of `ORDER BY id` (date-first for range queries)
+- [x] **Compression codecs** — ZSTD(1) everywhere, Delta+ZSTD for `date`, LZ4 for `id`
+- [x] **Remove `uids` Array column** — redundant with `white_user`/`black_user`; user queries use `white_user = $u OR black_user = $u`
+- [x] **Remove `winner`/`loser` columns** — derived at query time from `winner_color` + user columns (saves 2 string columns + 2 bloom filter indices)
+- [x] **Bloom filter skip indices** — on `white_user` and `black_user` (GRANULARITY 1, FPR 0.01)
+- [x] **Downsize integer types** — `UInt8` for status/perf/ai_level/source, `UInt16` for turns/ratings/duration/clock/chess960_pos (was `Int32`)
+- [x] **Drop Nullable where possible** — `white_user`, `black_user`, `ai_level`, `duration` made non-nullable (saves 1 byte/row/column)
+- [x] **Separate ratings** — `white_rating` + `black_rating` (both `UInt16`) instead of `avg_rating` (enables per-player rating filters)
+- [x] **Chess960 position** — `chess960_pos UInt16` column (1000 if not Chess960)
+- [ ] **Projections for O(log n) user lookups** — `PROJECTION prj_white (SELECT * ORDER BY white_user, date)` / `prj_black`. Doubles storage. Add only if bloom filters prove insufficient at scale.
+- [ ] **`LowCardinality(String)` for usernames** — if distinct count is under ~10M, could cut string storage in half
+- [ ] **FINAL overhead mitigation** — periodic `OPTIMIZE TABLE games PARTITION ... FINAL` to pre-merge duplicates so `FINAL` is nearly free at query time
 
-## Optimized Schema
+## Current Schema
 
 ```sql
 CREATE TABLE IF NOT EXISTS games (
   id           String CODEC(LZ4),
-  status       Int32 CODEC(ZSTD(1)),
-  turns        Int32 CODEC(ZSTD(1)),
+  status       UInt8 CODEC(ZSTD(1)),
+  turns        UInt16 CODEC(ZSTD(1)),
   rated        Bool CODEC(ZSTD(1)),
-  perf         Int32 CODEC(ZSTD(1)),
+  perf         UInt8 CODEC(ZSTD(1)),
   winner_color Enum8('unknown'=0, 'white'=1, 'black'=2, 'draw'=3) CODEC(ZSTD(1)),
   date         DateTime CODEC(Delta, ZSTD(1)),
   analysed     Bool CODEC(ZSTD(1)),
-  white_user   Nullable(String) CODEC(ZSTD(1)),
-  black_user   Nullable(String) CODEC(ZSTD(1)),
-  winner       Nullable(String) CODEC(ZSTD(1)),
-  loser        Nullable(String) CODEC(ZSTD(1)),
-  avg_rating   Nullable(Int32) CODEC(ZSTD(1)),
-  ai_level     Nullable(Int32) CODEC(ZSTD(1)),
-  duration     Nullable(Int32) CODEC(ZSTD(1)),
-  clock_init   Nullable(Int32) CODEC(ZSTD(1)),
-  clock_inc    Nullable(Int32) CODEC(ZSTD(1)),
-  source       Nullable(Int32) CODEC(ZSTD(1)),
+  white_user   String CODEC(ZSTD(1)),
+  black_user   String CODEC(ZSTD(1)),
+  white_rating UInt16 CODEC(ZSTD(1)),
+  black_rating UInt16 CODEC(ZSTD(1)),
+  ai_level     UInt8 CODEC(ZSTD(1)),
+  duration     UInt16 CODEC(ZSTD(1)),
+  clock_init   Nullable(UInt16) CODEC(ZSTD(1)),
+  clock_inc    Nullable(UInt16) CODEC(ZSTD(1)),
+  source       Nullable(UInt8) CODEC(ZSTD(1)),
+  chess960_pos UInt16 CODEC(ZSTD(1)),
 
   INDEX idx_white white_user TYPE bloom_filter(0.01) GRANULARITY 1,
-  INDEX idx_black black_user TYPE bloom_filter(0.01) GRANULARITY 1,
-  INDEX idx_winner winner TYPE bloom_filter(0.01) GRANULARITY 1,
-  INDEX idx_loser loser TYPE bloom_filter(0.01) GRANULARITY 1
+  INDEX idx_black black_user TYPE bloom_filter(0.01) GRANULARITY 1
 ) ENGINE = ReplacingMergeTree()
 PARTITION BY toYYYYMM(date)
 ORDER BY (date, id)
 ```
-
-## Changes Summary
-
-| Aspect | Before | After | Rationale |
-|--------|--------|-------|-----------|
-| Partitioning | None | `toYYYYMM(date)` | Monthly: ~192 partitions for 16 years; prunes irrelevant months on date range queries |
-| Sort key | `ORDER BY id` | `ORDER BY (date, id)` | Date-first for range queries (most common filter + default sort); id for ReplacingMergeTree uniqueness |
-| Compression | Default LZ4 | ZSTD(1) + Delta for date, LZ4 for id | ~4-5x compression ratio; Delta on sorted date is extremely effective |
-| `uids` column | `Array(String)` | **Removed** | Redundant — white_user/black_user already exist; eliminates Array overhead |
-| User query | `has(uids, $u)` | `white_user = $u OR black_user = $u` | Faster equality checks; works with bloom filter skip indices |
-| Skip indices | None | bloom_filter on white_user, black_user, winner, loser | Skips ~99% of granules for user-specific queries |
 
 ## Design Decisions
 
@@ -81,7 +72,6 @@ ORDER BY (date, id)
 - `id` (unique strings): LZ4 — high entropy, ZSTD gains little
 - `date` (DateTime, sorted): Delta encoding + ZSTD — delta is extremely effective on sorted timestamps
 - Everything else: ZSTD(1) — ~4-5x compression with minimal CPU overhead
-- Estimated storage: ~200-250 GB for 10B games (vs ~1 TB uncompressed)
 
 ### 4. No TTL
 
@@ -94,22 +84,17 @@ Lichess keeps all games forever. No data retention policy needed.
 - At 10B rows (~1.2M granules), bloom filters eliminate >99% of granules for user queries
 - Minimal storage overhead (~1-2% of table size)
 
-## Future Optimizations (not implemented now)
+### 6. No winner/loser columns
 
-### Projections for O(log n) User Lookups
-
-If bloom filters prove insufficient at scale:
-
+Winner and loser queries are derived at query time from `winner_color` + `white_user`/`black_user`:
 ```sql
-PROJECTION prj_white (SELECT * ORDER BY white_user, date)
-PROJECTION prj_black (SELECT * ORDER BY black_user, date)
+-- winner = 'user1'
+(winner_color = 1 AND white_user = 'user1') OR (winner_color = 2 AND black_user = 'user1')
+-- loser = 'user1'
+(winner_color = 2 AND white_user = 'user1') OR (winner_color = 1 AND black_user = 'user1')
 ```
+This avoids redundant string columns and their bloom filter indices, saving storage and ingestion cost.
 
-Doubles storage but makes user queries logarithmic instead of linear. Add only if needed.
+### 7. Separate ratings instead of avgRating
 
-### FINAL Overhead Mitigation
-
-`ReplacingMergeTree` + `FINAL` forces in-memory dedup at query time. At 10B scale:
-- Run `OPTIMIZE TABLE games PARTITION ... FINAL` periodically per partition
-- Post-merge, FINAL is nearly free (no duplicates to filter)
-- Consider scheduled maintenance job for recent partitions
+`white_rating` and `black_rating` are stored independently (both `UInt16`), enabling per-player rating filters. The `avg_rating` filter in queries is computed as `(white_rating + black_rating) / 2`.
