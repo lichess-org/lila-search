@@ -2,17 +2,19 @@ package lila.search
 package clickhouse
 
 import cats.effect.*
+import com.zaxxer.hikari.HikariConfig
 import doobie.Transactor
 import doobie.hikari.HikariTransactor
-
-import scala.concurrent.ExecutionContext
+import doobie.util.transactor.Strategy
 
 object ClickHouseTransactor:
   def make(config: ClickHouseConfig): Resource[IO, Transactor[IO]] =
-    HikariTransactor.newHikariTransactor[IO](
-      driverClassName = "com.clickhouse.jdbc.ClickHouseDriver",
-      url = config.url,
-      user = config.user,
-      pass = config.password,
-      connectEC = ExecutionContext.global
-    )
+    val hikariConfig = HikariConfig()
+    hikariConfig.setDriverClassName("com.clickhouse.jdbc.ClickHouseDriver")
+    hikariConfig.setJdbcUrl(config.url)
+    hikariConfig.setUsername(config.user)
+    hikariConfig.setPassword(config.password)
+    hikariConfig.setAutoCommit(true)
+    // ClickHouse does not support transactions; use a void strategy
+    // to prevent doobie from calling setAutoCommit/commit/rollback.
+    HikariTransactor.fromHikariConfig[IO](hikariConfig).map(xa => Transactor.strategy.set(xa, Strategy.void))
