@@ -5,6 +5,8 @@ import cats.effect.*
 import com.dimafeng.testcontainers.ClickHouseContainer
 import org.testcontainers.utility.DockerImageName
 
+import scala.concurrent.duration.*
+
 object ClickHouseContainerSetup:
 
   def resource: Resource[IO, ClickHouseClient[IO]] =
@@ -19,7 +21,7 @@ object ClickHouseContainerSetup:
         container.password,
         1,
         1_073_741_824L,
-        30
+        30.seconds
       )
       xa <- ClickHouseTransactor.make(config)
       client = ClickHouseClient.make(xa)

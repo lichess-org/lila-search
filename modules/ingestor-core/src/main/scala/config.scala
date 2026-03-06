@@ -121,7 +121,13 @@ object IngestorConfigLoader:
       env("INGESTOR_GAME_TIME_WINDOWS").or(prop("ingestor.game.time.windows")).as[Int].default(10)
     private def startAt =
       env("INGESTOR_GAME_START_AT").or(prop("ingestor.game.start.at")).as[Instant].option
-    def config = (batchSize, timeWindows, startAt).mapN(IngestorConfig.Game.apply)
+    private def meteredDuration =
+      env("INGESTOR_GAME_METERED_DURATION")
+        .or(prop("ingestor.game.metered.duration"))
+        .as[Long]
+        .default(1000)
+        .map(_.millis)
+    def config = (batchSize, timeWindows, startAt, meteredDuration).mapN(IngestorConfig.Game.apply)
 
   def config = (Forum.config, Ublog.config, Team.config, Study.config, Game.config).mapN(IngestorConfig.apply)
 

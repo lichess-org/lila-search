@@ -20,7 +20,7 @@ The real-time game ingestor is **commented out** in `ingestors.scala:29,38` — 
 
 ### P0 — Must fix
 
-1. **Enable game ingestor** — Uncomment lines 29 and 38 in `ingestors.scala`. Without this, no live games flow to CH.
+1. - [x] **Enable game ingestor** — Uncomment lines 29 and 38 in `ingestors.scala`. Without this, no live games flow to CH.
 
 2. ~~**Query timeouts**~~ — Done. `max_execution_time` (default 30s) set at JDBC connection level via `ClickHouseConfig.maxExecutionTime`, configurable via `CLICKHOUSE_MAX_EXECUTION_TIME` env var.
 
@@ -41,7 +41,7 @@ The real-time game ingestor is **commented out** in `ingestors.scala:29,38` — 
    - Error counters
    - Could wrap `ClickHouseClient` with a metrics decorator using otel4s (already in deps)
 
-9. ~~**Query resource limits**~~ — Done. `max_memory_usage` (default 1GB) already set at connection level. `max_execution_time` (default 30s) now also set.
+9. [x] ~~**Query resource limits**~~ — Done. `max_memory_usage` (default 1GB) already set at connection level. `max_execution_time` (default 30s) now also set.
 
 10. ~~**`FINAL` performance at scale**~~ — Done. `do_not_merge_across_partitions_select_final=1` set at connection level (safe: partition key guarantees duplicates are partition-local). `OPTIMIZE TABLE` available via CLI (`ingestor-cli optimize --partition YYYYMM` / `--all`) for pre-merging partitions so FINAL is nearly free. Benchmarking on real data still recommended before cutover.
 

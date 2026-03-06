@@ -92,7 +92,7 @@ object GameRepo:
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList)
-          .metered(1.second) // to avoid overloading the elasticsearch
+          .metered(config.meteredDuration) // to avoid overloading the elasticsearch
           .map(ds => Result(ds, Nil, None))
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =

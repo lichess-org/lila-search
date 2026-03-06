@@ -7,6 +7,8 @@ import com.dimafeng.testcontainers.ClickHouseContainer as CHContainer
 import lila.search.clickhouse.{ ClickHouseClient, ClickHouseConfig, ClickHouseTransactor }
 import org.testcontainers.utility.DockerImageName
 
+import scala.concurrent.duration.*
+
 object ClickHouseContainer:
 
   def start: Resource[IO, (ClickHouseConfig, ClickHouseClient[IO])] =
@@ -21,7 +23,7 @@ object ClickHouseContainer:
         container.password,
         1,
         1_073_741_824L,
-        30
+        30.seconds
       )
       xa <- ClickHouseTransactor.make(config)
       client = ClickHouseClient.make(xa)

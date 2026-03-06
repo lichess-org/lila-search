@@ -4,13 +4,15 @@ package clickhouse
 import cats.syntax.all.*
 import ciris.*
 
+import scala.concurrent.duration.*
+
 case class ClickHouseConfig(
     url: String,
     user: String,
     password: String,
     maxPoolSize: Int,
     maxQueryMemoryUsage: Long,
-    maxExecutionTime: Int
+    maxExecutionTime: FiniteDuration
 )
 
 object ClickHouseConfig:
@@ -29,5 +31,6 @@ object ClickHouseConfig:
     env("CLICKHOUSE_MAX_EXECUTION_TIME")
       .or(prop("clickhouse.max.execution.time"))
       .as[Int]
-      .default(30) // seconds
+      .default(60) // seconds
+      .map(_.seconds)
   ).parMapN(ClickHouseConfig.apply)
