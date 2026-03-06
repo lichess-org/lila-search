@@ -18,7 +18,8 @@ object AppResources:
   def instance(conf: AppConfig)(using MeterProvider[IO]): Resource[IO, AppResources] =
     val chResource: Resource[IO, ClickHouseClient[IO]] = conf.gameBackend match
       case GameSearchBackend.ElasticOnly => Resource.pure(ClickHouseClient.noop)
-      case GameSearchBackend.ClickHouseOnly => ClickHouseClient.resource(conf.clickhouse)
+      case GameSearchBackend.ClickHouseOnly | GameSearchBackend.Dual =>
+        ClickHouseClient.resource(conf.clickhouse)
 
     (makeElasticClient(conf.elastic), chResource).parMapN(AppResources.apply)
 

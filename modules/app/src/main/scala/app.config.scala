@@ -13,6 +13,7 @@ import org.http4s.implicits.*
 enum GameSearchBackend:
   case ElasticOnly
   case ClickHouseOnly
+  case Dual
 
 object AppConfig:
 
@@ -33,6 +34,7 @@ object AppConfig:
       .map:
         case "elastic" => GameSearchBackend.ElasticOnly
         case "clickhouse" => GameSearchBackend.ClickHouseOnly
+        case "dual" => GameSearchBackend.Dual
 
 case class AppConfig(
     server: HttpServerConfig,

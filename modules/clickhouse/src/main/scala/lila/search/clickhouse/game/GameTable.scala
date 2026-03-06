@@ -56,7 +56,7 @@ case class GameRow(
     analysed: Boolean,
     whiteRating: Int,
     blackRating: Int,
-    aiLevel: Int,
+    aiLevel: Int, // stockfish level from 1 to 8, 0 means no stockfish
     duration: Int,
     clockInit: Option[Int],
     clockInc: Option[Int],
