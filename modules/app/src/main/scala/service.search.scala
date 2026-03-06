@@ -13,8 +13,8 @@ import lila.search.study.Study
 import lila.search.team.Team
 import lila.search.ublog.Ublog
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
-import org.typelevel.otel4s.metrics.*
 import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.metrics.*
 import smithy4s.Timestamp
 
 import java.time.Instant

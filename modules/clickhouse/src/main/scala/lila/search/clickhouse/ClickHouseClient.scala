@@ -15,6 +15,8 @@ trait ClickHouseClient[F[_]]:
   def deleteGames(ids: List[String]): F[Unit]
   def createTable: F[Unit]
   def health: F[Boolean]
+  def optimizePartition(partition: String): F[Unit]
+  def optimizeAll: F[Unit]
 
 object ClickHouseClient:
 
@@ -29,6 +31,10 @@ object ClickHouseClient:
       GameIngest.deleteGames(ids).transact(xa)
     def createTable =
       GameTable.create.transact(xa).void
+    def optimizePartition(partition: String) =
+      GameIngest.optimizePartition(partition).transact(xa)
+    def optimizeAll =
+      GameIngest.optimizeAll.transact(xa)
     def health =
       sql"SELECT 1".query[Int].unique.transact(xa).map(_ == 1).handleError(_ => false)
 
@@ -44,4 +50,6 @@ object ClickHouseClient:
     def upsertGameRows(rows: List[game.GameRow]) = IO.unit
     def deleteGames(ids: List[String]) = IO.unit
     def createTable = IO.unit
+    def optimizePartition(partition: String) = IO.unit
+    def optimizeAll = IO.unit
     def health = IO.pure(true)

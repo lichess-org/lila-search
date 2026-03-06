@@ -24,15 +24,29 @@ object cli
   given MeterProvider[IO] = MeterProvider.noop[IO]
 
   override def main: Opts[IO[ExitCode]] =
-    opts.parse.map: opts =>
-      Logger[IO].info(s"Starting lila-search-cli with ${opts.toString}") *>
-        makeIndexer.use(_.index(opts)).as(ExitCode.Success)
+    indexCommand orElse optimizeCommand
+
+  private def indexCommand: Opts[IO[ExitCode]] =
+    opts.parseIndex.map: indexOpts =>
+      Logger[IO].info(s"Starting lila-search-cli with ${indexOpts.toString}") *>
+        makeIndexer.use(_.index(indexOpts)).as(ExitCode.Success)
+
+  private def optimizeCommand: Opts[IO[ExitCode]] =
+    opts.parseOptimize.map: optimizeOpts =>
+      Logger[IO].info(s"Starting optimize with ${optimizeOpts.toString}") *>
+        makeOptimizer.use(_.optimize(optimizeOpts)).as(ExitCode.Success)
 
   private def makeIndexer =
     for
       config <- AppConfig.load.toResource
       res <- AppResources.instance(config)
     yield Indexer(res, config)
+
+  private def makeOptimizer =
+    for
+      config <- AppConfig.load.toResource
+      ch <- lila.search.clickhouse.ClickHouseClient.resource(config.clickhouse)
+    yield Optimizer(ch)
 
 object opts:
   case class IndexOpts(
@@ -44,7 +58,20 @@ object opts:
       watch: Boolean
   )
 
-  def parse = Opts.subcommand("index", "index documents")(indexOpt)
+  enum OptimizeTarget:
+    case Partition(value: String)
+    case All
+
+  case class OptimizeOpts(target: OptimizeTarget)
+
+  def parseIndex = Opts.subcommand("index", "index documents")(indexOpt)
+
+  def parseOptimize = Opts.subcommand(
+    "optimize",
+    "Merge parts within ClickHouse game table partitions. " +
+      "This pre-deduplicates rows so SELECT ... FINAL is nearly free at query time. " +
+      "Run after backfill, or nightly on recent partitions."
+  )(optimizeOpt)
 
   val singleIndexOpt =
     Opts
@@ -110,6 +137,23 @@ object opts:
 
   given Argument[Index] =
     Argument.from("index")(Index.fromString(_).toValidatedNel)
+
+  private val partitionOpt =
+    Opts
+      .option[String](
+        long = "partition",
+        help = "Partition to optimize (YYYYMM format, e.g. 202401)",
+        short = "p",
+        metavar = "YYYYMM"
+      )
+      .map(OptimizeTarget.Partition.apply)
+
+  private val allPartitionsOpt =
+    Opts
+      .flag(long = "all", help = "Optimize all partitions")
+      .as(OptimizeTarget.All)
+
+  val optimizeOpt = (partitionOpt orElse allPartitionsOpt).map(OptimizeOpts.apply)
 
   given Argument[Instant] =
     Argument.from("time in epoch seconds"): str =>

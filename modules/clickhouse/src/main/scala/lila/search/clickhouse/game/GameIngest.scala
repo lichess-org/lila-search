@@ -30,3 +30,9 @@ object GameIngest:
   // todo batch delete with multiple ids, but for now we only have single deletes in the tests
   def deleteGames(ids: List[String]): ConnectionIO[Unit] =
     ids.traverse_(deleteGame)
+
+  def optimizePartition(partition: String): ConnectionIO[Unit] =
+    Fragment.const(s"OPTIMIZE TABLE games PARTITION '$partition' FINAL").update.run.void
+
+  def optimizeAll: ConnectionIO[Unit] =
+    Fragment.const("OPTIMIZE TABLE games FINAL").update.run.void

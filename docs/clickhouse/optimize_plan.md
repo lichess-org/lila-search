@@ -18,7 +18,7 @@ Target: 10B+ games, growing continuously.
 - [x] **Chess960 position** — `chess960_pos UInt16` column (1000 if not Chess960)
 - [ ] **Projections for O(log n) user lookups** — `PROJECTION prj_white (SELECT * ORDER BY white_user, date)` / `prj_black`. Doubles storage. Add only if bloom filters prove insufficient at scale.
 - [ ] **`LowCardinality(String)` for usernames** — if distinct count is under ~10M, could cut string storage in half
-- [ ] **FINAL overhead mitigation** — periodic `OPTIMIZE TABLE games PARTITION ... FINAL` to pre-merge duplicates so `FINAL` is nearly free at query time
+- [x] **FINAL overhead mitigation** — `do_not_merge_across_partitions_select_final=1` set at connection level (safe because partition key guarantees duplicates are partition-local); `OPTIMIZE TABLE` CLI command available via `ingestor-cli optimize --partition YYYYMM` or `--all`
 
 ## Current Schema
 

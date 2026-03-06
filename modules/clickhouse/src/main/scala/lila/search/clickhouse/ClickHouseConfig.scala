@@ -9,7 +9,8 @@ case class ClickHouseConfig(
     user: String,
     password: String,
     maxPoolSize: Int,
-    maxQueryMemoryUsage: Long
+    maxQueryMemoryUsage: Long,
+    maxExecutionTime: Int
 )
 
 object ClickHouseConfig:
@@ -24,5 +25,9 @@ object ClickHouseConfig:
     env("CLICKHOUSE_MAX_QUERY_MEMORY_USAGE")
       .or(prop("clickhouse.max.query.memory.usage"))
       .as[Long]
-      .default(1_073_741_824L) // 1GB
+      .default(1_073_741_824L), // 1GB
+    env("CLICKHOUSE_MAX_EXECUTION_TIME")
+      .or(prop("clickhouse.max.execution.time"))
+      .as[Int]
+      .default(30) // seconds
   ).parMapN(ClickHouseConfig.apply)

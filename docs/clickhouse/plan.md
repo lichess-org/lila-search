@@ -22,7 +22,7 @@ The real-time game ingestor is **commented out** in `ingestors.scala:29,38` — 
 
 1. **Enable game ingestor** — Uncomment lines 29 and 38 in `ingestors.scala`. Without this, no live games flow to CH.
 
-2. **Query timeouts** — `GameSearch.search/count` have no timeout. A query scanning 5B rows without date bounds could run for minutes. Add `SETTINGS max_execution_time=10` to search queries, or set it at the JDBC connection level.
+2. ~~**Query timeouts**~~ — Done. `max_execution_time` (default 30s) set at JDBC connection level via `ClickHouseConfig.maxExecutionTime`, configurable via `CLICKHOUSE_MAX_EXECUTION_TIME` env var.
 
 3. **Switch to lightweight `DELETE`** — Current `ALTER TABLE DELETE WHERE id = $id SETTINGS mutations_sync=1` is a heavy mutation (rewrites entire parts). CH 23.3+ supports `DELETE FROM games WHERE id = $id` which is much lighter. Since we're on clickhouse-jdbc 0.9.7, the server should support this.
 
@@ -41,12 +41,9 @@ The real-time game ingestor is **commented out** in `ingestors.scala:29,38` — 
    - Error counters
    - Could wrap `ClickHouseClient` with a metrics decorator using otel4s (already in deps)
 
-9. **Query resource limits** — Add `max_memory_usage` (e.g., 1GB per query) to prevent a single expensive query from OOMing the CH server. Can be set via JDBC URL parameters.
+9. ~~**Query resource limits**~~ — Done. `max_memory_usage` (default 1GB) already set at connection level. `max_execution_time` (default 30s) now also set.
 
-10. **`FINAL` performance at scale** — Every query uses `SELECT ... FROM games FINAL`, forcing on-read deduplication across all matching parts. At 5B rows, this is potentially expensive. Consider:
-    - Running `OPTIMIZE TABLE games FINAL` on a schedule (e.g., nightly per partition)
-    - Setting `do_not_merge_across_partitions_select_final=1` so FINAL only deduplicates within partitions
-    - Benchmarking with and without FINAL on real data
+10. ~~**`FINAL` performance at scale**~~ — Done. `do_not_merge_across_partitions_select_final=1` set at connection level (safe: partition key guarantees duplicates are partition-local). `OPTIMIZE TABLE` available via CLI (`ingestor-cli optimize --partition YYYYMM` / `--all`) for pre-merging partitions so FINAL is nearly free. Benchmarking on real data still recommended before cutover.
 
 ### P2 — Future optimization
 

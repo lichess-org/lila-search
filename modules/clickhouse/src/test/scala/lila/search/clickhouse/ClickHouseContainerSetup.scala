@@ -13,7 +13,14 @@ object ClickHouseContainerSetup:
         IO(ClickHouseContainer(DockerImageName.parse("clickhouse/clickhouse-server:24.8-alpine")))
           .flatTap(c => IO(c.start()))
       )(c => IO(c.stop()))
-      config = ClickHouseConfig(container.jdbcUrl, container.username, container.password, 1, 1_073_741_824L)
+      config = ClickHouseConfig(
+        container.jdbcUrl,
+        container.username,
+        container.password,
+        1,
+        1_073_741_824L,
+        30
+      )
       xa <- ClickHouseTransactor.make(config)
       client = ClickHouseClient.make(xa)
       _ <- Resource.eval(client.createTable)
