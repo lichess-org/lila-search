@@ -16,6 +16,7 @@ object ClickHouseTransactor:
     hikariConfig.setPassword(config.password)
     hikariConfig.setMaximumPoolSize(config.maxPoolSize)
     hikariConfig.setAutoCommit(true)
+    hikariConfig.setConnectionInitSql(s"SET max_memory_usage = ${config.maxQueryMemoryUsage}")
     // ClickHouse does not support transactions; use a void strategy
     // to prevent doobie from calling setAutoCommit/commit/rollback.
     HikariTransactor.fromHikariConfig[IO](hikariConfig).map(xa => Transactor.strategy.set(xa, Strategy.void))

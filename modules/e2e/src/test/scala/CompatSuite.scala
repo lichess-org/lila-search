@@ -61,7 +61,7 @@ object CompatSuite extends weaver.IOSuite:
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", false, shutdownTimeout = 1, false),
     elastic = ElasticConfig(uri"http://0.0.0.0:9200"),
-    clickhouse = ClickHouseConfig("jdbc:clickhouse://127.0.0.1:8123/lichess", "default", "", 1),
+    clickhouse = ClickHouseConfig("jdbc:clickhouse://127.0.0.1:8123/lichess", "default", "", 1, 1_073_741_824L),
     gameBackend = GameSearchBackend.ElasticOnly
   )
 

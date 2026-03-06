@@ -8,7 +8,8 @@ case class ClickHouseConfig(
     url: String,
     user: String,
     password: String,
-    maxPoolSize: Int
+    maxPoolSize: Int,
+    maxQueryMemoryUsage: Long
 )
 
 object ClickHouseConfig:
@@ -19,5 +20,9 @@ object ClickHouseConfig:
       .default("jdbc:clickhouse://127.0.0.1:8123/lichess"),
     env("CLICKHOUSE_USER").or(prop("clickhouse.user")).as[String].default("default"),
     env("CLICKHOUSE_PASSWORD").or(prop("clickhouse.password")).as[String].default(""),
-    env("CLICKHOUSE_MAX_POOL_SIZE").or(prop("clickhouse.max.pool.size")).as[Int].default(10)
+    env("CLICKHOUSE_MAX_POOL_SIZE").or(prop("clickhouse.max.pool.size")).as[Int].default(10),
+    env("CLICKHOUSE_MAX_QUERY_MEMORY_USAGE")
+      .or(prop("clickhouse.max.query.memory.usage"))
+      .as[Long]
+      .default(1_073_741_824L) // 1GB
   ).parMapN(ClickHouseConfig.apply)

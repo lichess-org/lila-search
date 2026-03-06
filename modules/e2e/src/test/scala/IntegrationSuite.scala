@@ -52,7 +52,7 @@ object IntegrationSuite extends IOSuite:
     server =
       HttpServerConfig(ip"0.0.0.0", port"9999", apiLogger = false, shutdownTimeout = 1, enableDocs = false),
     elastic = elastic,
-    clickhouse = ClickHouseConfig("jdbc:clickhouse://127.0.0.1:8123/lichess", "default", "", 1),
+    clickhouse = ClickHouseConfig("jdbc:clickhouse://127.0.0.1:8123/lichess", "default", "", 1, 1_073_741_824L),
     gameBackend = GameSearchBackend.ElasticOnly
   )
 
