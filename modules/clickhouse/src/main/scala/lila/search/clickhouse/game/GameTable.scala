@@ -33,6 +33,8 @@ object GameTable:
       clock_inc    Nullable(UInt16) CODEC(ZSTD(1)),
       source       Nullable(UInt8) CODEC(ZSTD(1)),
       chess960_pos UInt16 CODEC(ZSTD(1)),
+      white_bot    Bool CODEC(ZSTD(1)),
+      black_bot    Bool CODEC(ZSTD(1)),
 
       INDEX idx_white white_user TYPE bloom_filter(0.01) GRANULARITY 1,
       INDEX idx_black black_user TYPE bloom_filter(0.01) GRANULARITY 1
@@ -61,7 +63,9 @@ case class GameRow(
     whiteUser: String,
     blackUser: String,
     source: Option[Int],
-    chess960Position: Int // chess960 has 960 positions from 0 to 959, 1000 means it's not a chess960 game
+    chess960Position: Int, // chess960 has 960 positions from 0 to 959, 1000 means it's not a chess960 game
+    whiteBot: Boolean,
+    blackBot: Boolean
 )
 
 enum WinnerColor(val value: Int):
@@ -87,6 +91,6 @@ object GameRow:
 
   // format: off
   given Write[GameRow] =
-    Write[( String, Int, Int, Boolean, Int, WinnerColor, Instant, Boolean, Int, Int, Int, Int, Option[Int], Option[Int], String, String, Option[Int], Int)]
+    Write[( String, Int, Int, Boolean, Int, WinnerColor, Instant, Boolean, Int, Int, Int, Int, Option[Int], Option[Int], String, String, Option[Int], Int, Boolean, Boolean)]
       .contramap: r =>
-        (r.id, r.status, r.turns, r.rated, r.perf, r.winnerColor, r.date, r.analysed, r.whiteRating, r.blackRating, r.aiLevel, r.duration, r.clockInit, r.clockInc, r.whiteUser, r.blackUser, r.source, r.chess960Position)
+        (r.id, r.status, r.turns, r.rated, r.perf, r.winnerColor, r.date, r.analysed, r.whiteRating, r.blackRating, r.aiLevel, r.duration, r.clockInit, r.clockInc, r.whiteUser, r.blackUser, r.source, r.chess960Position, r.whiteBot, r.blackBot)

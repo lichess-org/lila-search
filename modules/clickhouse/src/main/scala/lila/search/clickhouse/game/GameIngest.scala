@@ -13,8 +13,8 @@ object GameIngest:
     """INSERT INTO games
        (id,status,turns,rated,perf,winner_color,date,analysed,
         white_rating,black_rating,ai_level,duration,clock_init,clock_inc,
-        white_user,black_user,source,chess960_pos)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
+        white_user,black_user,source,chess960_pos,white_bot,black_bot)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
 
   private val insertUpdate = Update[GameRow](insertSql)
 

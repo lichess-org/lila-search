@@ -21,7 +21,8 @@ object Ingestors:
       elastic: ESClient[IO],
       clickhouse: ClickHouseClient[IO],
       config: IngestorConfig,
-      gameIngestBackend: GameIngestBackend
+      gameIngestBackend: GameIngestBackend,
+      botCache: BotUserCache
   )(using LoggerFactory[IO]): IO[Unit] =
     (
       ForumRepo(lichess, config.forum),
@@ -36,7 +37,12 @@ object Ingestors:
         // run(Index.Ublog, ublogs, ESIngestor(Index.Ublog, elastic), config.ublog.startAt),
         run(Index.Study, study2s, ESIngestor(Index.Study, elastic), config.study.startAt),
         run(Index.Team, teams, ESIngestor(Index.Team, elastic), config.team.startAt),
-        run(Index.Game, games, GameIngestor(gameIngestBackend, elastic, clickhouse), config.game.startAt)
+        run(
+          Index.Game,
+          games,
+          GameIngestor(gameIngestBackend, elastic, clickhouse, botCache),
+          config.game.startAt
+        )
       ).parSequence_
 
   private def run[A](

@@ -31,7 +31,9 @@ object Translate:
     )
 
   import lila.search.clickhouse.game.{ GameRow, WinnerColor }
-  def toGameRow(g: DbGame): GameRow =
+  def toGameRow(g: DbGame, botIds: Set[String]): GameRow =
+    val whiteUser = g.whiteId.getOrElse("")
+    val blackUser = g.blackId.getOrElse("")
     GameRow(
       id = g.id,
       status = g.status,
@@ -54,10 +56,12 @@ object Translate:
       duration = durationSeconds(g),
       clockInit = g.clockInit,
       clockInc = g.clockInc,
-      whiteUser = g.whiteId.getOrElse(""),
-      blackUser = g.blackId.getOrElse(""),
+      whiteUser = whiteUser,
+      blackUser = blackUser,
       source = g.source,
-      chess960Position = g.chess960Position.getOrElse(1000)
+      chess960Position = g.chess960Position.getOrElse(1000),
+      whiteBot = whiteUser.nonEmpty && botIds.contains(whiteUser),
+      blackBot = blackUser.nonEmpty && botIds.contains(blackUser)
     )
 
   // Helper: calculate average users rating

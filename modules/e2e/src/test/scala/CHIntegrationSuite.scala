@@ -98,7 +98,9 @@ object CHIntegrationSuite extends IOSuite:
       whiteUser = players.headOption.getOrElse(""),
       blackUser = players.lift(1).getOrElse(""),
       source = source,
-      chess960Position = 1000
+      chess960Position = 1000,
+      whiteBot = false,
+      blackBot = false
     )
 
   test("game search via CH"): ch =>

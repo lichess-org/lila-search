@@ -36,7 +36,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
           GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
             val ingestor: Ingestor[DbGame] =
               if opts.dry then DryRunIngestor(index)
-              else GameIngestor(backend, res.elastic, res.clickhouse)
+              else GameIngestor(backend, res.elastic, res.clickhouse, res.botCache)
             val stream =
               if opts.watch then fs2.Stream.eval(opts.since.some.pure[IO]).flatMap(repo.watch)
               else repo.fetchAll(opts.since, opts.until)
