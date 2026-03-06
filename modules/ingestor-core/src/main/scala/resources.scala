@@ -21,13 +21,16 @@ class AppResources(
 object AppResources:
 
   def instance(conf: AppConfig)(using MeterProvider[IO]): Resource[IO, AppResources] =
+    val chResource: Resource[IO, ClickHouseClient[IO]] = conf.gameIngestBackend match
+      case GameIngestBackend.Elastic => Resource.pure(ClickHouseClient.noop)
+      case _                        => ClickHouseClient.resource(conf.clickhouse)
     (
       conf.mongo.makeMongoClient,
       conf.mongo.makeStudyMongoClient,
       conf.mongo.makeStudyOplogClient,
       makeElasticClient(conf.elastic),
       KVStore(conf.kvStorePath).toResource,
-      ClickHouseClient.resource(conf.clickhouse)
+      chResource
     ).parMapN(AppResources.apply)
 
   private def makeElasticClient(conf: ElasticConfig)(using MeterProvider[IO]): Resource[IO, ESClient[IO]] =

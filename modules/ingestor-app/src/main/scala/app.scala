@@ -56,5 +56,6 @@ class IngestorApp(res: AppResources, config: AppConfig)(using Logger[IO], Logger
         res.store,
         res.elastic,
         res.clickhouse,
-        config.ingestor
+        config.ingestor,
+        config.gameIngestBackend
       )

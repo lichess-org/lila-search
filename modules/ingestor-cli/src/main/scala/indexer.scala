@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.mtl.Handle
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
-import lila.search.ingestor.game.CHGameIngestor
+import lila.search.ingestor.game.GameIngestor
 import lila.search.ingestor.opts.IndexOpts
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
@@ -28,15 +28,20 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
     def go(index: Index) = index match
       case Index.Game =>
-        res.clickhouse.createTable.whenA(!opts.dry) *>
+        val backend = config.gameIngestBackend
+        val needsCH = backend != GameIngestBackend.Elastic
+        val needsES = backend != GameIngestBackend.ClickHouse
+        res.clickhouse.createTable.whenA(needsCH && !opts.dry) *>
+          putMappingsIfNotExists(res.elastic, index).whenA(needsES && !opts.dry) *>
           GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
             val ingestor: Ingestor[DbGame] =
               if opts.dry then DryRunIngestor(index)
-              else CHGameIngestor(res.clickhouse)
+              else GameIngestor(backend, res.elastic, res.clickhouse)
             val stream =
               if opts.watch then fs2.Stream.eval(opts.since.some.pure[IO]).flatMap(repo.watch)
               else repo.fetchAll(opts.since, opts.until)
-            ingestor.ingest(stream)
+            ingestor.ingest(stream) *>
+              refreshIndexes(res.elastic, index).whenA(needsES && opts.refresh && !opts.dry)
       case _ =>
         putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
           runIndex(index, opts) *>

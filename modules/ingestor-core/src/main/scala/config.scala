@@ -14,18 +14,32 @@ import scala.concurrent.duration.*
 
 import CirisCodec.given
 
+enum GameIngestBackend:
+  case Elastic, ClickHouse, Both
+
 object AppConfig:
 
   def load: IO[AppConfig] = appConfig.load[IO]
 
   private def kvStorePath = env("KV_STORE_PATH").or(prop("kv.store.path")).as[String].default("store.json")
 
+  private def gameIngestBackend =
+    env("GAME_INGEST_BACKEND")
+      .or(prop("game.ingest.backend"))
+      .as[String]
+      .default("elastic")
+      .map:
+        case "elastic" => GameIngestBackend.Elastic
+        case "clickhouse" => GameIngestBackend.ClickHouse
+        case "both" => GameIngestBackend.Both
+
   def appConfig = (
     MongoConfigLoader.config,
     ElasticConfig.config,
     IngestorConfigLoader.config,
     kvStorePath,
-    ClickHouseConfig.config
+    ClickHouseConfig.config,
+    gameIngestBackend
   ).parMapN(AppConfig.apply)
 
 case class AppConfig(
@@ -33,7 +47,8 @@ case class AppConfig(
     elastic: ElasticConfig,
     ingestor: IngestorConfig,
     kvStorePath: String,
-    clickhouse: ClickHouseConfig
+    clickhouse: ClickHouseConfig,
+    gameIngestBackend: GameIngestBackend
 )
 
 private def studyDatabase =

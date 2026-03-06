@@ -32,7 +32,7 @@ The real-time game ingestor is **commented out** in `ingestors.scala:29,38` — 
 
 ### P1 — Production readiness
 
-6. **Dual-write ingestion** — During migration, ingest game events to **both** ES and CH. This keeps ES as a hot standby for rollback. Currently the architecture is either/or.
+- [x]. **Dual-write ingestion** — During migration, ingest game events to **both** ES and CH. This keeps ES as a hot standby for rollback. Currently the architecture is either/or.
 
 7. **Shadow query mode** — Add a `dual` backend option that queries both ES and CH, returns ES results, but logs any differences and CH latency. This validates correctness before cutover.
 
