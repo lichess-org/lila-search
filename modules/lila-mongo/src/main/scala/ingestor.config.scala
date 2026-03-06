@@ -2,7 +2,7 @@ package lila.search
 package ingestor
 
 import java.time.Instant
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.*
 
 case class IngestorConfig(
     forum: IngestorConfig.Forum,
@@ -17,4 +17,4 @@ object IngestorConfig:
   case class Ublog(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
   case class Team(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
   case class Study(batchSize: Int, startAt: Option[Instant], interval: FiniteDuration, databaseName: String)
-  case class Game(batchSize: Int, timeWindows: Int, startAt: Option[Instant])
+  case class Game(batchSize: Int, timeWindows: Int, startAt: Option[Instant], meteredDuration: FiniteDuration)

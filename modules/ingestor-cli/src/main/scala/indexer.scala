@@ -5,10 +5,9 @@ import cats.effect.IO
 import cats.mtl.Handle
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
-import lila.search.ingestor.opts.{ IndexOpts, ReindexOpts }
+import lila.search.ingestor.game.GameIngestor
+import lila.search.ingestor.opts.IndexOpts
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
-
-import java.time.Instant
 
 object Indexer:
 
@@ -22,87 +21,54 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
   import Indexer.*
 
   given logger: Logger[IO] = LoggerFactory[IO].getLogger
-  given registry: IndexRegistry = IndexRegistry(
-    GameRepo(res.lichess, config.ingestor.game),
-    ForumRepo(res.lichess, config.ingestor.forum),
-    UblogRepo(res.lichess, config.ingestor.ublog),
-    StudyRepo(res.study, res.studyLocal, config.ingestor.study),
-    TeamRepo(res.lichess, config.ingestor.team)
-  )
   given KVStore = res.store
   given ESClient[IO] = res.elastic
 
   def index(opts: IndexOpts): IO[Unit] =
 
-    def go(index: Index) =
-      putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
-        runIndex(index, opts) *>
-        refreshIndexes(res.elastic, index).whenA(opts.refresh && !opts.dry)
+    def go(index: Index) = index match
+      case Index.Game =>
+        val backend = config.gameIngestBackend
+        val needsCH = backend != GameIngestBackend.Elastic
+        val needsES = backend != GameIngestBackend.ClickHouse
+        res.clickhouse.createTable.whenA(needsCH && !opts.dry) *>
+          putMappingsIfNotExists(res.elastic, index).whenA(needsES && !opts.dry) *>
+          GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
+            val ingestor: Ingestor[DbGame] =
+              if opts.dry then DryRunIngestor(index)
+              else GameIngestor(backend, res.elastic, res.clickhouse, res.botCache)
+            val stream =
+              if opts.watch then fs2.Stream.eval(opts.since.some.pure[IO]).flatMap(repo.watch)
+              else repo.fetchAll(opts.since, opts.until)
+            ingestor.ingest(stream) *>
+              refreshIndexes(res.elastic, index).whenA(needsES && opts.refresh && !opts.dry)
+      case _ =>
+        putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
+          runIndex(index, opts) *>
+          refreshIndexes(res.elastic, index).whenA(opts.refresh && !opts.dry)
 
     opts.index.toList.traverse_(go)
 
-  def reindex(opts: ReindexOpts) =
-    def go(index: Index) =
-      putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
-        runReindex(index, opts) *>
-        refreshIndexes(res.elastic, index).whenA(!opts.dry)
-    if opts.index != Index.Study then
-      logger.warn(
-        s"Reindexing is only supported for the Study index. No action taken for ${opts.index.toString}."
-      )
-    else opts.index.toList.traverse_(go)
-
-  def runIndex(index: Index, opts: IndexOpts): IO[Unit] =
-    given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
-    val im = registry(index)
-    im.withRepo: repo =>
-      val stream =
-        if opts.watch then repo.watch(opts.since.some)
-        else repo.fetchAll(opts.since, opts.until)
-      val f: Repo.Result[im.Out] => IO[Unit] =
-        if opts.dry then
-          result =>
-            result.toIndex.traverse_(item => Logger[IO].info(s"Dry run - would index ${item.id}")) *>
-              result.toDelete.traverse_(id => Logger[IO].info(s"Dry run - would delete ${id.value}"))
-        else index.updateElastic
-
-      stream
-        .evalMap(f)
-        .compile
-        .drain
-
-  /**
-   * Reindex all documents in the index, while handling deletions that occur during the process.
-   *
-   * Reindexing process:
-   *   1. Fetch all documents from the source and index them
-   *   2. Start a background process to log deleted IDs every hour
-   *   3. After indexing is complete, read the deleted IDs log and delete those from the index
-   */
-  def runReindex(
+  private def runES[A: Indexable: HasStringId](
       index: Index,
-      opts: ReindexOpts
+      repo: IO[Repo[A]],
+      opts: IndexOpts
   ): IO[Unit] =
-    import opts.{ since, until, dry }
+    repo.flatMap: r =>
+      val ingestor: Ingestor[A] =
+        if opts.dry then DryRunIngestor(index)
+        else ESIngestor(index, res.elastic)
+      val stream =
+        if opts.watch then r.watch(opts.since.some)
+        else r.fetchAll(opts.since, opts.until)
+      ingestor.ingest(stream)
 
-    def store_[A: Indexable: HasStringId](sources: List[A]): IO[Unit] =
-      if dry then
-        Logger[IO].info(s"Dry run - would index ${sources.size} docs to ${index.value}")
-          *> sources.traverse_(item =>
-            Logger[IO].debug(s"Dry run - would index ${summon[Indexable[A]].json(item)}")
-          )
-      else index.storeBulk(sources)
-
-    given logger: Logger[IO] = LoggerFactory.getLoggerFromName(s"${index.value}.ingestor")
-    val now = until.getOrElse(Instant.now())
-    registry(index).withRepo: repo =>
-      repo
-        .fetchUpdate(since.getOrElse(Instant.EPOCH), now)
-        .evalTap(store_)
-        .map(_.size)
-        .compile
-        .fold(0)(_ + _)
-        .flatMap(total => logger.info(s"Reindexed $total documents for ${index.value}"))
+  def runIndex(index: Index, opts: IndexOpts): IO[Unit] = index match
+    case Index.Forum => runES(index, ForumRepo(res.lichess, config.ingestor.forum), opts)
+    case Index.Ublog => runES(index, UblogRepo(res.lichess, config.ingestor.ublog), opts)
+    case Index.Study => runES(index, StudyRepo(res.study, res.studyLocal, config.ingestor.study), opts)
+    case Index.Team => runES(index, TeamRepo(res.lichess, config.ingestor.team), opts)
+    case Index.Game => runES(index, GameRepo(res.lichess, config.ingestor.game), opts)
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index)(using Logger[IO]): IO[Unit] =
     Handle

@@ -15,6 +15,8 @@ trait KVStore:
 
 object KVStore:
 
+  def instance(using KvStore: KVStore): KVStore = KvStore
+
   given JsonValueCodec[Map[String, Long]] = JsonCodecMaker.make
 
   type State = Map[String, Long]

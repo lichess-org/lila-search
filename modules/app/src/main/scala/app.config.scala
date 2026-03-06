@@ -6,8 +6,14 @@ import cats.syntax.all.*
 import ciris.*
 import ciris.http4s.*
 import com.comcast.ip4s.*
+import lila.search.clickhouse.ClickHouseConfig
 import org.http4s.Uri
 import org.http4s.implicits.*
+
+enum GameSearchBackend:
+  case ElasticOnly
+  case ClickHouseOnly
+  case Dual
 
 object AppConfig:
 
@@ -15,12 +21,26 @@ object AppConfig:
 
   def appConfig = (
     HttpServerConfig.config,
-    ElasticConfig.config
+    ElasticConfig.config,
+    ClickHouseConfig.config,
+    gameSearchBackend
   ).parMapN(AppConfig.apply)
+
+  private def gameSearchBackend =
+    env("GAME_SEARCH_BACKEND")
+      .or(prop("game.search.backend"))
+      .as[String]
+      .default("elastic")
+      .map:
+        case "elastic" => GameSearchBackend.ElasticOnly
+        case "clickhouse" => GameSearchBackend.ClickHouseOnly
+        case "dual" => GameSearchBackend.Dual
 
 case class AppConfig(
     server: HttpServerConfig,
-    elastic: ElasticConfig
+    elastic: ElasticConfig,
+    clickhouse: ClickHouseConfig,
+    gameBackend: GameSearchBackend
 )
 
 case class HttpServerConfig(

@@ -11,6 +11,7 @@ import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
 import java.time.Instant
+import scala.concurrent.duration.*
 
 object cli
     extends CommandIOApp(
@@ -35,7 +36,8 @@ object cli
     val ingestorConfig = IngestorConfig.Game(
       batchSize = opts.batchSize,
       timeWindows = opts.timeWindows,
-      startAt = opts.since.some
+      startAt = opts.since.some,
+      meteredDuration = 1.second
     )
     Logger[IO].info(s"Starting game export from ${opts.mongoUri}/${opts.mongoDatabase}") *>
       Logger[IO].info(s"Output: ${opts.output}, Since: ${opts.since.toString}, Watch: ${opts.watch}") *>

@@ -2,8 +2,8 @@ package lila.search
 package ingestor
 
 import cats.syntax.all.*
-import chess.Speed
 import chess.variant.Variant
+import chess.{ Speed, Status }
 import lila.search.es.*
 
 object Translate:
@@ -22,12 +22,46 @@ object Translate:
       loser = g.loser,
       averageRating = averageUsersRating(g),
       ai = g.aiLevel,
-      duration = durationSeconds(g),
+      duration = durationSeconds(g).some,
       clockInit = g.clockInit,
       clockInc = g.clockInc,
       whiteUser = g.whiteId,
       blackUser = g.blackId,
       source = g.source
+    )
+
+  import lila.search.clickhouse.game.{ GameRow, WinnerColor }
+  def toGameRow(g: DbGame, botIds: Set[String]): GameRow =
+    val whiteUser = g.whiteId.getOrElse("")
+    val blackUser = g.blackId.getOrElse("")
+    GameRow(
+      id = g.id,
+      status = g.status,
+      turns = (g.ply + 1) / 2,
+      rated = g.rated.getOrElse(false),
+      perf = perfId(g.variantOrDefault, g.speed),
+      winnerColor = g.winnerColor match
+        case Some(true) => WinnerColor.White
+        case Some(false) => WinnerColor.Black
+        case None =>
+          // If the game is not finished, we set it to unknown
+          // If the game is finished and there is no winner, it means it's a draw except when the status is UnknownFinish
+          if g.status > Status.Stalemate.id && g.status != Status.UnknownFinish.id then WinnerColor.Draw
+          else WinnerColor.Unknown,
+      date = g.movedAt,
+      analysed = g.analysed.getOrElse(false),
+      whiteRating = g.whitePlayer.flatMap(_.rating).getOrElse(0),
+      blackRating = g.blackPlayer.flatMap(_.rating).getOrElse(0),
+      aiLevel = g.aiLevel.getOrElse(0),
+      duration = durationSeconds(g),
+      clockInit = g.clockInit,
+      clockInc = g.clockInc,
+      whiteUser = whiteUser,
+      blackUser = blackUser,
+      source = g.source,
+      chess960Position = g.chess960Position.getOrElse(1000),
+      whiteBot = whiteUser.nonEmpty && botIds.contains(whiteUser),
+      blackBot = blackUser.nonEmpty && botIds.contains(blackUser)
     )
 
   // Helper: calculate average users rating
@@ -38,9 +72,13 @@ object Translate:
       case _ => None
 
   // Helper: calculate game duration in seconds
-  private def durationSeconds(g: DbGame): Option[Int] =
-    val seconds = (g.movedAt.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
-    Option.when(seconds < 60 * 60 * 12)(seconds.toInt)
+  private def durationSeconds(g: DbGame): Int =
+    // If there is no clock config, it means it's either a very old game or a correspondence game
+    if g.clockConfig.isEmpty then 0
+    else
+      val seconds = (g.movedAt.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
+      if seconds < 60 * 60 * 12 then seconds.toInt
+      else 60 * 60 * 12 + 1 // cap duration to 12 hours + 1 seconds for very long games
 
   // Helper: determine perf type based on variant and speed
   private def perfId(variant: Variant, speed: Speed): Int =

@@ -92,7 +92,7 @@ object GameRepo:
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList)
-          .metered(1.second) // to avoid overloading the elasticsearch
+          .metered(config.meteredDuration) // to avoid overloading the elasticsearch
           .map(ds => Result(ds, Nil, None))
 
     private def changes(since: Option[Instant]): fs2.Stream[IO, List[ChangeStreamDocument[DbGame]]] =
@@ -136,7 +136,8 @@ case class DbGame(
     rated: Option[Boolean], // ra
     variant: Option[Int], // v
     source: Option[Int], // so
-    winnerColor: Option[Boolean] // w
+    winnerColor: Option[Boolean], // w
+    chess960Position: Option[Int] // if
 ):
   def clockConfig: Option[Config] = encodedClock.flatMap(ClockDecoder.read)
   def clockInit: Option[Int] = clockConfig.map(_.limitSeconds.value)
@@ -153,9 +154,9 @@ case class DbGame(
 
 object DbGame:
   // format: off
-  given Decoder[DbGame] = Decoder.forProduct21(
+  given Decoder[DbGame] = Decoder.forProduct22(
     "_id", "us", "wid", "ca", "ua", "t", "an", "p0", "p1", "is", "ps",
-    "hp", "s", "c", "mt", "cw", "cb", "ra", "v", "so", "w")(DbGame.apply)
+    "hp", "s", "c", "mt", "cw", "cb", "ra", "v", "so", "w", "if")(DbGame.apply)
   // format: on
 
   // We don't write to the database so We don't need to implement this

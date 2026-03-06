@@ -5,6 +5,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import ciris.*
 import ciris.http4s.*
+import lila.search.clickhouse.ClickHouseConfig
 import org.http4s.Uri
 import org.http4s.implicits.*
 
@@ -13,24 +14,41 @@ import scala.concurrent.duration.*
 
 import CirisCodec.given
 
+enum GameIngestBackend:
+  case Elastic, ClickHouse, Both
+
 object AppConfig:
 
   def load: IO[AppConfig] = appConfig.load[IO]
 
   private def kvStorePath = env("KV_STORE_PATH").or(prop("kv.store.path")).as[String].default("store.json")
 
+  private def gameIngestBackend =
+    env("GAME_INGEST_BACKEND")
+      .or(prop("game.ingest.backend"))
+      .as[String]
+      .default("elastic")
+      .map:
+        case "elastic" => GameIngestBackend.Elastic
+        case "clickhouse" => GameIngestBackend.ClickHouse
+        case "both" => GameIngestBackend.Both
+
   def appConfig = (
     MongoConfigLoader.config,
     ElasticConfig.config,
     IngestorConfigLoader.config,
-    kvStorePath
+    kvStorePath,
+    ClickHouseConfig.config,
+    gameIngestBackend
   ).parMapN(AppConfig.apply)
 
 case class AppConfig(
     mongo: MongoConfig,
     elastic: ElasticConfig,
     ingestor: IngestorConfig,
-    kvStorePath: String
+    kvStorePath: String,
+    clickhouse: ClickHouseConfig,
+    gameIngestBackend: GameIngestBackend
 )
 
 private def studyDatabase =
@@ -103,7 +121,13 @@ object IngestorConfigLoader:
       env("INGESTOR_GAME_TIME_WINDOWS").or(prop("ingestor.game.time.windows")).as[Int].default(10)
     private def startAt =
       env("INGESTOR_GAME_START_AT").or(prop("ingestor.game.start.at")).as[Instant].option
-    def config = (batchSize, timeWindows, startAt).mapN(IngestorConfig.Game.apply)
+    private def meteredDuration =
+      env("INGESTOR_GAME_METERED_DURATION")
+        .or(prop("ingestor.game.metered.duration"))
+        .as[Long]
+        .default(1000)
+        .map(_.millis)
+    def config = (batchSize, timeWindows, startAt, meteredDuration).mapN(IngestorConfig.Game.apply)
 
   def config = (Forum.config, Ublog.config, Team.config, Study.config, Game.config).mapN(IngestorConfig.apply)
 

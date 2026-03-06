@@ -8,8 +8,9 @@ import cats.mtl.Raise
 import cats.syntax.all.*
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.ElasticError
+import lila.search.clickhouse.ClickHouseConfig
 import lila.search.es.*
-import lila.search.ingestor.IndexRegistry.given
+import lila.search.ingestor.given
 import lila.search.spec.*
 import org.http4s.Uri
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
@@ -21,6 +22,7 @@ import smithy4s.Timestamp
 import weaver.*
 
 import java.time.Instant
+import scala.concurrent.duration.*
 
 object IntegrationSuite extends IOSuite:
 
@@ -50,7 +52,16 @@ object IntegrationSuite extends IOSuite:
   def testAppConfig(elastic: ElasticConfig) = AppConfig(
     server =
       HttpServerConfig(ip"0.0.0.0", port"9999", apiLogger = false, shutdownTimeout = 1, enableDocs = false),
-    elastic = elastic
+    elastic = elastic,
+    clickhouse = ClickHouseConfig(
+      "jdbc:clickhouse://127.0.0.1:8123/lichess",
+      "default",
+      "",
+      1,
+      1_073_741_824L,
+      30.seconds
+    ),
+    gameBackend = GameSearchBackend.ElasticOnly
   )
 
   test("health check should return healthy"):

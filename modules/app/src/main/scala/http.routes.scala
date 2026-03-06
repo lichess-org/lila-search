@@ -12,14 +12,19 @@ import smithy4s.http4s.SimpleRestJsonBuilder
 
 def Routes(
     resources: AppResources,
-    config: HttpServerConfig
+    config: AppConfig
 )(using LoggerFactory[IO], MeterProvider[IO]): Resource[IO, HttpRoutes[IO]] =
 
   val healthServiceImpl = HealthServiceImpl(resources.esClient)
-  val searchServiceImpl = SearchServiceImpl(resources.esClient)
+
+  def searchService: IO[SearchServiceImpl] =
+    val metrics = config.gameBackend match
+      case GameSearchBackend.Dual => DualMetrics.make
+      case _ => IO.pure(DualMetrics.noop)
+    metrics.map(SearchServiceImpl(resources.esClient, resources.chClient, config.gameBackend, _))
 
   val search: Resource[IO, HttpRoutes[IO]] =
-    SimpleRestJsonBuilder.routes(searchServiceImpl).resource
+    Resource.eval(searchService).flatMap(svc => SimpleRestJsonBuilder.routes(svc).resource)
 
   val health: Resource[IO, HttpRoutes[IO]] =
     SimpleRestJsonBuilder.routes(healthServiceImpl).resource
@@ -33,7 +38,7 @@ def Routes(
       .map(_.reduceK)
 
   val allRoutes =
-    if config.enableDocs then apiRoutes.map(_ <+> docs)
+    if config.server.enableDocs then apiRoutes.map(_ <+> docs)
     else apiRoutes
 
-  allRoutes.evalMap(routes => MkMiddleware(config).map(md => md.apply(routes)))
+  allRoutes.evalMap(routes => MkMiddleware(config.server).map(md => md.apply(routes)))

@@ -3,7 +3,9 @@ package app
 
 import cats.effect.*
 import cats.mtl.Handle.*
+import cats.syntax.all.*
 import io.github.arainko.ducktape.*
+import lila.search.clickhouse.ClickHouseClient
 import lila.search.forum.Forum
 import lila.search.game.Game
 import lila.search.spec.*
@@ -11,17 +13,106 @@ import lila.search.study.Study
 import lila.search.team.Team
 import lila.search.ublog.Ublog
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.metrics.*
 import smithy4s.Timestamp
 
 import java.time.Instant
 
-class SearchServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends SearchService[IO]:
+class SearchServiceImpl(
+    esClient: ESClient[IO],
+    chClient: ClickHouseClient[IO],
+    gameBackend: GameSearchBackend,
+    dualMetrics: DualMetrics
+)(using LoggerFactory[IO])
+    extends SearchService[IO]:
 
   import SearchServiceImpl.given
 
   private val logger: Logger[IO] = LoggerFactory[IO].getLogger
 
   override def count(query: Query): IO[CountOutput] =
+    query match
+      case q: Query.Game => gameCount(q)
+      case _ => esCount(query)
+
+  override def search(query: Query, from: From, size: Size): IO[SearchOutput] =
+    query match
+      case q: Query.Game => gameSearch(q, from, size)
+      case _ => esSearch(query, from, size)
+
+  // --- game dispatch ---
+
+  private def gameSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
+    gameBackend match
+      case GameSearchBackend.ElasticOnly => esSearch(q, from, size)
+      case GameSearchBackend.ClickHouseOnly => chSearch(q, from, size)
+      case GameSearchBackend.Dual => dualSearch(q, from, size)
+
+  private def gameCount(q: Query.Game): IO[CountOutput] =
+    gameBackend match
+      case GameSearchBackend.ElasticOnly => esCount(q)
+      case GameSearchBackend.ClickHouseOnly => chCount(q)
+      case GameSearchBackend.Dual => dualCount(q)
+
+  // --- dual (shadow) mode ---
+
+  private def timed[A](io: IO[A]): IO[(A, Double)] =
+    IO.monotonic.flatMap: start =>
+      io.flatMap: a =>
+        IO.monotonic.map: end =>
+          (a, (end - start).toUnit(java.util.concurrent.TimeUnit.MILLISECONDS))
+
+  private def dualSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
+    timed(esSearch(q, from, size)).flatMap: (esResult, esMs) =>
+      dualMetrics.recordLatency(esMs, "elastic", "search") *>
+        shadowChSearch(q, from, size, esResult).start.void.as(esResult)
+
+  private def dualCount(q: Query.Game): IO[CountOutput] =
+    timed(esCount(q)).flatMap: (esResult, esMs) =>
+      dualMetrics.recordLatency(esMs, "elastic", "count") *>
+        shadowChCount(q, esResult).start.void.as(esResult)
+
+  private def shadowChSearch(
+      q: Query.Game,
+      from: From,
+      size: Size,
+      esResult: SearchOutput
+  ): IO[Unit] =
+    timed(chSearch(q, from, size))
+      .flatMap: (chResult, chMs) =>
+        dualMetrics.recordLatency(chMs, "clickhouse", "search") *>
+          dualMetrics.recordDiff("search", esResult.hitIds.size, chResult.hitIds.size)
+      .handleErrorWith: e =>
+        dualMetrics.recordError("search") *>
+          logger.error(e)("dual search: CH query failed")
+
+  private def shadowChCount(q: Query.Game, esResult: CountOutput): IO[Unit] =
+    timed(chCount(q))
+      .flatMap: (chResult, chMs) =>
+        dualMetrics.recordLatency(chMs, "clickhouse", "count") *>
+          dualMetrics.recordDiff("count", esResult.count.toInt, chResult.count.toInt)
+      .handleErrorWith: e =>
+        dualMetrics.recordError("count") *>
+          logger.error(e)("dual count: CH query failed")
+
+  // --- per-backend wrappers ---
+
+  private def chSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
+    chClient.searchGames(q.to[Game], from, size).map(ids => SearchOutput(ids.map(Id.apply)))
+
+  private def chCount(q: Query.Game): IO[CountOutput] =
+    chClient.countGames(q.to[Game]).map(n => CountOutput(n.toInt))
+
+  private def esSearch(query: Query, from: From, size: Size): IO[SearchOutput] =
+    allow:
+      esClient.search(query, from, size)
+    .rescue: e =>
+      logger.error(e.asException)(s"Error in search: query=${query.toString}") *>
+        IO.raiseError(InternalServerError("Internal server error"))
+    .map(SearchOutput.apply)
+
+  private def esCount(query: Query): IO[CountOutput] =
     allow:
       esClient.count(query)
     .rescue: e =>
@@ -29,13 +120,50 @@ class SearchServiceImpl(esClient: ESClient[IO])(using LoggerFactory[IO]) extends
         IO.raiseError(InternalServerError("Internal server error"))
     .map(CountOutput.apply)
 
-  override def search(query: Query, from: From, size: Size): IO[SearchOutput] =
-    allow:
-      esClient.search(query, from, size)
-    .rescue: e =>
-      logger.error(e.asException)(s"Error in search: query=${query.toString}, from=$from, size=$size") *>
-        IO.raiseError(InternalServerError("Internal server error"))
-    .map(SearchOutput.apply)
+class DualMetrics(
+    latency: Histogram[IO, Double],
+    resultDiff: Histogram[IO, Double],
+    errors: Counter[IO, Long]
+):
+  def recordLatency(ms: Double, backend: String, operation: String): IO[Unit] =
+    latency.record(ms, Attribute("backend", backend), Attribute("operation", operation))
+
+  def recordDiff(operation: String, esCount: Int, chCount: Int): IO[Unit] =
+    resultDiff.record(
+      (esCount - chCount).abs.toDouble,
+      Attribute("operation", operation)
+    )
+
+  def recordError(operation: String): IO[Unit] =
+    errors.add(1L, Attribute("operation", operation))
+
+object DualMetrics:
+
+  def make(using MeterProvider[IO]): IO[DualMetrics] =
+    MeterProvider[IO]
+      .get("game.dual")
+      .flatMap: meter =>
+        (
+          meter
+            .histogram[Double]("game.dual.latency")
+            .withUnit("ms")
+            .withDescription("Game search latency by backend")
+            .create,
+          meter
+            .histogram[Double]("game.dual.result.diff")
+            .withDescription("Absolute difference in result count between ES and CH")
+            .create,
+          meter
+            .counter[Long]("game.dual.error")
+            .withDescription("CH shadow query errors")
+            .create
+        ).mapN(DualMetrics.apply)
+
+  val noop: DualMetrics = DualMetrics(
+    Histogram.noop[IO, Double],
+    Histogram.noop[IO, Double],
+    Counter.noop[IO, Long]
+  )
 
 object SearchServiceImpl:
 
