@@ -36,11 +36,12 @@ object GameTable:
       white_bot    Bool CODEC(ZSTD(1)),
       black_bot    Bool CODEC(ZSTD(1)),
 
-      INDEX idx_white white_user TYPE bloom_filter(0.01) GRANULARITY 1,
-      INDEX idx_black black_user TYPE bloom_filter(0.01) GRANULARITY 1
+      PROJECTION proj_white (SELECT * ORDER BY white_user, date, id),
+      PROJECTION proj_black (SELECT * ORDER BY black_user, date, id)
     ) ENGINE = ReplacingMergeTree()
     PARTITION BY toYYYYMM(date)
     ORDER BY (date, id)
+    SETTINGS deduplicate_merge_projection_mode = 'rebuild'
   """
 
   def create: ConnectionIO[Int] = Fragment.const(ddl).update.run
