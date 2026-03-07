@@ -76,8 +76,8 @@ object CHIntegrationSuite extends IOSuite:
       blackRating: Int = 0,
       winnerColor: WinnerColor = WinnerColor.Unknown,
       duration: Int = 0,
-      clockInit: Option[Int] = None,
-      clockInc: Option[Int] = None,
+      clockInit: Int = -1,
+      clockInc: Int = -1,
       source: Int = 0
   ): GameRow =
     GameRow(
@@ -123,8 +123,8 @@ object CHIntegrationSuite extends IOSuite:
                 whiteRating = 150,
                 blackRating = 150,
                 duration = 100,
-                clockInit = Some(100),
-                clockInc = Some(200)
+                clockInit = 100,
+                clockInc = 200
               )
             )
           )

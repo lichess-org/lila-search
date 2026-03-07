@@ -54,8 +54,10 @@ object Translate:
       blackRating = g.blackPlayer.flatMap(_.rating).getOrElse(0),
       aiLevel = g.aiLevel.getOrElse(0),
       duration = durationSeconds(g),
-      clockInit = g.clockInit,
-      clockInc = g.clockInc,
+      // we set clockInit to -1 for games without clock config to distinguish them from games with clock config but 0 initial time
+      clockInit = g.clockInit.getOrElse(-1),
+      // we set clockInc to -1 for games without clock config to distinguish them from games with clock config but 0 increment
+      clockInc = g.clockInc.getOrElse(-1),
       whiteUser = whiteUser,
       blackUser = blackUser,
       source = g.source.getOrElse(0),

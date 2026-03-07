@@ -315,8 +315,8 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "ci1", players = List("user_ci1"), clockInit = Some(300)),
-          Fixtures.game(id = "ci2", players = List("user_ci1"), clockInit = Some(600))
+          Fixtures.game(id = "ci1", players = List("user_ci1"), clockInit = 300),
+          Fixtures.game(id = "ci2", players = List("user_ci1"), clockInit = 600)
         )
       )
       ids <- ch.searchGames(
@@ -331,8 +331,8 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "cinc1", players = List("user_cinc1"), clockInc = Some(0)),
-          Fixtures.game(id = "cinc2", players = List("user_cinc1"), clockInc = Some(5))
+          Fixtures.game(id = "cinc1", players = List("user_cinc1"), clockInc = 0),
+          Fixtures.game(id = "cinc2", players = List("user_cinc1"), clockInc = 5)
         )
       )
       ids <- ch.searchGames(
