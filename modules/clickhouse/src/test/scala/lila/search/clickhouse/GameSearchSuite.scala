@@ -242,6 +242,24 @@ object GameSearchSuite extends IOSuite:
       expect(between == List("ar2"))
   }
 
+  test("avg_rating range filter excludes games with missing ratings") { ch =>
+    for
+      _ <- ch.upsertGameRows(
+        List(
+          Fixtures.game(id = "ar4", players = List("user_avgr2"), whiteRating = 1500, blackRating = 1500),
+          Fixtures.game(id = "ar5", players = List("user_avgr2"), whiteRating = 1500, blackRating = 0),
+          Fixtures.game(id = "ar6", players = List("user_avgr2"), whiteRating = 0, blackRating = 1500),
+          Fixtures.game(id = "ar7", players = List("user_avgr2"), whiteRating = 0, blackRating = 0)
+        )
+      )
+      ids <- ch.searchGames(
+        Game(user1 = Some("user_avgr2"), averageRating = Range(Some(0), None)),
+        From(0),
+        Size(10)
+      )
+    yield expect(ids == List("ar4"))
+  }
+
   test("ai_level range filter") { ch =>
     for
       _ <- ch.upsertGameRows(
