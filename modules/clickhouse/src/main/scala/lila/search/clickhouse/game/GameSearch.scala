@@ -53,7 +53,7 @@ object GameSearch:
         q.clockInc.map(c => fr"clock_inc = $c")
       ).flatten :::
       rangeFilters(Columns.turns, q.turns.a, q.turns.b) :::
-      rangeFilters(Columns.averageRating, q.averageRating.a, q.averageRating.b) :::
+      ratingFilters(q.averageRating.a, q.averageRating.b) :::
       rangeFilters(Columns.date, q.date.a, q.date.b) :::
       rangeFilters(Columns.duration, q.duration.a, q.duration.b) :::
       aiLevelFilters
@@ -66,6 +66,12 @@ object GameSearch:
     val averageRating = Fragment.const("(white_rating + black_rating) / 2")
     val aiLevel = Fragment.const("ai_level")
     val duration = Fragment.const("duration")
+
+  // When filtering by average rating, exclude games where either player has no rating (stored as 0).
+  // This matches ES behavior where averageRating is None for such games, so they never match range filters.
+  private def ratingFilters(min: Option[Int], max: Option[Int]): List[Fragment] =
+    if min.isEmpty && max.isEmpty then Nil
+    else fr"white_rating > 0 AND black_rating > 0" :: rangeFilters(Columns.averageRating, min, max)
 
   private def rangeFilters[A: Put](col: Fragment, min: Option[A], max: Option[A]): List[Fragment] =
     List(

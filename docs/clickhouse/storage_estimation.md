@@ -24,16 +24,18 @@ Based on the schema in `GameTable.scala` (`ReplacingMergeTree`, partitioned by `
 | `clock_inc` | Nullable(UInt16) | 3 | null byte + 2 |
 | `source` | Nullable(UInt8) | 2 | null byte + 1 |
 | `chess960_pos` | UInt16 | 2 | 1000 if not Chess960 |
-| **Total** | | **~58 bytes** | |
+| `white_bot` | Bool | 1 | |
+| `black_bot` | Bool | 1 | |
+| **Total** | | **~60 bytes** | |
 
-**10B rows x 58 bytes = ~580 GB uncompressed**
+**10B rows x 60 bytes = ~600 GB uncompressed**
 
 ## Compression Estimates
 
 ClickHouse columnar storage with ZSTD(1) and Delta coding compresses well for this schema:
 
 - **Low-cardinality small integers** (`status`, `perf`, `source` as UInt8, `winner_color` as Enum8): very few distinct values in 1-byte columns, 10-50x compression
-- **Booleans** (`rated`, `analysed`): essentially bitmaps, 20-50x compression
+- **Booleans** (`rated`, `analysed`, `white_bot`, `black_bot`): essentially bitmaps, 20-50x compression
 - **Delta-coded DateTime** (`date`): ordered by date in sort key so deltas are tiny, 20-50x compression
 - **Small integers that are often 0** (`ai_level`, `chess960_pos`): compress very well
 - **Rating columns** (`white_rating`, `black_rating`): low entropy UInt16, ~5-10x compression
@@ -41,19 +43,19 @@ ClickHouse columnar storage with ZSTD(1) and Delta coding compresses well for th
 
 | Scenario | Compression Ratio | Estimated Size |
 |---|---|---|
-| Conservative | 5x | ~116 GB |
-| Realistic | 7-8x | ~73-83 GB |
-| Optimistic | 10x | ~58 GB |
+| Conservative | 5x | ~120 GB |
+| Realistic | 7-8x | ~75-86 GB |
+| Optimistic | 10x | ~60 GB |
 
 ## Additional Overhead
 
-- **Bloom filter indexes** (`idx_white`, `idx_black` with 0.01 FPR): ~5-10% overhead (~4-8 GB)
+- **Bloom filter indexes** (`idx_white`, `idx_black` with 0.01 FPR): ~5-10% overhead (~4-9 GB)
 - **Primary index**: one entry per granule (8192 rows), 10B/8192 = ~1.2M entries, negligible (~50 MB)
 - **Partition metadata**: ~192 monthly partitions (lichess started ~2010), negligible
 
 ## Total Estimate
 
-**~75-125 GB on disk for 10 billion games**, realistic expectation around **75-90 GB**.
+**~80-130 GB on disk for 10 billion games**, realistic expectation around **80-95 GB**.
 
 This is very manageable for a single ClickHouse node.
 
