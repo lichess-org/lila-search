@@ -21,9 +21,9 @@ object Fixtures:
       blackRating: Int = 0,
       winnerColor: WinnerColor = WinnerColor.Unknown,
       duration: Int = 0,
-      clockInit: Option[Int] = None,
-      clockInc: Option[Int] = None,
-      source: Option[Int] = None,
+      clockInit: Int = -1,
+      clockInc: Int = -1,
+      source: Int = 0,
       chess960Position: Int = 1000,
       whiteBot: Boolean = false,
       blackBot: Boolean = false

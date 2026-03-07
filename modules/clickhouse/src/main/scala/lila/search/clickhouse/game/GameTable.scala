@@ -29,9 +29,9 @@ object GameTable:
       black_rating UInt16 CODEC(ZSTD(1)),
       ai_level     UInt8 CODEC(ZSTD(1)),
       duration     UInt16 CODEC(ZSTD(1)),
-      clock_init   Nullable(UInt16) CODEC(ZSTD(1)),
-      clock_inc    Nullable(UInt16) CODEC(ZSTD(1)),
-      source       Nullable(UInt8) CODEC(ZSTD(1)),
+      clock_init   Int16 CODEC(ZSTD(1)),
+      clock_inc    Int16 CODEC(ZSTD(1)),
+      source       UInt8 CODEC(ZSTD(1)),
       chess960_pos UInt16 CODEC(ZSTD(1)),
       white_bot    Bool CODEC(ZSTD(1)),
       black_bot    Bool CODEC(ZSTD(1)),
@@ -58,12 +58,16 @@ case class GameRow(
     blackRating: Int,
     aiLevel: Int, // stockfish level from 1 to 8, 0 means no stockfish
     duration: Int,
-    clockInit: Option[Int],
-    clockInc: Option[Int],
+    // clockInit has max value of 3 hours mean 10800 seconds
+    clockInit: Int,
+    // probably has max value of 180 seconds
+    clockInc: Int,
     whiteUser: String,
     blackUser: String,
-    source: Option[Int],
-    chess960Position: Int, // chess960 has 960 positions from 0 to 959, 1000 means it's not a chess960 game
+    // 0 mean no source: https://github.com/lichess-org/lila/blob/fd3a5787186eb5b763731e83b99bd82427bad48c/modules/core/src/main/game/misc.scala#L60
+    source: Int,
+    // chess960 has 960 positions from 0 to 959, 1000 means it's not a chess960 game
+    chess960Position: Int,
     whiteBot: Boolean,
     blackBot: Boolean
 )
@@ -91,6 +95,6 @@ object GameRow:
 
   // format: off
   given Write[GameRow] =
-    Write[( String, Int, Int, Boolean, Int, WinnerColor, Instant, Boolean, Int, Int, Int, Int, Option[Int], Option[Int], String, String, Option[Int], Int, Boolean, Boolean)]
+    Write[( String, Int, Int, Boolean, Int, WinnerColor, Instant, Boolean, Int, Int, Int, Int, Int, Int, String, String, Int, Int, Boolean, Boolean)]
       .contramap: r =>
         (r.id, r.status, r.turns, r.rated, r.perf, r.winnerColor, r.date, r.analysed, r.whiteRating, r.blackRating, r.aiLevel, r.duration, r.clockInit, r.clockInc, r.whiteUser, r.blackUser, r.source, r.chess960Position, r.whiteBot, r.blackBot)
