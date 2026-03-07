@@ -347,9 +347,9 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "src1", players = List("user_src1"), source = Some(1)),
-          Fixtures.game(id = "src2", players = List("user_src1"), source = Some(2)),
-          Fixtures.game(id = "src3", players = List("user_src1"), source = Some(3))
+          Fixtures.game(id = "src1", players = List("user_src1"), source = 1),
+          Fixtures.game(id = "src2", players = List("user_src1"), source = 2),
+          Fixtures.game(id = "src3", players = List("user_src1"), source = 3)
         )
       )
       ids <- ch.searchGames(

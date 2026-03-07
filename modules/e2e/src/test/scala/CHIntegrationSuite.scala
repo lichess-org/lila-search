@@ -78,7 +78,7 @@ object CHIntegrationSuite extends IOSuite:
       duration: Int = 0,
       clockInit: Option[Int] = None,
       clockInc: Option[Int] = None,
-      source: Option[Int] = None
+      source: Int = 0
   ): GameRow =
     GameRow(
       id = id,

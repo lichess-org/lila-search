@@ -23,7 +23,7 @@ object Fixtures:
       duration: Int = 0,
       clockInit: Option[Int] = None,
       clockInc: Option[Int] = None,
-      source: Option[Int] = None,
+      source: Int = 0,
       chess960Position: Int = 1000,
       whiteBot: Boolean = false,
       blackBot: Boolean = false

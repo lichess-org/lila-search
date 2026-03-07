@@ -58,7 +58,7 @@ object Translate:
       clockInc = g.clockInc,
       whiteUser = whiteUser,
       blackUser = blackUser,
-      source = g.source,
+      source = g.source.getOrElse(0),
       chess960Position = g.chess960Position.getOrElse(1000),
       whiteBot = whiteUser.nonEmpty && botIds.contains(whiteUser),
       blackBot = blackUser.nonEmpty && botIds.contains(blackUser)
