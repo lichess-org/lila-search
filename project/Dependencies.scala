@@ -19,7 +19,8 @@ object Dependencies {
     val fs2Data = "1.12.0"
     val http4s = "0.23.33"
     val mongo4cats = "0.7.17"
-    val otel4s = "0.16.1"
+    val otel4sCore = "0.15.2"
+    val otel4sSdk = "0.16.1"
     val otel4sHttp4s = "0.16.0"
   }
 
@@ -64,10 +65,10 @@ object Dependencies {
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.32"
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.12"
 
-  val otel4sCore = "org.typelevel" %% "otel4s-core" % "0.15.1"
-  val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4s
-  val otel4sSdk = "org.typelevel" %% "otel4s-sdk" % V.otel4s
-  val otel4sInstrumentationMetrics = "org.typelevel" %% "otel4s-instrumentation-metrics" % "0.15.1"
+  val otel4sCore = "org.typelevel" %% "otel4s-core" % V.otel4sCore
+  val otel4sInstrumentationMetrics = "org.typelevel" %% "otel4s-instrumentation-metrics" % V.otel4sCore
+  val otel4sPrometheusExporter = "org.typelevel" %% "otel4s-sdk-exporter-prometheus" % V.otel4sSdk
+  val otel4sSdk = "org.typelevel" %% "otel4s-sdk" % V.otel4sSdk
   val otel4sMetrics = "org.typelevel" %% "otel4s-experimental-metrics" % "0.9.0"
 
   val otel4sHttp4sCore = "org.http4s" %% "http4s-otel4s-middleware-core" % V.otel4sHttp4s
