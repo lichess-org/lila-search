@@ -18,10 +18,11 @@ def Routes(
   val healthServiceImpl = HealthServiceImpl(resources.esClient)
 
   def searchService: IO[SearchServiceImpl] =
-    val metrics = config.gameBackend match
+    val dualMetrics = config.gameBackend match
       case GameSearchBackend.Dual => DualMetrics.make
       case _ => IO.pure(DualMetrics.noop)
-    metrics.map(SearchServiceImpl(resources.esClient, resources.chClient, config.gameBackend, _))
+    (GameMetrics.make, dualMetrics).mapN:
+      SearchServiceImpl(resources.esClient, resources.chClient, config.gameBackend, _, _)
 
   val search: Resource[IO, HttpRoutes[IO]] =
     Resource.eval(searchService).flatMap(svc => SimpleRestJsonBuilder.routes(svc).resource)

@@ -23,6 +23,7 @@ class SearchServiceImpl(
     esClient: ESClient[IO],
     chClient: ClickHouseClient[IO],
     gameBackend: GameSearchBackend,
+    gameMetrics: GameMetrics,
     dualMetrics: DualMetrics
 )(using LoggerFactory[IO])
     extends SearchService[IO]:
@@ -44,16 +45,18 @@ class SearchServiceImpl(
   // --- game dispatch ---
 
   private def gameSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
-    gameBackend match
-      case GameSearchBackend.ElasticOnly => esSearch(q, from, size)
-      case GameSearchBackend.ClickHouseOnly => chSearch(q, from, size)
-      case GameSearchBackend.Dual => dualSearch(q, from, size)
+    gameMetrics.recordSearch:
+      gameBackend match
+        case GameSearchBackend.ElasticOnly => esSearch(q, from, size)
+        case GameSearchBackend.ClickHouseOnly => chSearch(q, from, size)
+        case GameSearchBackend.Dual => dualSearch(q, from, size)
 
   private def gameCount(q: Query.Game): IO[CountOutput] =
-    gameBackend match
-      case GameSearchBackend.ElasticOnly => esCount(q)
-      case GameSearchBackend.ClickHouseOnly => chCount(q)
-      case GameSearchBackend.Dual => dualCount(q)
+    gameMetrics.recordCount:
+      gameBackend match
+        case GameSearchBackend.ElasticOnly => esCount(q)
+        case GameSearchBackend.ClickHouseOnly => chCount(q)
+        case GameSearchBackend.Dual => dualCount(q)
 
   // --- dual (shadow) mode ---
 
@@ -164,6 +167,43 @@ object DualMetrics:
     Histogram.noop[IO, Double],
     Counter.noop[IO, Long]
   )
+
+class GameMetrics(duration: Histogram[IO, Double]):
+
+  import GameMetrics.withErrorType
+
+  private val searchDuration =
+    duration.recordDuration(
+      java.util.concurrent.TimeUnit.MILLISECONDS,
+      withErrorType(Attribute("operation", "search"))
+    )
+
+  private val countDuration =
+    duration.recordDuration(
+      java.util.concurrent.TimeUnit.MILLISECONDS,
+      withErrorType(Attribute("operation", "count"))
+    )
+
+  def recordSearch[A](io: IO[A]): IO[A] = searchDuration.surround(io)
+  def recordCount[A](io: IO[A]): IO[A] = countDuration.surround(io)
+
+object GameMetrics:
+
+  def make(using MeterProvider[IO]): IO[GameMetrics] =
+    MeterProvider[IO]
+      .get("game")
+      .flatMap:
+        _.histogram[Double]("game.request.duration")
+          .withUnit("ms")
+          .withDescription("Game search/count request duration")
+          .create
+      .map(GameMetrics(_))
+
+  private def withErrorType(static: Attribute[String])(ec: Resource.ExitCase) =
+    ec match
+      case Resource.ExitCase.Succeeded => Seq(static)
+      case Resource.ExitCase.Errored(e) => Seq(static, Attribute("error.type", e.getClass.getName))
+      case Resource.ExitCase.Canceled => Seq(static, Attribute("error.type", "canceled"))
 
 object SearchServiceImpl:
 
