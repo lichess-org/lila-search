@@ -14,8 +14,9 @@ Target: 10B+ games, growing continuously.
 - [x] **Bloom filter skip indices** — on `white_user` and `black_user` (GRANULARITY 1, FPR 0.01)
 - [x] **Downsize integer types** — `UInt8` for status/perf/ai_level/source, `UInt16` for turns/ratings/duration/clock/chess960_pos (was `Int32`)
 - [x] **Drop Nullable where possible** — `white_user`, `black_user`, `ai_level`, `duration` made non-nullable (saves 1 byte/row/column)
-- [x] **Separate ratings** — `white_rating` + `black_rating` (both `UInt16`) instead of `avg_rating` (enables per-player rating filters)
+- [x] **Separate ratings** — `white_rating` + `black_rating` (both `UInt16`) instead of `avg_rating` (enables per-player rating filters; average computed at query time as `(white_rating + black_rating) / 2`)
 - [x] **Chess960 position** — `chess960_pos UInt16` column (1000 if not Chess960)
+- [x] **Bot flags** — `white_bot Bool`, `black_bot Bool` for filtering bot games
 - [ ] **Projections for O(log n) user lookups** — `PROJECTION prj_white (SELECT * ORDER BY white_user, date)` / `prj_black`. Doubles storage. Add only if bloom filters prove insufficient at scale.
 - [ ] **`LowCardinality(String)` for usernames** — if distinct count is under ~10M, could cut string storage in half
 - [x] **FINAL overhead mitigation** — `do_not_merge_across_partitions_select_final=1` set at connection level (safe because partition key guarantees duplicates are partition-local); `OPTIMIZE TABLE` CLI command available via `ingestor-cli optimize --partition YYYYMM` or `--all`
@@ -42,6 +43,8 @@ CREATE TABLE IF NOT EXISTS games (
   clock_inc    Nullable(UInt16) CODEC(ZSTD(1)),
   source       Nullable(UInt8) CODEC(ZSTD(1)),
   chess960_pos UInt16 CODEC(ZSTD(1)),
+  white_bot    Bool CODEC(ZSTD(1)),
+  black_bot    Bool CODEC(ZSTD(1)),
 
   INDEX idx_white white_user TYPE bloom_filter(0.01) GRANULARITY 1,
   INDEX idx_black black_user TYPE bloom_filter(0.01) GRANULARITY 1
@@ -97,4 +100,4 @@ This avoids redundant string columns and their bloom filter indices, saving stor
 
 ### 7. Separate ratings instead of avgRating
 
-`white_rating` and `black_rating` are stored independently (both `UInt16`), enabling per-player rating filters. The `avg_rating` filter in queries is computed as `(white_rating + black_rating) / 2`.
+`white_rating` and `black_rating` are stored independently (both `UInt16`), enabling per-player rating filters. The `avg_rating` filter in queries is computed as `(white_rating + black_rating) / 2`. When filtering by average rating range, games where either player has no rating (stored as 0) are excluded via `white_rating > 0 AND black_rating > 0`, matching ES behavior where `averageRating` is `None` for such games.
