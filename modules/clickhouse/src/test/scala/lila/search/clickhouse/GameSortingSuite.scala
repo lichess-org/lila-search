@@ -16,9 +16,9 @@ object GameSortingSuite extends IOSuite:
 
   test("sort by date desc returns newest first") { ch =>
     val games = List(
-      Fixtures.game(id = "sd1", players = List(s"${u}date1"), date = Instant.ofEpochSecond(1_000L)),
-      Fixtures.game(id = "sd2", players = List(s"${u}date1"), date = Instant.ofEpochSecond(2_000L)),
-      Fixtures.game(id = "sd3", players = List(s"${u}date1"), date = Instant.ofEpochSecond(3_000L))
+      Fixtures.game(id = "srtdat_1", players = List(s"${u}date1"), date = Instant.ofEpochSecond(1_000L)),
+      Fixtures.game(id = "srtdat_2", players = List(s"${u}date1"), date = Instant.ofEpochSecond(2_000L)),
+      Fixtures.game(id = "srtdat_3", players = List(s"${u}date1"), date = Instant.ofEpochSecond(3_000L))
     )
     for
       _ <- ch.upsertGameRows(games)
@@ -27,14 +27,14 @@ object GameSortingSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids == List("sd3", "sd2", "sd1"))
+    yield expect(ids == List("srtdat_3", "srtdat_2", "srtdat_1"))
   }
 
   test("sort by date asc returns oldest first") { ch =>
     val games = List(
-      Fixtures.game(id = "sa1", players = List(s"${u}date2"), date = Instant.ofEpochSecond(1_000L)),
-      Fixtures.game(id = "sa2", players = List(s"${u}date2"), date = Instant.ofEpochSecond(2_000L)),
-      Fixtures.game(id = "sa3", players = List(s"${u}date2"), date = Instant.ofEpochSecond(3_000L))
+      Fixtures.game(id = "srtasc_1", players = List(s"${u}date2"), date = Instant.ofEpochSecond(1_000L)),
+      Fixtures.game(id = "srtasc_2", players = List(s"${u}date2"), date = Instant.ofEpochSecond(2_000L)),
+      Fixtures.game(id = "srtasc_3", players = List(s"${u}date2"), date = Instant.ofEpochSecond(3_000L))
     )
     for
       _ <- ch.upsertGameRows(games)
@@ -43,14 +43,14 @@ object GameSortingSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids == List("sa1", "sa2", "sa3"))
+    yield expect(ids == List("srtasc_1", "srtasc_2", "srtasc_3"))
   }
 
   test("sort by turns desc returns most turns first") { ch =>
     val games = List(
-      Fixtures.game(id = "st1", players = List(s"${u}turns1"), turns = 10),
-      Fixtures.game(id = "st2", players = List(s"${u}turns1"), turns = 50),
-      Fixtures.game(id = "st3", players = List(s"${u}turns1"), turns = 30)
+      Fixtures.game(id = "srttrn_1", players = List(s"${u}turns1"), turns = 10),
+      Fixtures.game(id = "srttrn_2", players = List(s"${u}turns1"), turns = 50),
+      Fixtures.game(id = "srttrn_3", players = List(s"${u}turns1"), turns = 30)
     )
     for
       _ <- ch.upsertGameRows(games)
@@ -59,14 +59,14 @@ object GameSortingSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids == List("st2", "st3", "st1"))
+    yield expect(ids == List("srttrn_2", "srttrn_3", "srttrn_1"))
   }
 
   test("sort by turns asc returns fewest turns first") { ch =>
     val games = List(
-      Fixtures.game(id = "su1", players = List(s"${u}turns2"), turns = 10),
-      Fixtures.game(id = "su2", players = List(s"${u}turns2"), turns = 50),
-      Fixtures.game(id = "su3", players = List(s"${u}turns2"), turns = 30)
+      Fixtures.game(id = "srttna_1", players = List(s"${u}turns2"), turns = 10),
+      Fixtures.game(id = "srttna_2", players = List(s"${u}turns2"), turns = 50),
+      Fixtures.game(id = "srttna_3", players = List(s"${u}turns2"), turns = 30)
     )
     for
       _ <- ch.upsertGameRows(games)
@@ -75,14 +75,14 @@ object GameSortingSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids == List("su1", "su3", "su2"))
+    yield expect(ids == List("srttna_1", "srttna_3", "srttna_2"))
   }
 
   test("sort by averageRating desc returns highest rated first") { ch =>
     val games = List(
-      Fixtures.game(id = "sr1", players = List(s"${u}rating1"), whiteRating = 1200, blackRating = 1200),
-      Fixtures.game(id = "sr2", players = List(s"${u}rating1"), whiteRating = 1800, blackRating = 1800),
-      Fixtures.game(id = "sr3", players = List(s"${u}rating1"), whiteRating = 1500, blackRating = 1500)
+      Fixtures.game(id = "srtrtd_1", players = List(s"${u}rating1"), whiteRating = 1200, blackRating = 1200),
+      Fixtures.game(id = "srtrtd_2", players = List(s"${u}rating1"), whiteRating = 1800, blackRating = 1800),
+      Fixtures.game(id = "srtrtd_3", players = List(s"${u}rating1"), whiteRating = 1500, blackRating = 1500)
     )
     for
       _ <- ch.upsertGameRows(games)
@@ -91,14 +91,14 @@ object GameSortingSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids == List("sr2", "sr3", "sr1"))
+    yield expect(ids == List("srtrtd_2", "srtrtd_3", "srtrtd_1"))
   }
 
   test("sort by averageRating asc returns lowest rated first") { ch =>
     val games = List(
-      Fixtures.game(id = "sq1", players = List(s"${u}rating2"), whiteRating = 1200, blackRating = 1200),
-      Fixtures.game(id = "sq2", players = List(s"${u}rating2"), whiteRating = 1800, blackRating = 1800),
-      Fixtures.game(id = "sq3", players = List(s"${u}rating2"), whiteRating = 1500, blackRating = 1500)
+      Fixtures.game(id = "srtrta_1", players = List(s"${u}rating2"), whiteRating = 1200, blackRating = 1200),
+      Fixtures.game(id = "srtrta_2", players = List(s"${u}rating2"), whiteRating = 1800, blackRating = 1800),
+      Fixtures.game(id = "srtrta_3", players = List(s"${u}rating2"), whiteRating = 1500, blackRating = 1500)
     )
     for
       _ <- ch.upsertGameRows(games)
@@ -107,13 +107,13 @@ object GameSortingSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids == List("sq1", "sq3", "sq2"))
+    yield expect(ids == List("srtrta_1", "srtrta_3", "srtrta_2"))
   }
 
   test("unknown sort field falls back to date desc") { ch =>
     val games = List(
-      Fixtures.game(id = "sf1", players = List(s"${u}fallback1"), date = Instant.ofEpochSecond(1_000L)),
-      Fixtures.game(id = "sf2", players = List(s"${u}fallback1"), date = Instant.ofEpochSecond(2_000L))
+      Fixtures.game(id = "srtfbk_1", players = List(s"${u}fallback1"), date = Instant.ofEpochSecond(1_000L)),
+      Fixtures.game(id = "srtfbk_2", players = List(s"${u}fallback1"), date = Instant.ofEpochSecond(2_000L))
     )
     for
       _ <- ch.upsertGameRows(games)
@@ -122,5 +122,5 @@ object GameSortingSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids == List("sf2", "sf1"))
+    yield expect(ids == List("srtfbk_2", "srtfbk_1"))
   }

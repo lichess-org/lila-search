@@ -113,7 +113,7 @@ object CHIntegrationSuite extends IOSuite:
           _ <- ch.upsertGameRows(
             List(
               fixture(
-                id = "game_id",
+                id = "e2egame_",
                 players = List(user, "e2e_main_black"),
                 turns = 100,
                 rated = true,
@@ -154,9 +154,9 @@ object CHIntegrationSuite extends IOSuite:
         for
           _ <- ch.upsertGameRows(
             List(
-              fixture(id = "cnt1", players = List("cnt_user1"), rated = true),
-              fixture(id = "cnt2", players = List("cnt_user1"), rated = true),
-              fixture(id = "cnt3", players = List("cnt_user1"), rated = false)
+              fixture(id = "e2ecnt_1", players = List("cnt_user1"), rated = true),
+              fixture(id = "e2ecnt_2", players = List("cnt_user1"), rated = true),
+              fixture(id = "e2ecnt_3", players = List("cnt_user1"), rated = false)
             )
           )
           count <- service.count(defaultGame.copy(user1 = "cnt_user1".some, rated = true.some))
@@ -169,8 +169,8 @@ object CHIntegrationSuite extends IOSuite:
         for
           _ <- ch.upsertGameRows(
             List(
-              fixture(id = "pf1", players = List("perf_user1"), perf = 1),
-              fixture(id = "pf2", players = List("perf_user1"), perf = 2)
+              fixture(id = "e2eperf1", players = List("perf_user1"), perf = 1),
+              fixture(id = "e2eperf2", players = List("perf_user1"), perf = 2)
             )
           )
           result <- service.search(
@@ -178,7 +178,7 @@ object CHIntegrationSuite extends IOSuite:
             from,
             size
           )
-        yield expect(result.hitIds == List(Id("pf1")))
+        yield expect(result.hitIds == List(Id("e2eperf1")))
 
   test("game search with winner filter via CH"): ch =>
     Clients
@@ -188,12 +188,12 @@ object CHIntegrationSuite extends IOSuite:
           _ <- ch.upsertGameRows(
             List(
               fixture(
-                id = "win1",
+                id = "e2ewin_1",
                 players = List("w_alice", "w_bob"),
                 winnerColor = WinnerColor.White
               ),
               fixture(
-                id = "win2",
+                id = "e2ewin_2",
                 players = List("w_alice", "w_bob"),
                 winnerColor = WinnerColor.Black
               )
@@ -201,8 +201,8 @@ object CHIntegrationSuite extends IOSuite:
           )
           wonByAlice <- service.search(defaultGame.copy(winner = "w_alice".some), from, size)
           wonByBob <- service.search(defaultGame.copy(winner = "w_bob".some), from, size)
-        yield expect(wonByAlice.hitIds == List(Id("win1"))) and
-          expect(wonByBob.hitIds == List(Id("win2")))
+        yield expect(wonByAlice.hitIds == List(Id("e2ewin_1"))) and
+          expect(wonByBob.hitIds == List(Id("e2ewin_2")))
 
   test("game search with sorting via CH"): ch =>
     val earlyDate = Instant.ofEpochSecond(1_000_000_000L)
@@ -213,8 +213,8 @@ object CHIntegrationSuite extends IOSuite:
         for
           _ <- ch.upsertGameRows(
             List(
-              fixture(id = "sort1", players = List("sort_user1"), date = earlyDate),
-              fixture(id = "sort2", players = List("sort_user1"), date = lateDate)
+              fixture(id = "e2esrt_1", players = List("sort_user1"), date = earlyDate),
+              fixture(id = "e2esrt_2", players = List("sort_user1"), date = lateDate)
             )
           )
           desc <- service.search(
@@ -225,4 +225,4 @@ object CHIntegrationSuite extends IOSuite:
             from,
             size
           )
-        yield expect(desc.hitIds == List(Id("sort2"), Id("sort1")))
+        yield expect(desc.hitIds == List(Id("e2esrt_2"), Id("e2esrt_1")))
