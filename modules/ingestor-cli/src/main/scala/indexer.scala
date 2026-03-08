@@ -40,8 +40,9 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
             val stream =
               if opts.watch then fs2.Stream.eval(opts.since.some.pure[IO]).flatMap(repo.watch)
               else repo.fetchAll(opts.since, opts.until)
-            ingestor.ingest(stream) *>
-              refreshIndexes(res.elastic, index).whenA(needsES && opts.refresh && !opts.dry)
+            ingestor.ingest:
+              stream.evalTap(result => logger.info(s"Last index time ${result.timestamp.toString}"))
+            *> refreshIndexes(res.elastic, index).whenA(needsES && opts.refresh && !opts.dry)
       case _ =>
         putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
           runIndex(index, opts) *>
