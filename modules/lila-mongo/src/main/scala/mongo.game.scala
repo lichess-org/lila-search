@@ -5,6 +5,7 @@ import cats.effect.*
 import cats.syntax.all.*
 import chess.Clock.Config
 import chess.Speed
+import chess.format.FullFen
 import chess.variant.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
@@ -136,7 +137,7 @@ case class DbGame(
     variant: Option[Int], // v
     source: Option[Int], // so
     winnerColor: Option[Boolean], // w
-    chess960Position: Option[Int] // if
+    chess960StartingPosition: Option[String] // if
 ):
   def clockConfig: Option[Config] = encodedClock.flatMap(ClockDecoder.read)
   def clockInit: Option[Int] = clockConfig.map(_.limitSeconds.value)
@@ -148,6 +149,9 @@ case class DbGame(
   def loser: Option[PlayerId] = players.find(_.some != winnerId)
   def aiLevel: Option[Int] = whitePlayer.flatMap(_.aiLevel).orElse(blackPlayer.flatMap(_.aiLevel))
   def date: Instant = movedAt.getOrElse(createdAt)
+  def chess960Position: Option[Int] =
+    chess960StartingPosition.flatMap: str =>
+      Chess960.positionNumber(FullFen.clean(str))
 
   def shouldDebug =
     whitePlayer.isEmpty || blackPlayer.isEmpty
