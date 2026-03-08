@@ -17,8 +17,8 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "t1", players = List("user_turns1"), turns = 20),
-          Fixtures.game(id = "t2", players = List("user_turns1"), turns = 100)
+          Fixtures.game(id = "turns_t1", players = List("user_turns1"), turns = 20),
+          Fixtures.game(id = "turns_t2", players = List("user_turns1"), turns = 100)
         )
       )
       ids <- ch.searchGames(
@@ -26,15 +26,15 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids.contains("t2")) and expect(!ids.contains("t1"))
+    yield expect(ids.contains("turns_t2")) and expect(!ids.contains("turns_t1"))
   }
 
   test("perf IN filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "p1", players = List("user_perf1"), perf = 1),
-          Fixtures.game(id = "p2", players = List("user_perf1"), perf = 2)
+          Fixtures.game(id = "perf__p1", players = List("user_perf1"), perf = 1),
+          Fixtures.game(id = "perf__p2", players = List("user_perf1"), perf = 2)
         )
       )
       ids <- ch.searchGames(
@@ -42,15 +42,15 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids.contains("p1")) and expect(!ids.contains("p2"))
+    yield expect(ids.contains("perf__p1")) and expect(!ids.contains("perf__p2"))
   }
 
   test("rated filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "r1", players = List("user_rated1"), rated = true),
-          Fixtures.game(id = "r2", players = List("user_rated1"), rated = false)
+          Fixtures.game(id = "rated_r1", players = List("user_rated1"), rated = true),
+          Fixtures.game(id = "rated_r2", players = List("user_rated1"), rated = false)
         )
       )
       ids <- ch.searchGames(
@@ -58,15 +58,20 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids.contains("r1")) and expect(!ids.contains("r2"))
+    yield expect(ids.contains("rated_r1")) and expect(!ids.contains("rated_r2"))
   }
 
   test("winner color filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "wc1", players = List("user_wc1", "user_wc2"), winnerColor = WinnerColor.White),
-          Fixtures.game(id = "wc2", players = List("user_wc1", "user_wc2"), winnerColor = WinnerColor.Draw)
+          Fixtures
+            .game(id = "wcolor1_", players = List("user_wc1", "user_wc2"), winnerColor = WinnerColor.White),
+          Fixtures.game(
+            id = "wcolor2_",
+            players = List("user_wc1", "user_wc2"),
+            winnerColor = WinnerColor.Draw
+          )
         )
       )
       white <- ch.searchGames(
@@ -84,11 +89,11 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(white.contains("wc1")) and expect(!white.contains("wc2")) and expect(
+    yield expect(white.contains("wcolor1_")) and expect(!white.contains("wcolor2_")) and expect(
       black.isEmpty
     ) and expect(
       draw.size == 1
-    ) and expect(draw.contains("wc2"))
+    ) and expect(draw.contains("wcolor2_"))
   }
 
   test("winner filter derives from winner_color and users") { ch =>
@@ -96,42 +101,54 @@ object GameSearchSuite extends IOSuite:
       _ <- ch.upsertGameRows(
         List(
           // white wins: white=user_win1, black=user_win2
-          Fixtures.game(id = "w1", players = List("user_win1", "user_win2"), winnerColor = WinnerColor.White),
+          Fixtures.game(
+            id = "winner1_",
+            players = List("user_win1", "user_win2"),
+            winnerColor = WinnerColor.White
+          ),
           // black wins: white=user_win1, black=user_win2
-          Fixtures.game(id = "w2", players = List("user_win1", "user_win2"), winnerColor = WinnerColor.Black),
+          Fixtures.game(
+            id = "winner2_",
+            players = List("user_win1", "user_win2"),
+            winnerColor = WinnerColor.Black
+          ),
           // draw
-          Fixtures.game(id = "w3", players = List("user_win1", "user_win2"), winnerColor = WinnerColor.Draw)
+          Fixtures.game(
+            id = "winner3_",
+            players = List("user_win1", "user_win2"),
+            winnerColor = WinnerColor.Draw
+          )
         )
       )
-      // user_win1 won game w1 (as white)
+      // user_win1 won game winner1_ (as white)
       wonByUser1 <- ch.searchGames(
         Game(winner = Some("user_win1")),
         From(0),
         Size(10)
       )
-      // user_win2 won game w2 (as black)
+      // user_win2 won game winner2_ (as black)
       wonByUser2 <- ch.searchGames(
         Game(winner = Some("user_win2")),
         From(0),
         Size(10)
       )
-      // user_win1 lost game w2 (as white, black won)
+      // user_win1 lost game winner2_ (as white, black won)
       lostByUser1 <- ch.searchGames(
         Game(loser = Some("user_win1")),
         From(0),
         Size(10)
       )
-    yield expect(wonByUser1 == List("w1")) and
-      expect(wonByUser2 == List("w2")) and
-      expect(lostByUser1 == List("w2"))
+    yield expect(wonByUser1 == List("winner1_")) and
+      expect(wonByUser2 == List("winner2_")) and
+      expect(lostByUser1 == List("winner2_"))
   }
 
   test("hasAi filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "a1", players = List("user_ai1"), aiLevel = 5),
-          Fixtures.game(id = "a2", players = List("user_ai1"))
+          Fixtures.game(id = "hasai_a1", players = List("user_ai1"), aiLevel = 5),
+          Fixtures.game(id = "hasai_a2", players = List("user_ai1"))
         )
       )
       ids <- ch.searchGames(
@@ -139,7 +156,7 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids.contains("a1")) and expect(!ids.contains("a2"))
+    yield expect(ids.contains("hasai_a1")) and expect(!ids.contains("hasai_a2"))
   }
 
   test("sort by date descending") { ch =>
@@ -148,8 +165,8 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "d1", players = List("user_sort1"), date = earlyDate),
-          Fixtures.game(id = "d2", players = List("user_sort1"), date = lateDate)
+          Fixtures.game(id = "dsort_d1", players = List("user_sort1"), date = earlyDate),
+          Fixtures.game(id = "dsort_d2", players = List("user_sort1"), date = lateDate)
         )
       )
       ids <- ch.searchGames(
@@ -157,11 +174,11 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids.indexOf("d2") < ids.indexOf("d1"))
+    yield expect(ids.indexOf("dsort_d2") < ids.indexOf("dsort_d1"))
   }
 
   test("pagination with from/size") { ch =>
-    val games = (1 to 5).toList.map(i => Fixtures.game(id = s"pg$i", players = List("user_pagination1")))
+    val games = (1 to 5).toList.map(i => Fixtures.game(id = f"pagin_p$i", players = List("user_pagination1")))
     for
       _ <- ch.upsertGameRows(games)
       page <- ch.searchGames(Game(user1 = Some("user_pagination1")), From(2), Size(2))
@@ -170,7 +187,7 @@ object GameSearchSuite extends IOSuite:
 
   test("count matches search result size") { ch =>
     val games =
-      (1 to 4).toList.map(i => Fixtures.game(id = s"cnt$i", players = List("user_count1"), rated = true))
+      (1 to 4).toList.map(i => Fixtures.game(id = f"count_c$i", players = List("user_count1"), rated = true))
     for
       _ <- ch.upsertGameRows(games)
       n <- ch.countGames(Game(user1 = Some("user_count1"), rated = Some(true)))
@@ -182,8 +199,8 @@ object GameSearchSuite extends IOSuite:
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "wu1", players = List("white_alice", "black_bob")),
-          Fixtures.game(id = "wu2", players = List("white_carol", "black_bob"))
+          Fixtures.game(id = "wuser_u1", players = List("white_alice", "black_bob")),
+          Fixtures.game(id = "wuser_u2", players = List("white_carol", "black_bob"))
         )
       )
       ids <- ch.searchGames(
@@ -191,15 +208,15 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids.contains("wu1")) and expect(!ids.contains("wu2"))
+    yield expect(ids.contains("wuser_u1")) and expect(!ids.contains("wuser_u2"))
   }
 
   test("black_user filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "bu1", players = List("white_dave", "black_eve")),
-          Fixtures.game(id = "bu2", players = List("white_dave", "black_frank"))
+          Fixtures.game(id = "buser_u1", players = List("white_dave", "black_eve")),
+          Fixtures.game(id = "buser_u2", players = List("white_dave", "black_frank"))
         )
       )
       ids <- ch.searchGames(
@@ -207,16 +224,18 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids.contains("bu1")) and expect(!ids.contains("bu2"))
+    yield expect(ids.contains("buser_u1")) and expect(!ids.contains("buser_u2"))
   }
 
   test("avg_rating range filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "ar1", players = List("user_avgr1"), whiteRating = 1000, blackRating = 1000),
-          Fixtures.game(id = "ar2", players = List("user_avgr1"), whiteRating = 1500, blackRating = 1500),
-          Fixtures.game(id = "ar3", players = List("user_avgr1"), whiteRating = 2000, blackRating = 2000)
+          Fixtures
+            .game(id = "avgrt_r1", players = List("user_avgr1"), whiteRating = 1000, blackRating = 1000),
+          Fixtures
+            .game(id = "avgrt_r2", players = List("user_avgr1"), whiteRating = 1500, blackRating = 1500),
+          Fixtures.game(id = "avgrt_r3", players = List("user_avgr1"), whiteRating = 2000, blackRating = 2000)
         )
       )
       // min only
@@ -237,19 +256,20 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(above1200.toSet == Set("ar2", "ar3")) and
-      expect(below1600.toSet == Set("ar1", "ar2")) and
-      expect(between == List("ar2"))
+    yield expect(above1200.toSet == Set("avgrt_r2", "avgrt_r3")) and
+      expect(below1600.toSet == Set("avgrt_r1", "avgrt_r2")) and
+      expect(between == List("avgrt_r2"))
   }
 
   test("avg_rating range filter excludes games with missing ratings") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "ar4", players = List("user_avgr2"), whiteRating = 1500, blackRating = 1500),
-          Fixtures.game(id = "ar5", players = List("user_avgr2"), whiteRating = 1500, blackRating = 0),
-          Fixtures.game(id = "ar6", players = List("user_avgr2"), whiteRating = 0, blackRating = 1500),
-          Fixtures.game(id = "ar7", players = List("user_avgr2"), whiteRating = 0, blackRating = 0)
+          Fixtures
+            .game(id = "avgrt_r4", players = List("user_avgr2"), whiteRating = 1500, blackRating = 1500),
+          Fixtures.game(id = "avgrt_r5", players = List("user_avgr2"), whiteRating = 1500, blackRating = 0),
+          Fixtures.game(id = "avgrt_r6", players = List("user_avgr2"), whiteRating = 0, blackRating = 1500),
+          Fixtures.game(id = "avgrt_r7", players = List("user_avgr2"), whiteRating = 0, blackRating = 0)
         )
       )
       ids <- ch.searchGames(
@@ -257,16 +277,16 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids == List("ar4"))
+    yield expect(ids == List("avgrt_r4"))
   }
 
   test("ai_level range filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "al1", players = List("user_ail1"), aiLevel = 1),
-          Fixtures.game(id = "al2", players = List("user_ail1"), aiLevel = 5),
-          Fixtures.game(id = "al3", players = List("user_ail1"), aiLevel = 8)
+          Fixtures.game(id = "ailev_l1", players = List("user_ail1"), aiLevel = 1),
+          Fixtures.game(id = "ailev_l2", players = List("user_ail1"), aiLevel = 5),
+          Fixtures.game(id = "ailev_l3", players = List("user_ail1"), aiLevel = 8)
         )
       )
       low <- ch.searchGames(
@@ -279,16 +299,16 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(low == List("al1")) and expect(high == List("al2"))
+    yield expect(low == List("ailev_l1")) and expect(high == List("ailev_l2"))
   }
 
   test("duration range filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "du1", players = List("user_dur1"), duration = 60),
-          Fixtures.game(id = "du2", players = List("user_dur1"), duration = 300),
-          Fixtures.game(id = "du3", players = List("user_dur1"), duration = 600)
+          Fixtures.game(id = "durat_d1", players = List("user_dur1"), duration = 60),
+          Fixtures.game(id = "durat_d2", players = List("user_dur1"), duration = 300),
+          Fixtures.game(id = "durat_d3", players = List("user_dur1"), duration = 600)
         )
       )
       short <- ch.searchGames(
@@ -306,17 +326,17 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(short == List("du1")) and
-      expect(mid == List("du2")) and
-      expect(long == List("du3"))
+    yield expect(short == List("durat_d1")) and
+      expect(mid == List("durat_d2")) and
+      expect(long == List("durat_d3"))
   }
 
   test("clock_init exact filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "ci1", players = List("user_ci1"), clockInit = 300),
-          Fixtures.game(id = "ci2", players = List("user_ci1"), clockInit = 600)
+          Fixtures.game(id = "clinit_1", players = List("user_ci1"), clockInit = 300),
+          Fixtures.game(id = "clinit_2", players = List("user_ci1"), clockInit = 600)
         )
       )
       ids <- ch.searchGames(
@@ -324,15 +344,15 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids.contains("ci1")) and expect(!ids.contains("ci2"))
+    yield expect(ids.contains("clinit_1")) and expect(!ids.contains("clinit_2"))
   }
 
   test("clock_inc exact filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "cinc1", players = List("user_cinc1"), clockInc = 0),
-          Fixtures.game(id = "cinc2", players = List("user_cinc1"), clockInc = 5)
+          Fixtures.game(id = "clinc__1", players = List("user_cinc1"), clockInc = 0),
+          Fixtures.game(id = "clinc__2", players = List("user_cinc1"), clockInc = 5)
         )
       )
       ids <- ch.searchGames(
@@ -340,16 +360,16 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids.contains("cinc2")) and expect(!ids.contains("cinc1"))
+    yield expect(ids.contains("clinc__2")) and expect(!ids.contains("clinc__1"))
   }
 
   test("source filter") { ch =>
     for
       _ <- ch.upsertGameRows(
         List(
-          Fixtures.game(id = "src1", players = List("user_src1"), source = 1),
-          Fixtures.game(id = "src2", players = List("user_src1"), source = 2),
-          Fixtures.game(id = "src3", players = List("user_src1"), source = 3)
+          Fixtures.game(id = "source_1", players = List("user_src1"), source = 1),
+          Fixtures.game(id = "source_2", players = List("user_src1"), source = 2),
+          Fixtures.game(id = "source_3", players = List("user_src1"), source = 3)
         )
       )
       ids <- ch.searchGames(
@@ -357,7 +377,7 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids == List("src2"))
+    yield expect(ids == List("source_2"))
   }
 
   test("combined range filters narrow results") { ch =>
@@ -365,7 +385,7 @@ object GameSearchSuite extends IOSuite:
       _ <- ch.upsertGameRows(
         List(
           Fixtures.game(
-            id = "combo1",
+            id = "combo__1",
             players = List("user_combo1"),
             turns = 50,
             whiteRating = 1500,
@@ -373,7 +393,7 @@ object GameSearchSuite extends IOSuite:
             duration = 300
           ),
           Fixtures.game(
-            id = "combo2",
+            id = "combo__2",
             players = List("user_combo1"),
             turns = 80,
             whiteRating = 1500,
@@ -381,7 +401,7 @@ object GameSearchSuite extends IOSuite:
             duration = 300
           ),
           Fixtures.game(
-            id = "combo3",
+            id = "combo__3",
             players = List("user_combo1"),
             turns = 50,
             whiteRating = 2000,
@@ -389,7 +409,7 @@ object GameSearchSuite extends IOSuite:
             duration = 300
           ),
           Fixtures.game(
-            id = "combo4",
+            id = "combo__4",
             players = List("user_combo1"),
             turns = 50,
             whiteRating = 1500,
@@ -408,5 +428,5 @@ object GameSearchSuite extends IOSuite:
         From(0),
         Size(10)
       )
-    yield expect(ids == List("combo1"))
+    yield expect(ids == List("combo__1"))
   }

@@ -15,7 +15,7 @@ object Translate:
       rated = g.rated.getOrElse(false),
       perf = perfId(g.variantOrDefault, g.speed),
       winnerColor = g.winnerColor.fold(3)(if _ then 1 else 2),
-      date = SearchDateTime.fromInstant(g.movedAt),
+      date = SearchDateTime.fromInstant(g.date),
       analysed = g.analysed.getOrElse(false),
       uids = g.players.some, // make uids not optional
       winner = g.winnerId,
@@ -48,7 +48,7 @@ object Translate:
           // If the game is finished and there is no winner, it means it's a draw except when the status is UnknownFinish
           if g.status > Status.Stalemate.id && g.status != Status.UnknownFinish.id then WinnerColor.Draw
           else WinnerColor.Unknown,
-      date = g.movedAt,
+      date = g.date,
       analysed = g.analysed.getOrElse(false),
       whiteRating = g.whitePlayer.flatMap(_.rating).getOrElse(0),
       blackRating = g.blackPlayer.flatMap(_.rating).getOrElse(0),
@@ -78,8 +78,9 @@ object Translate:
     // If there is no clock config, it means it's either a very old game or a correspondence game
     if g.clockConfig.isEmpty then 0
     else
-      val seconds = (g.movedAt.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
-      if seconds < 60 * 60 * 12 then seconds.toInt
+      val seconds = (g.date.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
+      if seconds <= 0 then 0
+      else if seconds < 60 * 60 * 12 then seconds.toInt
       else 60 * 60 * 12 + 1 // cap duration to 12 hours + 1 seconds for very long games
 
   // Helper: determine perf type based on variant and speed

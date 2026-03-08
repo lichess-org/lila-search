@@ -37,6 +37,11 @@ extension (index: Index)
     case Index.Study => true // need source for partial updates (likes and ranks)
     case Index.Team => false
 
+  def shards: Int = index match
+    case Index.Game =>
+      50 // games has 10B+ documents, so we need more shards https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards
+    case _ => 5
+
   def refreshInterval =
     index match
       case Index.Study => "10s"
@@ -51,7 +56,7 @@ extension (index: Index)
     val request =
       createIndex(index.value)
         .mapping(properties(index.mapping).source(index.keepSource))
-        .shards(5)
+        .shards(index.shards)
         .replicas(0)
         .refreshInterval(index.refreshInterval)
     index.analysis.fold(request)(request.analysis(_))

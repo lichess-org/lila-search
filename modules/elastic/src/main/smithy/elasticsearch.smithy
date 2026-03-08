@@ -42,6 +42,13 @@ structure dateField {
     docValues: Boolean
 }
 
+/// Marks a field as an Elasticsearch short (8-bit) field
+@trait(selector: "member")
+structure byteField {
+    /// Whether to store doc values for sorting/aggregations
+    docValues: Boolean
+}
+
 /// Marks a field as an Elasticsearch short (16-bit integer) field
 @trait(selector: "member")
 structure shortField {

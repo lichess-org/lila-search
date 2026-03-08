@@ -15,33 +15,32 @@ object GameTable:
   // - Enums for data validation
   val ddl: String = """
     CREATE TABLE IF NOT EXISTS games (
-      id           String CODEC(LZ4),
+      id           FixedString(8) CODEC(ZSTD(1)),
       status       UInt8 CODEC(ZSTD(1)),
-      turns        UInt16 CODEC(ZSTD(1)),
+      turns        UInt16 CODEC(T64, ZSTD(1)),
       rated        Bool CODEC(ZSTD(1)),
       perf         UInt8 CODEC(ZSTD(1)),
       winner_color Enum8('unknown'=0, 'white'=1, 'black'=2, 'draw'=3) CODEC(ZSTD(1)),
-      date         DateTime CODEC(Delta, ZSTD(1)),
+      date         DateTime CODEC(DoubleDelta, ZSTD(1)),
       analysed     Bool CODEC(ZSTD(1)),
-      white_user   String CODEC(ZSTD(1)),
-      black_user   String CODEC(ZSTD(1)),
-      white_rating UInt16 CODEC(ZSTD(1)),
-      black_rating UInt16 CODEC(ZSTD(1)),
+      white_user   String CODEC(ZSTD(3)),
+      black_user   String CODEC(ZSTD(3)),
+      white_rating UInt16 CODEC(T64, ZSTD(1)),
+      black_rating UInt16 CODEC(T64, ZSTD(1)),
       ai_level     UInt8 CODEC(ZSTD(1)),
-      duration     UInt16 CODEC(ZSTD(1)),
-      clock_init   Int16 CODEC(ZSTD(1)),
-      clock_inc    Int16 CODEC(ZSTD(1)),
+      duration     UInt16 CODEC(T64, ZSTD(1)),
+      clock_init   Int16 CODEC(T64, ZSTD(1)),
+      clock_inc    Int16 CODEC(T64, ZSTD(1)),
       source       UInt8 CODEC(ZSTD(1)),
-      chess960_pos UInt16 CODEC(ZSTD(1)),
+      chess960_pos UInt16 CODEC(T64, ZSTD(1)),
       white_bot    Bool CODEC(ZSTD(1)),
       black_bot    Bool CODEC(ZSTD(1)),
 
-      PROJECTION proj_white (SELECT * ORDER BY white_user, date, id),
-      PROJECTION proj_black (SELECT * ORDER BY black_user, date, id)
+      INDEX idx_white_user white_user TYPE bloom_filter(0.01) GRANULARITY 1,
+      INDEX idx_black_user black_user TYPE bloom_filter(0.01) GRANULARITY 1
     ) ENGINE = ReplacingMergeTree()
     PARTITION BY toYYYYMM(date)
     ORDER BY (date, id)
-    SETTINGS deduplicate_merge_projection_mode = 'rebuild'
   """
 
   def create: ConnectionIO[Int] = Fragment.const(ddl).update.run

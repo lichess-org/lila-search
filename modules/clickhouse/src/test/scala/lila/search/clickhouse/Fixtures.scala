@@ -9,7 +9,7 @@ import java.time.temporal.ChronoUnit
 object Fixtures:
 
   def game(
-      id: String = "testgame1",
+      id: String = "testgam1",
       players: List[String] = List("alice", "bob"),
       turns: Int = 40,
       rated: Boolean = false,

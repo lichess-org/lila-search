@@ -5,6 +5,7 @@ import cats.effect.*
 import cats.syntax.all.*
 import chess.Clock.Config
 import chess.Speed
+import chess.format.FullFen
 import chess.variant.*
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType.*
@@ -112,7 +113,6 @@ object GameRepo:
 
   object F:
     val createdAt = "ca"
-    val updatedAt = "ua"
 
 type PlayerId = String
 case class DbGame(
@@ -120,7 +120,7 @@ case class DbGame(
     players: List[PlayerId], // us
     winnerId: Option[PlayerId], // wid
     createdAt: Instant, // ca
-    movedAt: Instant, // ua
+    movedAt: Option[Instant], // ua
     ply: Int, // t
     analysed: Option[Boolean], // an
     whitePlayer: Option[DbPlayer], // p0
@@ -137,7 +137,7 @@ case class DbGame(
     variant: Option[Int], // v
     source: Option[Int], // so
     winnerColor: Option[Boolean], // w
-    chess960Position: Option[Int] // if
+    chess960StartingPosition: Option[String] // if
 ):
   def clockConfig: Option[Config] = encodedClock.flatMap(ClockDecoder.read)
   def clockInit: Option[Int] = clockConfig.map(_.limitSeconds.value)
@@ -148,6 +148,10 @@ case class DbGame(
   def speed: Speed = Speed(clockConfig)
   def loser: Option[PlayerId] = players.find(_.some != winnerId)
   def aiLevel: Option[Int] = whitePlayer.flatMap(_.aiLevel).orElse(blackPlayer.flatMap(_.aiLevel))
+  def date: Instant = movedAt.getOrElse(createdAt)
+  def chess960Position: Option[Int] =
+    chess960StartingPosition.flatMap: str =>
+      Chess960.positionNumber(FullFen.clean(str))
 
   def shouldDebug =
     whitePlayer.isEmpty || blackPlayer.isEmpty
