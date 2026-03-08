@@ -145,7 +145,7 @@ object IntegrationSuite extends IOSuite:
           _ <- res.esClient.store(
             Index.Study,
             Id("study_id"),
-            Study2Source(
+            StudySource(
               name = "study name",
               owner = "study owner",
               members = List("member1", "member2"),

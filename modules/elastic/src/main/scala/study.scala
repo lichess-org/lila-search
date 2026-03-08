@@ -123,7 +123,7 @@ object Fields:
   val public = "public"
 
 object Mapping:
-  def fields = MappingGenerator.generateFields(es.Study2Source.schema)
+  def fields = MappingGenerator.generateFields(es.StudySource.schema)
 
 object Study:
 

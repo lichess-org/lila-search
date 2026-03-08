@@ -114,8 +114,8 @@ object Translate:
       date = forum.post.createdAt.toEpochMilli
     )
 
-  def study(study: DbStudy, chapters: Option[List[StudyChapterData]]): Study2Source =
-    Study2Source(
+  def study(study: DbStudy, chapters: Option[List[StudyChapterData]]): StudySource =
+    StudySource(
       name = study.name,
       description = study.description.filterNot(s => s.isBlank || s == "-"),
       owner = study.ownerId,
