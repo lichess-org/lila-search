@@ -28,14 +28,33 @@ object GameRepo:
   private val interestedOperations = List(UPDATE, DELETE).map(_.getValue)
   private val eventFilter = Filter.in("operationType", interestedOperations)
 
-  private val interestedEventFields =
+  private val interestedFields =
     List(
-      "operationType",
-      "clusterTime",
-      "documentKey._id",
-      "fullDocument"
-    ) // TODO only include interestedFields
+      "_id",
+      "us",
+      "wid",
+      "ca",
+      "ua",
+      "t",
+      "an",
+      "p0",
+      "p1",
+      "is",
+      "s",
+      "c",
+      "mt",
+      "cw",
+      "cb",
+      "ra",
+      "v",
+      "so",
+      "w",
+      "if"
+    )
+  private val gameProjection = Projection.include(interestedFields)
 
+  private val interestedEventFields =
+    List("operationType", "clusterTime", "documentKey._id") ++ interestedFields.map("fullDocument." + _)
   private val eventProjection = Projection.include(interestedEventFields)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/gameSearch/src/main/GameSearchApi.scala#L52
@@ -89,7 +108,7 @@ object GameRepo:
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
           .find(filter.and(gameFilter))
-          // .hint("ca_-1")
+          .projection(gameProjection)
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
           .map(_.toList)
