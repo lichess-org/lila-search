@@ -20,7 +20,7 @@ object Dependencies {
     val http4s = "0.23.33"
     val mongo4cats = "0.7.17"
     val otel4sCore = "0.15.2"
-    val otel4sSdk = "0.16.1"
+    val otel4sSdk = "0.17.0"
     val otel4sHttp4s = "0.16.0"
   }
 
@@ -77,9 +77,9 @@ object Dependencies {
   val declineCore = "com.monovore" %% "decline" % V.decline
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
-  val doobieCore             = "org.tpolecat"   %% "doobie-core"                     % "1.0.0-RC12"
-  val doobieHikari           = "org.tpolecat"   %% "doobie-hikari"                   % "1.0.0-RC12"
-  val clickhouseJdbc         = "com.clickhouse"  % "clickhouse-jdbc"                 % "0.9.7"
+  val doobieCore = "org.tpolecat" %% "doobie-core" % "1.0.0-RC12"
+  val doobieHikari = "org.tpolecat" %% "doobie-hikari" % "1.0.0-RC12"
+  val clickhouseJdbc = "com.clickhouse" % "clickhouse-jdbc" % "0.9.7"
   val testContainersClickHouse = "com.dimafeng" %% "testcontainers-scala-clickhouse" % "0.44.1" % Test
 
   val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
