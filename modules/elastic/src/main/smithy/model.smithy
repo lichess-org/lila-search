@@ -139,7 +139,7 @@ list Chapters {
   member: Chapter
 }
 
-structure Study2Source {
+structure StudySource {
   @required
   @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms", keywordSubfield: {name: "raw", normalizer: "lowercase"})
   name: String
