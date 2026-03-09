@@ -17,7 +17,8 @@ class CHGameIngestor(ch: ClickHouseClient[IO], botCache: BotUserCache)(using Log
       .evalMap: result =>
         botCache.get.flatMap: botIds =>
           Logger[IO].info(s"Updating ${result.toIndex.size} docs to game") *>
-            ch.upsertGameRows(result.toIndex.map(toRow(_, botIds)))
+            ch.upsertGameRows(result.toIndex.map(toRow(_, botIds))) *>
+            ch.deleteGames(result.toDelete.map(_.value))
       .compile
       .drain
 
