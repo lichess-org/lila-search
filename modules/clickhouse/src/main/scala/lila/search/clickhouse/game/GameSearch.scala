@@ -11,13 +11,13 @@ object GameSearch:
   import GameRow.given
 
   def search(q: Game, from: From, size: Size): ConnectionIO[List[String]] =
-    (fr"SELECT id FROM games FINAL" ++ whereClause(q) ++ orderClause(q.sorting) ++
+    (fr"SELECT id FROM games" ++ whereClause(q) ++ orderClause(q.sorting) ++
       fr"LIMIT ${size.value} OFFSET ${from.value}")
       .query[String]
       .to[List]
 
   def count(q: Game): ConnectionIO[Long] =
-    (fr"SELECT count() FROM games FINAL" ++ whereClause(q))
+    (fr"SELECT count() FROM games" ++ whereClause(q))
       .query[Long]
       .unique
 
