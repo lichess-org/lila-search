@@ -67,37 +67,32 @@ class SearchServiceImpl(
           (a, (end - start).toUnit(java.util.concurrent.TimeUnit.MILLISECONDS))
 
   private def dualSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
-    timed(esSearch(q, from, size)).flatMap: (esResult, esMs) =>
-      dualMetrics.recordLatency(esMs, "elastic", "search") *>
-        shadowChSearch(q, from, size, esResult).start.void.as(esResult)
+    (timed(esSearch(q, from, size)), timed(chSearch(q, from, size)).attempt).parTupled
+      .flatMap:
+        case ((esResult, esMs), chOutcome) =>
+          dualMetrics.recordLatency(esMs, "elastic", "search") *>
+            (chOutcome match
+              case Right((chResult, chMs)) =>
+                dualMetrics.recordLatency(chMs, "clickhouse", "search") *>
+                  dualMetrics.recordDiff("search", esResult.hitIds.size, chResult.hitIds.size)
+              case Left(e) =>
+                dualMetrics.recordError("search") *>
+                  logger.error(e)("dual search: CH query failed")
+            ).start.void.as(esResult)
 
   private def dualCount(q: Query.Game): IO[CountOutput] =
-    timed(esCount(q)).flatMap: (esResult, esMs) =>
-      dualMetrics.recordLatency(esMs, "elastic", "count") *>
-        shadowChCount(q, esResult).start.void.as(esResult)
-
-  private def shadowChSearch(
-      q: Query.Game,
-      from: From,
-      size: Size,
-      esResult: SearchOutput
-  ): IO[Unit] =
-    timed(chSearch(q, from, size))
-      .flatMap: (chResult, chMs) =>
-        dualMetrics.recordLatency(chMs, "clickhouse", "search") *>
-          dualMetrics.recordDiff("search", esResult.hitIds.size, chResult.hitIds.size)
-      .handleErrorWith: e =>
-        dualMetrics.recordError("search") *>
-          logger.error(e)("dual search: CH query failed")
-
-  private def shadowChCount(q: Query.Game, esResult: CountOutput): IO[Unit] =
-    timed(chCount(q))
-      .flatMap: (chResult, chMs) =>
-        dualMetrics.recordLatency(chMs, "clickhouse", "count") *>
-          dualMetrics.recordDiff("count", esResult.count.toInt, chResult.count.toInt)
-      .handleErrorWith: e =>
-        dualMetrics.recordError("count") *>
-          logger.error(e)("dual count: CH query failed")
+    (timed(esCount(q)), timed(chCount(q)).attempt).parTupled
+      .flatMap:
+        case ((esResult, esMs), chOutcome) =>
+          dualMetrics.recordLatency(esMs, "elastic", "count") *>
+            (chOutcome match
+              case Right((chResult, chMs)) =>
+                dualMetrics.recordLatency(chMs, "clickhouse", "count") *>
+                  dualMetrics.recordDiff("count", esResult.count.toInt, chResult.count.toInt)
+              case Left(e) =>
+                dualMetrics.recordError("count") *>
+                  logger.error(e)("dual count: CH query failed")
+            ).start.void.as(esResult)
 
   // --- per-backend wrappers ---
 
