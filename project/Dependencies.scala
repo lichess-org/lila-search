@@ -61,7 +61,7 @@ object Dependencies {
   val mongo4catsCirce = "io.github.kirill5k" %% "mongo4cats-circe" % V.mongo4cats
   val circe = "io.circe" %% "circe-core" % "0.14.15"
 
-  val log4Cats = "org.typelevel" %% "log4cats-slf4j" % "2.7.1"
+  val log4Cats = "org.typelevel" %% "log4cats-slf4j" % "2.8.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.5.32"
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.12"
 
