@@ -13,7 +13,19 @@ import org.http4s.implicits.*
 enum GameSearchBackend:
   case ElasticOnly
   case ClickHouseOnly
-  case Dual
+  case Dual(val primary: SearchBackend)
+
+enum SearchBackend:
+  case Elastic
+  case Clickhouse
+
+  def flip: SearchBackend = this match
+    case Elastic => Clickhouse
+    case Clickhouse => Elastic
+
+  def name: String = this match
+    case Elastic => "elastic"
+    case Clickhouse => "clickhouse"
 
 object AppConfig:
 
@@ -34,7 +46,8 @@ object AppConfig:
       .map:
         case "elastic" => GameSearchBackend.ElasticOnly
         case "clickhouse" => GameSearchBackend.ClickHouseOnly
-        case "dual" => GameSearchBackend.Dual
+        case "dual" => GameSearchBackend.Dual(SearchBackend.Elastic)
+        case "dual-clickhouse" => GameSearchBackend.Dual(SearchBackend.Clickhouse)
 
 case class AppConfig(
     server: HttpServerConfig,

@@ -19,7 +19,7 @@ def Routes(
 
   def searchService: IO[SearchServiceImpl] =
     val dualMetrics = config.gameBackend match
-      case GameSearchBackend.Dual => DualMetrics.make
+      case _: GameSearchBackend.Dual => DualMetrics.make
       case _ => IO.pure(DualMetrics.noop)
     (GameMetrics.make, dualMetrics).mapN:
       SearchServiceImpl(resources.esClient, resources.chClient, config.gameBackend, _, _)

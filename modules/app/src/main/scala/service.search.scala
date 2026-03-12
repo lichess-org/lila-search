@@ -49,14 +49,14 @@ class SearchServiceImpl(
       gameBackend match
         case GameSearchBackend.ElasticOnly => esSearch(q, from, size)
         case GameSearchBackend.ClickHouseOnly => chSearch(q, from, size)
-        case GameSearchBackend.Dual => dualSearch(q, from, size)
+        case GameSearchBackend.Dual(primary) => dualSearch(q, from, size, primary)
 
   private def gameCount(q: Query.Game): IO[CountOutput] =
     gameMetrics.recordCount:
       gameBackend match
         case GameSearchBackend.ElasticOnly => esCount(q)
         case GameSearchBackend.ClickHouseOnly => chCount(q)
-        case GameSearchBackend.Dual => dualCount(q)
+        case GameSearchBackend.Dual(primary) => dualCount(q, primary)
 
   // --- dual (shadow) mode ---
 
@@ -66,33 +66,43 @@ class SearchServiceImpl(
         IO.monotonic.map: end =>
           (a, (end - start).toUnit(java.util.concurrent.TimeUnit.MILLISECONDS))
 
-  private def dualSearch(q: Query.Game, from: From, size: Size): IO[SearchOutput] =
-    (timed(esSearch(q, from, size)), timed(chSearch(q, from, size)).attempt).parTupled
+  private def dualSearch(q: Query.Game, from: From, size: Size, primary: SearchBackend): IO[SearchOutput] =
+    val shadow = primary.flip
+    val search = (backend: SearchBackend) =>
+      backend match
+        case SearchBackend.Elastic => esSearch(q, from, size)
+        case SearchBackend.Clickhouse => chSearch(q, from, size)
+    (timed(search(primary)), timed(search(shadow)).attempt).parTupled
       .flatMap:
-        case ((esResult, esMs), chOutcome) =>
-          dualMetrics.recordLatency(esMs, "elastic", "search") *>
-            (chOutcome match
-              case Right((chResult, chMs)) =>
-                dualMetrics.recordLatency(chMs, "clickhouse", "search") *>
-                  dualMetrics.recordDiff("search", esResult.hitIds.size, chResult.hitIds.size)
+        case ((primaryResult, primaryMs), shadowOutcome) =>
+          dualMetrics.recordLatency(primaryMs, primary.name, "search") *>
+            (shadowOutcome match
+              case Right((shadowResult, shadowMs)) =>
+                dualMetrics.recordLatency(shadowMs, shadow.name, "search") *>
+                  dualMetrics.recordDiff("search", primaryResult.hitIds.size, shadowResult.hitIds.size)
               case Left(e) =>
                 dualMetrics.recordError("search") *>
-                  logger.error(e)("dual search: CH query failed")
-            ).start.void.as(esResult)
+                  logger.error(e)(s"dual search: ${shadow.name} query failed")
+            ).start.void.as(primaryResult)
 
-  private def dualCount(q: Query.Game): IO[CountOutput] =
-    (timed(esCount(q)), timed(chCount(q)).attempt).parTupled
+  private def dualCount(q: Query.Game, primary: SearchBackend): IO[CountOutput] =
+    val shadow = primary.flip
+    val count = (backend: SearchBackend) =>
+      backend match
+        case SearchBackend.Elastic => esCount(q)
+        case SearchBackend.Clickhouse => chCount(q)
+    (timed(count(primary)), timed(count(shadow)).attempt).parTupled
       .flatMap:
-        case ((esResult, esMs), chOutcome) =>
-          dualMetrics.recordLatency(esMs, "elastic", "count") *>
-            (chOutcome match
-              case Right((chResult, chMs)) =>
-                dualMetrics.recordLatency(chMs, "clickhouse", "count") *>
-                  dualMetrics.recordDiff("count", esResult.count.toInt, chResult.count.toInt)
+        case ((primaryResult, primaryMs), shadowOutcome) =>
+          dualMetrics.recordLatency(primaryMs, primary.name, "count") *>
+            (shadowOutcome match
+              case Right((shadowResult, shadowMs)) =>
+                dualMetrics.recordLatency(shadowMs, shadow.name, "count") *>
+                  dualMetrics.recordDiff("count", primaryResult.count.toInt, shadowResult.count.toInt)
               case Left(e) =>
                 dualMetrics.recordError("count") *>
-                  logger.error(e)("dual count: CH query failed")
-            ).start.void.as(esResult)
+                  logger.error(e)(s"dual count: ${shadow.name} query failed")
+            ).start.void.as(primaryResult)
 
   // --- per-backend wrappers ---
 
