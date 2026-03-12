@@ -72,18 +72,9 @@ class SearchServiceImpl(
       backend match
         case SearchBackend.Elastic => esSearch(q, from, size)
         case SearchBackend.Clickhouse => chSearch(q, from, size)
-    (timed(search(primary)), timed(search(shadow)).attempt).parTupled
-      .flatMap:
-        case ((primaryResult, primaryMs), shadowOutcome) =>
-          dualMetrics.recordLatency(primaryMs, primary.name, "search") *>
-            (shadowOutcome match
-              case Right((shadowResult, shadowMs)) =>
-                dualMetrics.recordLatency(shadowMs, shadow.name, "search") *>
-                  dualMetrics.recordDiff("search", primaryResult.hitIds.size, shadowResult.hitIds.size)
-              case Left(e) =>
-                dualMetrics.recordError("search") *>
-                  logger.error(e)(s"dual search: ${shadow.name} query failed")
-            ).start.void.as(primaryResult)
+    shadowFireAndForget(search(shadow), shadow.name, "search") *>
+      timed(search(primary)).flatMap: (result, ms) =>
+        dualMetrics.recordLatency(ms, primary.name, "search").as(result)
 
   private def dualCount(q: Query.Game, primary: SearchBackend): IO[CountOutput] =
     val shadow = primary.flip
@@ -91,18 +82,20 @@ class SearchServiceImpl(
       backend match
         case SearchBackend.Elastic => esCount(q)
         case SearchBackend.Clickhouse => chCount(q)
-    (timed(count(primary)), timed(count(shadow)).attempt).parTupled
+    shadowFireAndForget(count(shadow), shadow.name, "count") *>
+      timed(count(primary)).flatMap: (result, ms) =>
+        dualMetrics.recordLatency(ms, primary.name, "count").as(result)
+
+  private def shadowFireAndForget(io: IO[?], name: String, operation: String): IO[Unit] =
+    timed(io).attempt
       .flatMap:
-        case ((primaryResult, primaryMs), shadowOutcome) =>
-          dualMetrics.recordLatency(primaryMs, primary.name, "count") *>
-            (shadowOutcome match
-              case Right((shadowResult, shadowMs)) =>
-                dualMetrics.recordLatency(shadowMs, shadow.name, "count") *>
-                  dualMetrics.recordDiff("count", primaryResult.count.toInt, shadowResult.count.toInt)
-              case Left(e) =>
-                dualMetrics.recordError("count") *>
-                  logger.error(e)(s"dual count: ${shadow.name} query failed")
-            ).start.void.as(primaryResult)
+        case Right((_, ms)) =>
+          dualMetrics.recordLatency(ms, name, operation)
+        case Left(e) =>
+          dualMetrics.recordError(operation) *>
+            logger.error(e)(s"dual $operation: $name query failed")
+      .start
+      .void
 
   // --- per-backend wrappers ---
 
