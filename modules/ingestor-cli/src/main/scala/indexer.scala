@@ -31,7 +31,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
         val backend = config.gameIngestBackend
         val needsCH = backend != GameIngestBackend.Elastic
         val needsES = backend != GameIngestBackend.ClickHouse
-        res.clickhouse.createTable.whenA(needsCH && !opts.dry) *>
+        res.clickhouse.createAllTables.whenA(needsCH && !opts.dry) *>
           putMappingsIfNotExists(res.elastic, index).whenA(needsES && !opts.dry) *>
           GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
             val ingestor: Ingestor[DbGame] =

@@ -43,7 +43,62 @@ object GameTable:
     ORDER BY (date, id)
   """
 
+  // Unrolled table: each game produces 2 rows (one per player).
+  // ORDER BY (user, date, id) enables fast primary-key lookups by username.
+  val userDdl: String = """
+    CREATE TABLE IF NOT EXISTS games_by_user (
+      user            String CODEC(ZSTD(3)),
+      date            DateTime CODEC(DoubleDelta, ZSTD(1)),
+      id              FixedString(8) CODEC(ZSTD(1)),
+      color           UInt8 CODEC(ZSTD(1)),
+      opponent        String CODEC(ZSTD(3)),
+      perf            UInt8 CODEC(ZSTD(1)),
+      rated           Bool CODEC(ZSTD(1)),
+      status          UInt8 CODEC(ZSTD(1)),
+      turns           UInt16 CODEC(T64, ZSTD(1)),
+      winner_color    Enum8('unknown'=0, 'white'=1, 'black'=2, 'draw'=3) CODEC(ZSTD(1)),
+      analysed        Bool CODEC(ZSTD(1)),
+      rating          UInt16 CODEC(T64, ZSTD(1)),
+      opponent_rating UInt16 CODEC(T64, ZSTD(1)),
+      ai_level        UInt8 CODEC(ZSTD(1)),
+      duration        UInt16 CODEC(T64, ZSTD(1)),
+      clock_init      Int16 CODEC(T64, ZSTD(1)),
+      clock_inc       Int16 CODEC(T64, ZSTD(1)),
+      source          UInt8 CODEC(ZSTD(1))
+    ) ENGINE = ReplacingMergeTree()
+    PARTITION BY toYYYYMM(date)
+    ORDER BY (user, date, id)
+  """
+
+  // Two MVs write to the same target table: one for white, one for black.
+  // Triggered on every INSERT into games, so games_by_user stays in sync automatically.
+  val whiteMvDdl: String = """
+    CREATE MATERIALIZED VIEW IF NOT EXISTS games_by_white_mv TO games_by_user AS
+    SELECT white_user AS user, date, id, toUInt8(1) AS color,
+           black_user AS opponent, perf, rated, status, turns, winner_color,
+           analysed, white_rating AS rating, black_rating AS opponent_rating,
+           ai_level, duration, clock_init, clock_inc, source
+    FROM games
+  """
+
+  val blackMvDdl: String = """
+    CREATE MATERIALIZED VIEW IF NOT EXISTS games_by_black_mv TO games_by_user AS
+    SELECT black_user AS user, date, id, toUInt8(2) AS color,
+           white_user AS opponent, perf, rated, status, turns, winner_color,
+           analysed, black_rating AS rating, white_rating AS opponent_rating,
+           ai_level, duration, clock_init, clock_inc, source
+    FROM games
+  """
+
   def create: ConnectionIO[Int] = Fragment.const(ddl).update.run
+
+  def createAll: ConnectionIO[Unit] =
+    for
+      _ <- Fragment.const(ddl).update.run
+      _ <- Fragment.const(userDdl).update.run
+      _ <- Fragment.const(whiteMvDdl).update.run
+      _ <- Fragment.const(blackMvDdl).update.run
+    yield ()
 
 case class GameRow(
     id: String,

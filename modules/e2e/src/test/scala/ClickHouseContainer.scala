@@ -27,5 +27,5 @@ object ClickHouseContainer:
       )
       xa <- ClickHouseTransactor.make(config)
       client = ClickHouseClient.make(xa)
-      _ <- Resource.eval(client.createTable)
+      _ <- Resource.eval(client.createAllTables)
     yield (config, client)

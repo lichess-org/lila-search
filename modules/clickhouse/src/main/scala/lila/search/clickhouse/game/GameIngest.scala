@@ -24,8 +24,10 @@ object GameIngest:
   // ClickHouse deletes use mutations which are asynchronous by default.
   // mutations_sync=1 waits for the mutation to complete on the local replica,
   // ensuring the delete is visible immediately after this call.
-  def deleteGame(id: String): ConnectionIO[Int] =
-    sql"ALTER TABLE games DELETE WHERE id = $id SETTINGS mutations_sync = 1".update.run
+  // MVs don't propagate deletes, so we delete from both tables.
+  def deleteGame(id: String): ConnectionIO[Unit] =
+    sql"ALTER TABLE games DELETE WHERE id = $id SETTINGS mutations_sync = 1".update.run *>
+      sql"ALTER TABLE games_by_user DELETE WHERE id = $id SETTINGS mutations_sync = 1".update.run.void
 
   // todo batch delete with multiple ids, but for now we only have single deletes in the tests
   def deleteGames(ids: List[String]): ConnectionIO[Unit] =
