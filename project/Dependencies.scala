@@ -16,7 +16,7 @@ object Dependencies {
     val decline = "2.6.0"
     val elastic4s = "9.1.1"
     val fs2 = "3.12.2"
-    val fs2Data = "1.12.0"
+    val fs2Data = "1.12.1"
     val http4s = "0.23.33"
     val mongo4cats = "0.7.17"
     val otel4sCore = "0.15.2"
