@@ -83,8 +83,8 @@ object Dependencies {
   val testContainersClickHouse = "com.dimafeng" %% "testcontainers-scala-clickhouse" % "0.44.1" % Test
 
   val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
-  val weaver = "org.typelevel" %% "weaver-cats" % "0.11.3" % Test
-  val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.11.3" % Test
+  val weaver = "org.typelevel" %% "weaver-cats" % "0.12.0" % Test
+  val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.12.0" % Test
   val catsEffectTestKit = "org.typelevel" %% "cats-effect-testkit" % V.catsEffect % Test
   val scalacheck = "org.scalacheck" %% "scalacheck" % "1.17.0" % Test
   val snapshot4s = "com.siriusxm" %% "snapshot4s-weaver" % snapshot4sVersion % Test
