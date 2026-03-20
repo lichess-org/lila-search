@@ -79,7 +79,7 @@ object Dependencies {
 
   val doobieCore = "org.tpolecat" %% "doobie-core" % "1.0.0-RC12"
   val doobieHikari = "org.tpolecat" %% "doobie-hikari" % "1.0.0-RC12"
-  val clickhouseJdbc = "com.clickhouse" % "clickhouse-jdbc" % "0.9.7"
+  val clickhouseJdbc = "com.clickhouse" % "clickhouse-jdbc" % "0.9.8"
   val testContainersClickHouse = "com.dimafeng" %% "testcontainers-scala-clickhouse" % "0.44.1" % Test
 
   val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
