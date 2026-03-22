@@ -98,7 +98,7 @@ object GameSearch:
         q.clockInc.map(c => fr"clock_inc = $c")
       ).flatten :::
       rangeFilters(UserColumns.turns, q.turns.a, q.turns.b) :::
-      userRatingFilters(q.averageRating.a, q.averageRating.b) :::
+      avgRatingFilters(q.averageRating.a, q.averageRating.b) :::
       rangeFilters(UserColumns.date, q.date.a, q.date.b) :::
       rangeFilters(UserColumns.duration, q.duration.a, q.duration.b) :::
       aiLevelFilters
@@ -113,9 +113,9 @@ object GameSearch:
   private object UserColumns extends Columns:
     val averageRating = Fragment.const("avg_rating")
 
-  private def userRatingFilters(min: Option[Int], max: Option[Int]): List[Fragment] =
+  private def avgRatingFilters(min: Option[Int], max: Option[Int]): List[Fragment] =
     if min.isEmpty && max.isEmpty then Nil
-    else fr"rating > 0 AND opponent_rating > 0" :: rangeFilters(UserColumns.averageRating, min, max)
+    else fr"avg_rating > 0" :: rangeFilters(UserColumns.averageRating, min, max)
 
   // --- main games table (fallback for non-user queries) ---
 
@@ -152,17 +152,13 @@ object GameSearch:
       q.clockInc.map(c => fr"clock_inc = $c")
     ).flatten :::
       rangeFilters(MainColumns.turns, q.turns.a, q.turns.b) :::
-      mainRatingFilters(q.averageRating.a, q.averageRating.b) :::
+      avgRatingFilters(q.averageRating.a, q.averageRating.b) :::
       rangeFilters(MainColumns.date, q.date.a, q.date.b) :::
       rangeFilters(MainColumns.duration, q.duration.a, q.duration.b) :::
       aiLevelFilters
 
   private object MainColumns extends Columns:
     val averageRating = Fragment.const("avg_rating")
-
-  private def mainRatingFilters(min: Option[Int], max: Option[Int]): List[Fragment] =
-    if min.isEmpty && max.isEmpty then Nil
-    else fr"white_rating > 0 AND black_rating > 0" :: rangeFilters(MainColumns.averageRating, min, max)
 
   // --- shared helpers ---
 

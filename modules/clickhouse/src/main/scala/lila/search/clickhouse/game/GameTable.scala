@@ -35,7 +35,7 @@ object GameTable:
       chess960_pos UInt16 CODEC(T64, ZSTD(1)),
       white_bot    Bool CODEC(ZSTD(1)),
       black_bot    Bool CODEC(ZSTD(1)),
-      avg_rating   UInt16 DEFAULT (white_rating + black_rating) / 2 CODEC(T64, ZSTD(1)),
+      avg_rating   UInt16 DEFAULT if(white_rating > 0 AND black_rating > 0, toUInt16((white_rating + black_rating) / 2), 0) CODEC(T64, ZSTD(1)),
 
       INDEX idx_white_user white_user TYPE bloom_filter(0.01) GRANULARITY 1,
       INDEX idx_black_user black_user TYPE bloom_filter(0.01) GRANULARITY 1,
@@ -86,7 +86,7 @@ object GameTable:
            black_user AS opponent, perf, rated, status, turns, winner_color,
            analysed, white_rating AS rating, black_rating AS opponent_rating,
            ai_level, duration, clock_init, clock_inc, source,
-           toUInt16((white_rating + black_rating) / 2) AS avg_rating
+           if(white_rating > 0 AND black_rating > 0, toUInt16((white_rating + black_rating) / 2), toUInt16(0)) AS avg_rating
     FROM games
   """
 
@@ -96,7 +96,7 @@ object GameTable:
            white_user AS opponent, perf, rated, status, turns, winner_color,
            analysed, black_rating AS rating, white_rating AS opponent_rating,
            ai_level, duration, clock_init, clock_inc, source,
-           toUInt16((white_rating + black_rating) / 2) AS avg_rating
+           if(white_rating > 0 AND black_rating > 0, toUInt16((white_rating + black_rating) / 2), toUInt16(0)) AS avg_rating
     FROM games
   """
 
