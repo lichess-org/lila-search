@@ -111,7 +111,7 @@ object GameSearch:
     val duration: Fragment = Fragment.const("duration")
 
   private object UserColumns extends Columns:
-    val averageRating = Fragment.const("(rating + opponent_rating) / 2")
+    val averageRating = Fragment.const("avg_rating")
 
   private def userRatingFilters(min: Option[Int], max: Option[Int]): List[Fragment] =
     if min.isEmpty && max.isEmpty then Nil
@@ -120,13 +120,13 @@ object GameSearch:
   // --- main games table (fallback for non-user queries) ---
 
   private def mainSearch(q: Game, from: From, size: Size): ConnectionIO[List[String]] =
-    (fr"SELECT id FROM games FINAL" ++ mainWhereClause(q) ++ orderClause(q.sorting, MainColumns) ++
+    (fr"SELECT id FROM games" ++ mainWhereClause(q) ++ orderClause(q.sorting, MainColumns) ++
       fr"LIMIT ${size.value} OFFSET ${from.value}")
       .query[String]
       .to[List]
 
   private def mainCount(q: Game): ConnectionIO[Long] =
-    (fr"SELECT count() FROM games FINAL" ++ mainWhereClause(q))
+    (fr"SELECT count() FROM games" ++ mainWhereClause(q))
       .query[Long]
       .unique
 
@@ -158,7 +158,7 @@ object GameSearch:
       aiLevelFilters
 
   private object MainColumns extends Columns:
-    val averageRating = Fragment.const("(white_rating + black_rating) / 2")
+    val averageRating = Fragment.const("avg_rating")
 
   private def mainRatingFilters(min: Option[Int], max: Option[Int]): List[Fragment] =
     if min.isEmpty && max.isEmpty then Nil

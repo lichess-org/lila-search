@@ -35,9 +35,16 @@ object GameTable:
       chess960_pos UInt16 CODEC(T64, ZSTD(1)),
       white_bot    Bool CODEC(ZSTD(1)),
       black_bot    Bool CODEC(ZSTD(1)),
+      avg_rating   UInt16 DEFAULT (white_rating + black_rating) / 2 CODEC(T64, ZSTD(1)),
 
       INDEX idx_white_user white_user TYPE bloom_filter(0.01) GRANULARITY 1,
-      INDEX idx_black_user black_user TYPE bloom_filter(0.01) GRANULARITY 1
+      INDEX idx_black_user black_user TYPE bloom_filter(0.01) GRANULARITY 1,
+      INDEX idx_avg_rating avg_rating TYPE minmax GRANULARITY 4,
+      INDEX idx_perf perf TYPE set(32) GRANULARITY 4,
+      INDEX idx_status status TYPE set(32) GRANULARITY 4,
+      INDEX idx_ai_level ai_level TYPE minmax GRANULARITY 4,
+      INDEX idx_turns turns TYPE minmax GRANULARITY 4,
+      INDEX idx_duration duration TYPE minmax GRANULARITY 4
     ) ENGINE = ReplacingMergeTree()
     PARTITION BY toYYYYMM(date)
     ORDER BY (date, id)
@@ -64,7 +71,8 @@ object GameTable:
       duration        UInt16 CODEC(T64, ZSTD(1)),
       clock_init      Int16 CODEC(T64, ZSTD(1)),
       clock_inc       Int16 CODEC(T64, ZSTD(1)),
-      source          UInt8 CODEC(ZSTD(1))
+      source          UInt8 CODEC(ZSTD(1)),
+      avg_rating      UInt16 CODEC(T64, ZSTD(1))
     ) ENGINE = ReplacingMergeTree()
     PARTITION BY toYYYYMM(date)
     ORDER BY (user, date, id)
@@ -77,7 +85,8 @@ object GameTable:
     SELECT white_user AS user, date, id, toUInt8(1) AS color,
            black_user AS opponent, perf, rated, status, turns, winner_color,
            analysed, white_rating AS rating, black_rating AS opponent_rating,
-           ai_level, duration, clock_init, clock_inc, source
+           ai_level, duration, clock_init, clock_inc, source,
+           toUInt16((white_rating + black_rating) / 2) AS avg_rating
     FROM games
   """
 
@@ -86,7 +95,8 @@ object GameTable:
     SELECT black_user AS user, date, id, toUInt8(2) AS color,
            white_user AS opponent, perf, rated, status, turns, winner_color,
            analysed, black_rating AS rating, white_rating AS opponent_rating,
-           ai_level, duration, clock_init, clock_inc, source
+           ai_level, duration, clock_init, clock_inc, source,
+           toUInt16((white_rating + black_rating) / 2) AS avg_rating
     FROM games
   """
 
