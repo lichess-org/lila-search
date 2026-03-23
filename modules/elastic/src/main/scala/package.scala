@@ -33,13 +33,13 @@ extension (index: Index)
   def keepSource: Boolean = index match
     case Index.Forum => false
     case Index.Ublog => false
-    case Index.Game => false
+    case Index.Game => true
     case Index.Study => true // need source for partial updates (likes and ranks)
     case Index.Team => false
 
   def shards: Int = index match
     case Index.Game =>
-      50 // games has 10B+ documents, so we need more shards https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards
+      25 // games has 10B+ documents, so we need more shards https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards
     case _ => 5
 
   def refreshInterval =
