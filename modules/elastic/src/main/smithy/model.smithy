@@ -43,7 +43,7 @@ structure ForumSource {
 structure GameSource {
   @required
   @jsonName("s")
-  @keywordField(docValues: false)
+  @byteField(docValues: false)
   status: Integer
   @required
   @jsonName("t")
@@ -55,24 +55,17 @@ structure GameSource {
   rated: Boolean
   @required
   @jsonName("p")
-  @keywordField(docValues: false)
+  @byteField(docValues: false)
   perf: Integer
-  @jsonName("u")
-  @keywordField(docValues: false)
-  uids: PlayerIds
-  @jsonName("w")
-  @keywordField(docValues: false)
-  winner: String
-  @jsonName("o")
-  @keywordField(docValues: false)
-  loser: String
   @required
   @jsonName("c")
-  @keywordField(docValues: false)
+  @byteField(docValues: false)
   winnerColor: Integer
+  @required
   @jsonName("a")
   @shortField(docValues: true)
   averageRating: Integer
+  @required
   @jsonName("i")
   @byteField(docValues: false)
   ai: Integer
@@ -80,12 +73,15 @@ structure GameSource {
   @jsonName("d")
   @dateField(format: "yyyy-MM-dd HH:mm:ss", docValues: true)
   date: DateTime
+  @required
   @jsonName("l")
   @intField(docValues: false)
   duration: Integer
+  @required
   @jsonName("ct")
   @shortField(docValues: false)
   clockInit: Integer
+  @required
   @jsonName("ci")
   @shortField(docValues: false)
   clockInc: Integer
@@ -93,15 +89,38 @@ structure GameSource {
   @jsonName("n")
   @booleanField(docValues: false)
   analysed: Boolean
+  @required
   @jsonName("wu")
   @keywordField(docValues: false)
   whiteUser: String
+  @required
   @jsonName("bu")
   @keywordField(docValues: false)
   blackUser: String
+  @required
   @jsonName("so")
-  @keywordField(docValues: false)
+  @byteField(docValues: false)
   source: Integer
+  @required
+  @jsonName("wr")
+  @shortField(docValues: false)
+  whiteRating: Integer
+  @required
+  @jsonName("br")
+  @shortField(docValues: false)
+  blackRating: Integer
+  @required
+  @jsonName("c9")
+  @shortField(docValues: false)
+  chess960Pos: Integer
+  @required
+  @jsonName("wb")
+  @booleanField(docValues: false)
+  whiteBot: Boolean
+  @required
+  @jsonName("bb")
+  @booleanField(docValues: false)
+  blackBot: Boolean
 }
 
 structure ChapterTags {

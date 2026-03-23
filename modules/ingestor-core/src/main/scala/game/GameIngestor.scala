@@ -4,7 +4,6 @@ package ingestor.game
 import cats.effect.IO
 import lila.search.clickhouse.ClickHouseClient
 import lila.search.ingestor.*
-import lila.search.ingestor.given
 import org.typelevel.log4cats.LoggerFactory
 
 object GameIngestor:
@@ -16,10 +15,10 @@ object GameIngestor:
       botCache: BotUserCache
   )(using LoggerFactory[IO]): Ingestor[DbGame] =
     backend match
-      case GameIngestBackend.Elastic => ESIngestor(Index.Game, elastic)
+      case GameIngestBackend.Elastic => ESGameIngestor(elastic, botCache)
       case GameIngestBackend.ClickHouse => CHGameIngestor(clickhouse, botCache)
       case GameIngestBackend.Both =>
-        val es = ESIngestor[DbGame](Index.Game, elastic)
+        val es = ESGameIngestor(elastic, botCache)
         val ch = CHGameIngestor(clickhouse, botCache)
         new Ingestor[DbGame]:
           def ingest(stream: fs2.Stream[IO, Repo.Result[DbGame]]): IO[Unit] =

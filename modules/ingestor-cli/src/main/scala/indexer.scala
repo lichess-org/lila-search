@@ -68,7 +68,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     case Index.Ublog => runES(index, UblogRepo(res.lichess, config.ingestor.ublog), opts)
     case Index.Study => runES(index, StudyRepo(res.study, res.studyLocal, config.ingestor.study), opts)
     case Index.Team => runES(index, TeamRepo(res.lichess, config.ingestor.team), opts)
-    case Index.Game => runES(index, GameRepo(res.lichess, config.ingestor.game), opts)
+    case Index.Game => throw UnsupportedOperationException("Game indexing is handled separately")
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index)(using Logger[IO]): IO[Unit] =
     Handle

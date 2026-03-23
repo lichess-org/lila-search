@@ -48,11 +48,47 @@ case class Game(
 
   private def makeQuery: Query =
 
-    def usernames = List(user1, user2).flatten
+    // user1 alone: games where user1 played as white or black
+    // user1 + user2: games between user1 and user2
+    def userQueries: List[Query] =
+      (user1, user2) match
+        case (Some(u1), Some(u2)) =>
+          List(
+            boolQuery().should(
+              boolQuery().must(termQuery(Fields.whiteUser, u1), termQuery(Fields.blackUser, u2)),
+              boolQuery().must(termQuery(Fields.whiteUser, u2), termQuery(Fields.blackUser, u1))
+            )
+          )
+        case _ =>
+          List(user1, user2).flatten.map: u =>
+            boolQuery().should(termQuery(Fields.whiteUser, u), termQuery(Fields.blackUser, u))
+
+    // winner W: games where W played as white and white won, or W played as black and black won
+    def winnerQueries: List[Query] =
+      winner.toList.map: w =>
+        boolQuery().should(
+          boolQuery().must(termQuery(Fields.whiteUser, w), termQuery(Fields.winnerColor, 1)),
+          boolQuery().must(termQuery(Fields.blackUser, w), termQuery(Fields.winnerColor, 2))
+        )
+
+    // loser L: games where L played as white and black won, or L played as black and white won
+    def loserQueries: List[Query] =
+      loser.toList.map: l =>
+        boolQuery().should(
+          boolQuery().must(termQuery(Fields.whiteUser, l), termQuery(Fields.winnerColor, 2)),
+          boolQuery().must(termQuery(Fields.blackUser, l), termQuery(Fields.winnerColor, 1))
+        )
 
     def hasAiQueries =
       hasAi.toList.map: a =>
-        a.fold(existsQuery(Fields.ai), not(existsQuery(Fields.ai)))
+        if a then rangeQuery(Fields.ai).gt(0)
+        else termQuery(Fields.ai, 0)
+
+    // averageRating is 0 when either rating is missing; exclude 0s from range queries
+    def avgRatingQueries =
+      if averageRating.nonEmpty then
+        rangeQuery(Fields.averageRating).gt(0) :: averageRating.queries(Fields.averageRating)
+      else Nil
 
     def toQueries(query: Option[String | Int | Boolean], name: String): List[TermQuery] =
       query.toList.map:
@@ -60,12 +96,12 @@ case class Game(
         case x => termQuery(name, x)
 
     List(
-      usernames.map(termQuery(Fields.uids, _)),
-      toQueries(winner, Fields.winner),
-      toQueries(loser, Fields.loser),
+      userQueries,
+      winnerQueries,
+      loserQueries,
       toQueries(winnerColor, Fields.winnerColor),
       turns.queries(Fields.turns),
-      averageRating.queries(Fields.averageRating),
+      avgRatingQueries,
       duration.queries(Fields.duration),
       clockInit.map(termsQuery(Fields.clockInit, _)).toList,
       clockInc.map(termsQuery(Fields.clockInc, _)).toList,
@@ -86,9 +122,6 @@ object Fields:
   val turns = "t"
   val rated = "r"
   val perf = "p"
-  val uids = "u"
-  val winner = "w"
-  val loser = "o"
   val winnerColor = "c"
   val averageRating = "a"
   val ai = "i"
@@ -100,6 +133,11 @@ object Fields:
   val whiteUser = "wu"
   val blackUser = "bu"
   val source = "so"
+  val whiteRating = "wr"
+  val blackRating = "br"
+  val chess960Pos = "c9"
+  val whiteBot = "wb"
+  val blackBot = "bb"
 
 object Mapping:
   def fields = MappingGenerator.generateFields(es.GameSource.schema)

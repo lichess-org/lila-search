@@ -189,21 +189,24 @@ object IntegrationSuite extends IOSuite:
               winnerColor = 1,
               date = SearchDateTime.fromInstant(Timestamp(1999, 10, 20, 12, 20, 20).toInstant),
               analysed = false,
-              uids = List("uid1", "uid2").some,
-              winner = "uid1".some,
-              loser = "uid2".some,
-              averageRating = 150.some,
-              ai = none,
-              duration = 100.some,
-              clockInit = 100.some,
-              clockInc = 200.some,
-              whiteUser = "white".some,
-              blackUser = "black".some
+              averageRating = 150,
+              ai = 0,
+              duration = 100,
+              clockInit = 100,
+              clockInc = 200,
+              whiteUser = "white",
+              blackUser = "black",
+              source = 0,
+              whiteRating = 150,
+              blackRating = 150,
+              chess960Pos = 1000,
+              whiteBot = false,
+              blackBot = false
             )
           )
           _ <- res.esClient.refreshIndex(Index.Game)
           a <- service.search(defaultGame.copy(perf = List(1)), from, size)
-          b <- service.search(defaultGame.copy(loser = "uid2".some), from, size)
+          b <- service.search(defaultGame.copy(loser = "black".some), from, size)
           c <- service.search(defaultGame, from, size)
           d <- service.search(defaultGame.copy(duration = IntRange(a = 99.some, b = 101.some)), from, size)
           e <- service.search(defaultGame.copy(clockInit = 100.some), from, size)

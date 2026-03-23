@@ -1,33 +1,43 @@
 package lila.search
 package ingestor
 
-import cats.syntax.all.*
 import chess.variant.Variant
 import chess.{ Speed, Status }
 import lila.search.es.*
 
 object Translate:
 
-  def game(g: DbGame): GameSource =
+  def game(g: DbGame, botIds: Set[String]): GameSource =
+    val whiteUser = g.whiteId.getOrElse("")
+    val blackUser = g.blackId.getOrElse("")
+    val whiteRating = g.whitePlayer.flatMap(_.rating).getOrElse(0)
+    val blackRating = g.blackPlayer.flatMap(_.rating).getOrElse(0)
     GameSource(
       status = g.status,
       turns = (g.ply + 1) / 2,
       rated = g.rated.getOrElse(false),
       perf = perfId(g.variantOrDefault, g.speed),
-      winnerColor = g.winnerColor.fold(3)(if _ then 1 else 2),
+      winnerColor = g.winnerColor match
+        case Some(true) => 1 // White
+        case Some(false) => 2 // Black
+        case None =>
+          if g.status > Status.Stalemate.id && g.status != Status.UnknownFinish.id then 3 // Draw
+          else 0, // Unknown
       date = SearchDateTime.fromInstant(g.date),
       analysed = g.analysed.getOrElse(false),
-      uids = g.players.some, // make uids not optional
-      winner = g.winnerId,
-      loser = g.loser,
-      averageRating = averageUsersRating(g),
-      ai = g.aiLevel,
-      duration = durationSeconds(g).some,
-      clockInit = g.clockInit,
-      clockInc = g.clockInc,
-      whiteUser = g.whiteId,
-      blackUser = g.blackId,
-      source = g.source
+      averageRating = if whiteRating > 0 && blackRating > 0 then (whiteRating + blackRating) / 2 else 0,
+      ai = g.aiLevel.getOrElse(0),
+      duration = durationSeconds(g),
+      clockInit = g.clockInit.getOrElse(-1),
+      clockInc = g.clockInc.getOrElse(-1),
+      whiteUser = whiteUser,
+      blackUser = blackUser,
+      source = g.source.getOrElse(0),
+      whiteRating = whiteRating,
+      blackRating = blackRating,
+      chess960Pos = g.chess960Position.getOrElse(1000),
+      whiteBot = whiteUser.nonEmpty && botIds.contains(whiteUser),
+      blackBot = blackUser.nonEmpty && botIds.contains(blackUser)
     )
 
   import lila.search.clickhouse.game.{ GameRow, WinnerColor }
@@ -65,13 +75,6 @@ object Translate:
       whiteBot = whiteUser.nonEmpty && botIds.contains(whiteUser),
       blackBot = blackUser.nonEmpty && botIds.contains(blackUser)
     )
-
-  // Helper: calculate average users rating
-  private def averageUsersRating(g: DbGame): Option[Int] =
-    List(g.whitePlayer.flatMap(_.rating), g.blackPlayer.flatMap(_.rating)).flatten match
-      case a :: b :: Nil => Some((a + b) / 2)
-      case a :: Nil => Some((a + 1500) / 2)
-      case _ => None
 
   // Helper: calculate game duration in seconds
   private def durationSeconds(g: DbGame): Int =
