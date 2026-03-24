@@ -3,8 +3,7 @@ package ingestor
 
 import cats.effect.*
 import cats.syntax.all.*
-import lila.search.clickhouse.ClickHouseClient
-import lila.search.ingestor.game.GameIngestor
+import lila.search.ingestor.game.ESGameIngestor
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
@@ -19,9 +18,7 @@ object Ingestors:
       local: MongoDatabase[IO],
       store: KVStore,
       elastic: ESClient[IO],
-      clickhouse: ClickHouseClient[IO],
       config: IngestorConfig,
-      gameIngestBackend: GameIngestBackend,
       botCache: BotUserCache
   )(using LoggerFactory[IO]): IO[Unit] =
     (
@@ -40,7 +37,7 @@ object Ingestors:
         run(
           Index.Game,
           games,
-          GameIngestor(gameIngestBackend, elastic, clickhouse, botCache),
+          ESGameIngestor(elastic, botCache),
           config.game.startAt
         )
       ).parSequence_

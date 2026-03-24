@@ -42,42 +42,6 @@ object Translate:
       blackBot = blackUser.nonEmpty && botIds.contains(blackUser)
     )
 
-  import lila.search.clickhouse.game.{ GameRow, WinnerColor }
-  def toGameRow(g: DbGame, botIds: Set[String]): GameRow =
-    val whiteUser = g.whiteId.getOrElse("")
-    val blackUser = g.blackId.getOrElse("")
-    GameRow(
-      id = g.id,
-      status = g.status,
-      turns = (g.ply + 1) / 2,
-      rated = g.rated.getOrElse(false),
-      perf = perfId(g.variantOrDefault, g.speed),
-      winnerColor = g.winnerColor match
-        case Some(true) => WinnerColor.White
-        case Some(false) => WinnerColor.Black
-        case None =>
-          // If the game is not finished, we set it to unknown
-          // If the game is finished and there is no winner, it means it's a draw except when the status is UnknownFinish
-          if g.status > Status.Stalemate.id && g.status != Status.UnknownFinish.id then WinnerColor.Draw
-          else WinnerColor.Unknown,
-      date = g.date,
-      analysed = g.analysed.getOrElse(false),
-      whiteRating = g.whitePlayer.flatMap(_.rating).getOrElse(0),
-      blackRating = g.blackPlayer.flatMap(_.rating).getOrElse(0),
-      aiLevel = g.aiLevel.getOrElse(0),
-      duration = durationSeconds(g),
-      // we set clockInit to -1 for games without clock config to distinguish them from games with clock config but 0 initial time
-      clockInit = g.clockInit.getOrElse(-1),
-      // we set clockInc to -1 for games without clock config to distinguish them from games with clock config but 0 increment
-      clockInc = g.clockInc.getOrElse(-1),
-      whiteUser = whiteUser,
-      blackUser = blackUser,
-      source = g.source.getOrElse(0),
-      chess960Position = g.chess960Position.getOrElse(1000),
-      whiteBot = whiteUser.nonEmpty && botIds.contains(whiteUser),
-      blackBot = blackUser.nonEmpty && botIds.contains(blackUser)
-    )
-
   // Helper: calculate game duration in seconds
   private def durationSeconds(g: DbGame): Int =
     // If there is no clock config, it means it's either a very old game or a correspondence game

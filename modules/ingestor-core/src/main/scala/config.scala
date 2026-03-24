@@ -5,7 +5,6 @@ import cats.effect.IO
 import cats.syntax.all.*
 import ciris.*
 import ciris.http4s.*
-import lila.search.clickhouse.ClickHouseConfig
 import org.http4s.Uri
 import org.http4s.implicits.*
 
@@ -14,41 +13,24 @@ import scala.concurrent.duration.*
 
 import CirisCodec.given
 
-enum GameIngestBackend:
-  case Elastic, ClickHouse, Both
-
 object AppConfig:
 
   def load: IO[AppConfig] = appConfig.load[IO]
 
   private def kvStorePath = env("KV_STORE_PATH").or(prop("kv.store.path")).as[String].default("store.json")
 
-  private def gameIngestBackend =
-    env("GAME_INGEST_BACKEND")
-      .or(prop("game.ingest.backend"))
-      .as[String]
-      .default("elastic")
-      .map:
-        case "elastic" => GameIngestBackend.Elastic
-        case "clickhouse" => GameIngestBackend.ClickHouse
-        case "both" => GameIngestBackend.Both
-
   def appConfig = (
     MongoConfigLoader.config,
     ElasticConfig.config,
     IngestorConfigLoader.config,
-    kvStorePath,
-    ClickHouseConfig.config,
-    gameIngestBackend
+    kvStorePath
   ).parMapN(AppConfig.apply)
 
 case class AppConfig(
     mongo: MongoConfig,
     elastic: ElasticConfig,
     ingestor: IngestorConfig,
-    kvStorePath: String,
-    clickhouse: ClickHouseConfig,
-    gameIngestBackend: GameIngestBackend
+    kvStorePath: String
 )
 
 private def studyDatabase =

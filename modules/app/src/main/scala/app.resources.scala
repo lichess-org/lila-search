@@ -3,25 +3,18 @@ package app
 
 import cats.effect.*
 import cats.syntax.all.*
-import lila.search.clickhouse.ClickHouseClient
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.otel4s.middleware.metrics.OtelMetrics
 import org.typelevel.otel4s.metrics.MeterProvider
 
 class AppResources(
-    val esClient: ESClient[IO],
-    val chClient: ClickHouseClient[IO]
+    val esClient: ESClient[IO]
 )
 
 object AppResources:
 
   def instance(conf: AppConfig)(using MeterProvider[IO]): Resource[IO, AppResources] =
-    val chResource: Resource[IO, ClickHouseClient[IO]] = conf.gameBackend match
-      case GameSearchBackend.ElasticOnly => Resource.pure(ClickHouseClient.noop)
-      case GameSearchBackend.ClickHouseOnly | _: GameSearchBackend.Dual =>
-        ClickHouseClient.resource(conf.clickhouse)
-
-    (makeElasticClient(conf.elastic), chResource).parMapN(AppResources.apply)
+    makeElasticClient(conf.elastic).map(AppResources.apply)
 
   private def makeElasticClient(conf: ElasticConfig)(using MeterProvider[IO]): Resource[IO, ESClient[IO]] =
     val metrics = OtelMetrics
