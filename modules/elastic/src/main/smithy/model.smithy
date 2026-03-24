@@ -43,7 +43,7 @@ structure ForumSource {
 structure GameSource {
   @required
   @jsonName("s")
-  @byteField(docValues: false)
+  @keywordField(docValues: false)
   status: Integer
   @required
   @jsonName("t")
@@ -55,11 +55,11 @@ structure GameSource {
   rated: Boolean
   @required
   @jsonName("p")
-  @byteField(docValues: true)
+  @keywordField(docValues: false)
   perf: Integer
   @required
   @jsonName("c")
-  @byteField(docValues: false)
+  @keywordField(docValues: false)
   winnerColor: Integer
   @required
   @jsonName("a")
@@ -99,7 +99,7 @@ structure GameSource {
   blackUser: String
   @required
   @jsonName("so")
-  @byteField(docValues: false)
+  @keywordField(docValues: false)
   source: Integer
   @required
   @jsonName("wr")
