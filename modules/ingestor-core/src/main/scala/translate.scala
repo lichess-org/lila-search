@@ -81,7 +81,7 @@ object Translate:
     // If there is no clock config, it means it's either a very old game or a correspondence game
     if g.clockConfig.isEmpty then 0
     else
-      val seconds = (g.date.toEpochMilli / 1000 - g.createdAt.toEpochMilli / 1000)
+      val seconds = g.date.getEpochSecond - g.createdAt.getEpochSecond
       if seconds <= 0 then 0
       else if seconds < 60 * 60 * 12 then seconds.toInt
       else 60 * 60 * 12 + 1 // cap duration to 12 hours + 1 seconds for very long games
