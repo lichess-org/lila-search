@@ -143,7 +143,7 @@ object Mapping:
   def fields = MappingGenerator.generateFields(es.GameSource.schema)
 
 object Game:
-  val index = "game2"
+  val index = "game"
 
 case class Sorting(f: String, order: String):
   import com.sksamuel.elastic4s.requests.searches.sort.SortOrder

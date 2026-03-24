@@ -30,7 +30,7 @@ object Id:
 enum Index(val value: String):
   case Forum extends Index("forum")
   case Ublog extends Index("ublog")
-  case Game extends Index("game2")
+  case Game extends Index("game")
   case Study extends Index("study_with_chapters")
   case Team extends Index("team")
 
