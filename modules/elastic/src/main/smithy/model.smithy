@@ -43,7 +43,7 @@ structure ForumSource {
 structure GameSource {
   @required
   @jsonName("s")
-  @keywordField(docValues: false)
+  @byteField(docValues: false)
   status: Integer
   @required
   @jsonName("t")
@@ -111,7 +111,7 @@ structure GameSource {
   blackRating: Integer
   @required
   @jsonName("c9")
-  @shortField(docValues: false)
+  @keywordField(docValues: false)
   chess960Pos: Integer
   @required
   @jsonName("wb")

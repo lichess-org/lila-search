@@ -28,7 +28,9 @@ object Translate:
       averageRating = if whiteRating > 0 && blackRating > 0 then (whiteRating + blackRating) / 2 else 0,
       ai = g.aiLevel.getOrElse(0),
       duration = durationSeconds(g),
+      // we set clockInit to -1 for games without clock config to distinguish them from games with clock config but 0 initial time
       clockInit = g.clockInit.getOrElse(-1),
+      // similar to clockInit
       clockInc = g.clockInc.getOrElse(-1),
       whiteUser = whiteUser,
       blackUser = blackUser,
