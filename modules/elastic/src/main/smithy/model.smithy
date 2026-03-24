@@ -55,7 +55,7 @@ structure GameSource {
   rated: Boolean
   @required
   @jsonName("p")
-  @byteField(docValues: false)
+  @byteField(docValues: true)
   perf: Integer
   @required
   @jsonName("c")
@@ -75,15 +75,15 @@ structure GameSource {
   date: DateTime
   @required
   @jsonName("l")
-  @intField(docValues: false)
+  @intField(docValues: true)
   duration: Integer
   @required
   @jsonName("ct")
-  @shortField(docValues: false)
+  @shortField(docValues: true)
   clockInit: Integer
   @required
   @jsonName("ci")
-  @shortField(docValues: false)
+  @shortField(docValues: true)
   clockInc: Integer
   @required
   @jsonName("n")
