@@ -33,7 +33,7 @@ extension (index: Index)
   def keepSource: Boolean = index match
     case Index.Forum => false
     case Index.Ublog => false
-    case Index.Game => true
+    case Index.Game => false // game search only returns IDs, no need to store _source
     case Index.Study => true // need source for partial updates (likes and ranks)
     case Index.Team => false
 
@@ -52,14 +52,22 @@ extension (index: Index)
       case Index.Study => chessAnalysis.some
       case _ => none
 
+  def indexSort: Option[(String, String)] = index match
+    case Index.Game => ("d", "desc").some // sort by date desc for early termination on default queries
+    case _ => none
+
   def createIndexRequest: CreateIndexRequest =
-    val request =
+    val base =
       createIndex(index.value)
         .mapping(properties(index.mapping).source(index.keepSource))
         .shards(index.shards)
         .replicas(0)
         .refreshInterval(index.refreshInterval)
-    index.analysis.fold(request)(request.analysis(_))
+    val withAnalysis = index.analysis.fold(base)(base.analysis(_))
+    index.indexSort.fold(withAnalysis): (field, order) =>
+      withAnalysis
+        .indexSetting("sort.field", field)
+        .indexSetting("sort.order", order)
 
 extension [F[_]: Monad, A](response: Response[A])
   def toResult: Raise[F, ElasticError] ?=> F[A] =
