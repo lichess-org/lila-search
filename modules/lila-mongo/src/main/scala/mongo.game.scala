@@ -14,7 +14,7 @@ import mongo4cats.circe.*
 import mongo4cats.collection.MongoCollection
 import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument
-import mongo4cats.operations.{ Aggregate, Filter, Projection }
+import mongo4cats.operations.{ Aggregate, Filter, Projection, Sort }
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
@@ -108,6 +108,7 @@ object GameRepo:
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
           .find(filter.and(gameFilter))
+          .sort(Sort.desc(F.createdAt))
           .projection(gameProjection)
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
