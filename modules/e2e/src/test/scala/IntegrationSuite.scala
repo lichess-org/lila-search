@@ -176,7 +176,7 @@ object IntegrationSuite extends IOSuite:
               rated = true,
               perf = 1,
               winnerColor = 1,
-              date = SearchDateTime.fromInstant(Timestamp(1999, 10, 20, 12, 20, 20).toInstant),
+              date = Timestamp(1999, 10, 20, 12, 20, 20).toInstant.getEpochSecond,
               analysed = false,
               averageRating = 150,
               ai = 0,

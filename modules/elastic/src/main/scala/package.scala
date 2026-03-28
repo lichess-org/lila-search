@@ -33,7 +33,7 @@ extension (index: Index)
   def keepSource: Boolean = index match
     case Index.Forum => false
     case Index.Ublog => false
-    case Index.Game => false // game search only returns IDs, no need to store _source
+    case Index.Game => false
     case Index.Study => true // need source for partial updates (likes and ranks)
     case Index.Team => false
 
@@ -56,6 +56,10 @@ extension (index: Index)
     case Index.Game => ("d", "desc").some // sort by date desc for early termination on default queries
     case _ => none
 
+  def codec: Option[String] = index match
+    case Index.Game => "best_compression".some // DEFLATE for better compression on 10B+ doc index
+    case _ => none
+
   def createIndexRequest: CreateIndexRequest =
     val base =
       createIndex(index.value)
@@ -64,8 +68,9 @@ extension (index: Index)
         .replicas(0)
         .refreshInterval(index.refreshInterval)
     val withAnalysis = index.analysis.fold(base)(base.analysis(_))
-    index.indexSort.fold(withAnalysis): (field, order) =>
-      withAnalysis
+    val withCodec = index.codec.fold(withAnalysis)(withAnalysis.indexSetting("codec", _))
+    index.indexSort.fold(withCodec): (field, order) =>
+      withCodec
         .indexSetting("sort.field", field)
         .indexSetting("sort.order", order)
 

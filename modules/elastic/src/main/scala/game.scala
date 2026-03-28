@@ -105,7 +105,7 @@ case class Game(
       duration.queries(Fields.duration),
       clockInit.map(termsQuery(Fields.clockInit, _)).toList,
       clockInc.map(termsQuery(Fields.clockInc, _)).toList,
-      date.map(SearchDateTime.fromInstant).queries(Fields.date),
+      date.map(_.getEpochSecond).queries(Fields.date),
       hasAiQueries,
       hasAi.getOrElse(true).fold(aiLevel.queries(Fields.ai), Nil),
       perf.nonEmpty.fold(List(termsQuery(Fields.perf, perf)), Nil),

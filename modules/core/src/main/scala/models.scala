@@ -2,8 +2,6 @@ package lila.search
 
 import cats.syntax.all.*
 
-import java.time.ZoneId
-
 opaque type SearchDateTime = String
 
 object SearchDateTime:
@@ -18,7 +16,8 @@ object SearchDateTime:
     formatter.format(value)
 
   val format = "yyyy-MM-dd HH:mm:ss"
-  val formatter = java.time.format.DateTimeFormatter.ofPattern(format).withZone(ZoneId.systemDefault())
+  val formatter =
+    java.time.format.DateTimeFormatter.ofPattern(format).withZone(java.time.ZoneId.systemDefault())
 
   extension (x: SearchDateTime) def value: String = x
 

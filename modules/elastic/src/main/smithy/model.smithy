@@ -43,7 +43,7 @@ structure ForumSource {
 structure GameSource {
   @required
   @jsonName("s")
-  @byteField(docValues: false)
+  @keywordField(docValues: false)
   status: Integer
   @required
   @jsonName("t")
@@ -69,13 +69,14 @@ structure GameSource {
   @jsonName("i")
   @byteField(docValues: false)
   ai: Integer
+  /// epoch seconds
   @required
   @jsonName("d")
-  @dateField(format: "yyyy-MM-dd HH:mm:ss", docValues: true)
-  date: DateTime
+  @dateField(format: "epoch_second", docValues: true)
+  date: Long
   @required
   @jsonName("l")
-  @intField(docValues: true)
+  @intField(docValues: false)
   duration: Integer
   @required
   @jsonName("ct")

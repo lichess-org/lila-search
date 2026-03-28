@@ -23,7 +23,7 @@ object Translate:
         case None =>
           if g.status > Status.Stalemate.id && g.status != Status.UnknownFinish.id then 3 // Draw
           else 0, // Unknown
-      date = SearchDateTime.fromInstant(g.date),
+      date = g.date.getEpochSecond,
       analysed = g.analysed.getOrElse(false),
       averageRating = if whiteRating > 0 && blackRating > 0 then (whiteRating + blackRating) / 2 else 0,
       ai = g.aiLevel.getOrElse(0),
