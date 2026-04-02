@@ -42,9 +42,6 @@ object GameRepo:
       "is",
       "s",
       "c",
-      "mt",
-      "cw",
-      "cb",
       "ra",
       "v",
       "so",
@@ -146,13 +143,8 @@ case class DbGame(
     whitePlayer: Option[DbPlayer], // p0
     blackPlayer: Option[DbPlayer], // p1
     playerIds: String, // is
-    // binaryPieces: Option[Array[Byte]], // ps
-    // huffmanPgn: Option[Array[Byte]], // hp
     status: Int, // s
     encodedClock: Option[Array[Byte]], // c
-    moveTimes: Option[Array[Byte]], // mt
-    encodedWhiteClock: Option[Array[Byte]], // cw
-    encodedBlackClock: Option[Array[Byte]], // cb
     rated: Option[Boolean], // ra
     variant: Option[Int], // v
     source: Option[Int], // so
@@ -178,9 +170,9 @@ case class DbGame(
 
 object DbGame:
   // format: off
-  given Decoder[DbGame] = Decoder.forProduct20(
+  given Decoder[DbGame] = Decoder.forProduct17(
     "_id", "us", "wid", "ca", "ua", "t", "an", "p0", "p1", "is",
-    "s", "c", "mt", "cw", "cb", "ra", "v", "so", "w", "if")(DbGame.apply)
+    "s", "c", "ra", "v", "so", "w", "if")(DbGame.apply)
   // format: on
 
   // We don't write to the database so We don't need to implement this
