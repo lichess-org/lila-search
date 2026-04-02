@@ -62,10 +62,9 @@ object GameRepo:
     // https://github.com/lichess-org/scalachess/blob/18edf46a50445048fdc2ee5a83752e5b3884f490/core/src/main/scala/Status.scala#L18-L27
     val statusFilter = Filter.gte("s", 30)
     val noImportFilter = Filter.ne("so", 7)
-    // us fields is the list of player ids, if it's missing then it's
-    // an all anonymous (or anonymous vs stockfish) game
-    val noAllAnonFilter = Filter.exists("us")
-    statusFilter.and(noImportFilter).and(noAllAnonFilter)
+    // us is the list of user ids; missing or empty means all-anonymous game
+    val hasUserFilter = Filter.exists("us").and(Filter.ne("us", List.empty[String]))
+    statusFilter.and(noImportFilter).and(hasUserFilter)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/gameSearch/src/main/GameSearchApi.scala#L52
   val changeFilter: Filter =
@@ -73,10 +72,10 @@ object GameRepo:
     // https://github.com/lichess-org/scalachess/blob/18edf46a50445048fdc2ee5a83752e5b3884f490/core/src/main/scala/Status.scala#L18-L27
     val statusFilter = Filter.gte("fullDocument.s", 30)
     val noImportFilter = Filter.ne("fullDocument.so", 7)
-    // us fields is the list of player ids, if it's missing then it's
-    // an all anonymous (or anonymous vs stockfish) game
-    val noAllAnonFilter = Filter.exists("fullDocument.us")
-    statusFilter.and(noImportFilter).and(noAllAnonFilter)
+    // us is the list of user ids; missing or empty means all-anonymous game
+    val hasUserFilter =
+      Filter.exists("fullDocument.us").and(Filter.ne("fullDocument.us", List.empty[String]))
+    statusFilter.and(noImportFilter).and(hasUserFilter)
 
   private val aggregate =
     Aggregate.matchBy(eventFilter.and(changeFilter)).combinedWith(Aggregate.project(eventProjection))
