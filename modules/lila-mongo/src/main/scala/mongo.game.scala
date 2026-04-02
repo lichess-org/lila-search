@@ -37,8 +37,10 @@ object GameRepo:
       "ua",
       "t",
       "an",
-      "p0",
-      "p1",
+      "p0.e",
+      "p0.ai",
+      "p1.e",
+      "p1.ai",
       "is",
       "s",
       "c",
@@ -181,18 +183,14 @@ object DbGame:
 
 case class DbPlayer(
     rating: Option[Int],
-    ratingDiff: Option[Int],
-    berserk: Option[Boolean],
-    aiLevel: Option[Int],
-    provisional: Option[Boolean],
-    name: Option[String]
+    aiLevel: Option[Int]
 )
 
 object DbPlayer:
-  given Decoder[DbPlayer] = Decoder.forProduct6("e", "d", "be", "ai", "p", "na")(DbPlayer.apply)
-  given Encoder[DbPlayer] = Encoder.forProduct6("e", "d", "be", "ai", "p", "na")(p =>
-    (p.rating, p.ratingDiff, p.berserk, p.aiLevel, p.provisional, p.name)
-  )
+  given Decoder[DbPlayer] = Decoder.forProduct2("e", "ai")(DbPlayer.apply)
+
+  given Encoder[DbPlayer] = new Encoder[DbPlayer]:
+    def apply(a: DbPlayer) = ???
 
 object ClockDecoder:
   import chess.*
