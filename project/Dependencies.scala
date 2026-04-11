@@ -20,7 +20,7 @@ object Dependencies {
     val http4s = "0.23.33"
     val mongo4cats = "0.7.17"
     val otel4sCore = "0.15.2"
-    val otel4sSdk = "0.17.0"
+    val otel4sSdk = "0.18.0"
     val otel4sHttp4s = "0.16.0"
   }
 
