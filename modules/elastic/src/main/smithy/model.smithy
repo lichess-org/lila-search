@@ -57,51 +57,71 @@ structure GameSource {
   @jsonName("p")
   @keywordField(docValues: false)
   perf: Integer
-  @jsonName("u")
-  @keywordField(docValues: false)
-  uids: PlayerIds
-  @jsonName("w")
-  @keywordField(docValues: false)
-  winner: String
-  @jsonName("o")
-  @keywordField(docValues: false)
-  loser: String
   @required
   @jsonName("c")
   @keywordField(docValues: false)
   winnerColor: Integer
+  @required
   @jsonName("a")
   @shortField(docValues: true)
   averageRating: Integer
+  @required
   @jsonName("i")
   @byteField(docValues: false)
   ai: Integer
+  /// epoch seconds
   @required
   @jsonName("d")
-  @dateField(format: "yyyy-MM-dd HH:mm:ss", docValues: true)
-  date: DateTime
+  @dateField(format: "epoch_second", docValues: true)
+  date: Long
+  @required
   @jsonName("l")
   @intField(docValues: false)
   duration: Integer
+  @required
   @jsonName("ct")
-  @shortField(docValues: false)
+  @shortField(docValues: true)
   clockInit: Integer
+  @required
   @jsonName("ci")
-  @shortField(docValues: false)
+  @shortField(docValues: true)
   clockInc: Integer
   @required
   @jsonName("n")
   @booleanField(docValues: false)
   analysed: Boolean
+  @required
   @jsonName("wu")
   @keywordField(docValues: false)
   whiteUser: String
+  @required
   @jsonName("bu")
   @keywordField(docValues: false)
   blackUser: String
+  @required
   @jsonName("so")
   @keywordField(docValues: false)
   source: Integer
+  @required
+  @jsonName("wr")
+  @shortField(docValues: false)
+  whiteRating: Integer
+  @required
+  @jsonName("br")
+  @shortField(docValues: false)
+  blackRating: Integer
+  @required
+  @jsonName("c9")
+  @keywordField(docValues: false)
+  chess960Pos: Integer
+  @required
+  @jsonName("wb")
+  @booleanField(docValues: false)
+  whiteBot: Boolean
+  @required
+  @jsonName("bb")
+  @booleanField(docValues: false)
+  blackBot: Boolean
 }
 
 structure ChapterTags {

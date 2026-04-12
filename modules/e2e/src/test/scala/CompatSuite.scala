@@ -5,8 +5,7 @@ import akka.actor.ActorSystem
 import cats.effect.{ IO, Resource }
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.Indexable
-import lila.search.app.{ App, AppConfig, AppResources, ElasticConfig, GameSearchBackend, HttpServerConfig }
-import lila.search.clickhouse.{ ClickHouseClient, ClickHouseConfig }
+import lila.search.app.{ App, AppConfig, AppResources, ElasticConfig, HttpServerConfig }
 import lila.search.client.{ SearchClient, SearchError }
 import lila.search.spec.{ CountOutput, Query, SearchOutput }
 import org.http4s.implicits.*
@@ -18,7 +17,6 @@ import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
 import play.api.libs.ws.ahc.*
 
 import scala.concurrent.ExecutionContext.Implicits.*
-import scala.concurrent.duration.*
 
 object CompatSuite extends weaver.IOSuite:
 
@@ -31,7 +29,7 @@ object CompatSuite extends weaver.IOSuite:
   override def sharedResource: Resource[IO, Res] =
     for
       given MetricExporter.Pull[IO] <- PrometheusMetricExporter.builder[IO].build.toResource
-      _ <- App.mkServer(AppResources(fakeESClient, ClickHouseClient.noop), testAppConfig)
+      _ <- App.mkServer(AppResources(fakeESClient), testAppConfig)
       wsClient <- makeWSClient
     yield SearchClient.play(wsClient, "http://localhost:9999/api")
 
@@ -61,16 +59,7 @@ object CompatSuite extends weaver.IOSuite:
 
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", false, shutdownTimeout = 1, false),
-    elastic = ElasticConfig(uri"http://0.0.0.0:9200"),
-    clickhouse = ClickHouseConfig(
-      "jdbc:clickhouse://127.0.0.1:8123/lichess",
-      "default",
-      "",
-      1,
-      1_073_741_824L,
-      30.seconds
-    ),
-    gameBackend = GameSearchBackend.ElasticOnly
+    elastic = ElasticConfig(uri"http://0.0.0.0:9200")
   )
 
   def fakeESClient: ESClient[IO] = new:

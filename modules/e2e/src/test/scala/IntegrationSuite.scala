@@ -8,7 +8,6 @@ import cats.mtl.Raise
 import cats.syntax.all.*
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.ElasticError
-import lila.search.clickhouse.ClickHouseConfig
 import lila.search.es.*
 import lila.search.ingestor.given
 import lila.search.spec.*
@@ -22,7 +21,6 @@ import smithy4s.Timestamp
 import weaver.*
 
 import java.time.Instant
-import scala.concurrent.duration.*
 
 object IntegrationSuite extends IOSuite:
 
@@ -52,16 +50,7 @@ object IntegrationSuite extends IOSuite:
   def testAppConfig(elastic: ElasticConfig) = AppConfig(
     server =
       HttpServerConfig(ip"0.0.0.0", port"9999", apiLogger = false, shutdownTimeout = 1, enableDocs = false),
-    elastic = elastic,
-    clickhouse = ClickHouseConfig(
-      "jdbc:clickhouse://127.0.0.1:8123/lichess",
-      "default",
-      "",
-      1,
-      1_073_741_824L,
-      30.seconds
-    ),
-    gameBackend = GameSearchBackend.ElasticOnly
+    elastic = elastic
   )
 
   test("health check should return healthy"):
@@ -187,23 +176,26 @@ object IntegrationSuite extends IOSuite:
               rated = true,
               perf = 1,
               winnerColor = 1,
-              date = SearchDateTime.fromInstant(Timestamp(1999, 10, 20, 12, 20, 20).toInstant),
+              date = Timestamp(1999, 10, 20, 12, 20, 20).toInstant.getEpochSecond,
               analysed = false,
-              uids = List("uid1", "uid2").some,
-              winner = "uid1".some,
-              loser = "uid2".some,
-              averageRating = 150.some,
-              ai = none,
-              duration = 100.some,
-              clockInit = 100.some,
-              clockInc = 200.some,
-              whiteUser = "white".some,
-              blackUser = "black".some
+              averageRating = 150,
+              ai = 0,
+              duration = 100,
+              clockInit = 100,
+              clockInc = 200,
+              whiteUser = "white",
+              blackUser = "black",
+              source = 0,
+              whiteRating = 150,
+              blackRating = 150,
+              chess960Pos = 1000,
+              whiteBot = false,
+              blackBot = false
             )
           )
           _ <- res.esClient.refreshIndex(Index.Game)
           a <- service.search(defaultGame.copy(perf = List(1)), from, size)
-          b <- service.search(defaultGame.copy(loser = "uid2".some), from, size)
+          b <- service.search(defaultGame.copy(loser = "black".some), from, size)
           c <- service.search(defaultGame, from, size)
           d <- service.search(defaultGame.copy(duration = IntRange(a = 99.some, b = 101.some)), from, size)
           e <- service.search(defaultGame.copy(clockInit = 100.some), from, size)

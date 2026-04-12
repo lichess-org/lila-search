@@ -14,7 +14,7 @@ import mongo4cats.circe.*
 import mongo4cats.collection.MongoCollection
 import mongo4cats.database.MongoDatabase
 import mongo4cats.models.collection.ChangeStreamDocument
-import mongo4cats.operations.{ Aggregate, Filter, Projection }
+import mongo4cats.operations.{ Aggregate, Filter, Projection, Sort }
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
@@ -37,14 +37,13 @@ object GameRepo:
       "ua",
       "t",
       "an",
-      "p0",
-      "p1",
+      "p0.e",
+      "p0.ai",
+      "p1.e",
+      "p1.ai",
       "is",
       "s",
       "c",
-      "mt",
-      "cw",
-      "cb",
       "ra",
       "v",
       "so",
@@ -63,10 +62,9 @@ object GameRepo:
     // https://github.com/lichess-org/scalachess/blob/18edf46a50445048fdc2ee5a83752e5b3884f490/core/src/main/scala/Status.scala#L18-L27
     val statusFilter = Filter.gte("s", 30)
     val noImportFilter = Filter.ne("so", 7)
-    // us fields is the list of player ids, if it's missing then it's
-    // an all anonymous (or anonymous vs stockfish) game
-    val noAllAnonFilter = Filter.exists("us")
-    statusFilter.and(noImportFilter).and(noAllAnonFilter)
+    // us is the list of user ids; missing or empty means all-anonymous game
+    val hasUserFilter = Filter.exists("us").and(Filter.ne("us", List.empty[String]))
+    statusFilter.and(noImportFilter).and(hasUserFilter)
 
   // https://github.com/lichess-org/lila/blob/65e6dd88e99cfa0068bc790a4518a6edb3513f54/modules/gameSearch/src/main/GameSearchApi.scala#L52
   val changeFilter: Filter =
@@ -74,10 +72,10 @@ object GameRepo:
     // https://github.com/lichess-org/scalachess/blob/18edf46a50445048fdc2ee5a83752e5b3884f490/core/src/main/scala/Status.scala#L18-L27
     val statusFilter = Filter.gte("fullDocument.s", 30)
     val noImportFilter = Filter.ne("fullDocument.so", 7)
-    // us fields is the list of player ids, if it's missing then it's
-    // an all anonymous (or anonymous vs stockfish) game
-    val noAllAnonFilter = Filter.exists("fullDocument.us")
-    statusFilter.and(noImportFilter).and(noAllAnonFilter)
+    // us is the list of user ids; missing or empty means all-anonymous game
+    val hasUserFilter =
+      Filter.exists("fullDocument.us").and(Filter.ne("fullDocument.us", List.empty[String]))
+    statusFilter.and(noImportFilter).and(hasUserFilter)
 
   private val aggregate =
     Aggregate.matchBy(eventFilter.and(changeFilter)).combinedWith(Aggregate.project(eventProjection))
@@ -108,6 +106,7 @@ object GameRepo:
       fs2.Stream.eval(info"Fetching games from $since to $until") *>
         games
           .find(filter.and(gameFilter))
+          .sort(Sort.desc(F.createdAt))
           .projection(gameProjection)
           .boundedStream(config.batchSize)
           .chunkN(config.batchSize)
@@ -145,13 +144,8 @@ case class DbGame(
     whitePlayer: Option[DbPlayer], // p0
     blackPlayer: Option[DbPlayer], // p1
     playerIds: String, // is
-    // binaryPieces: Option[Array[Byte]], // ps
-    // huffmanPgn: Option[Array[Byte]], // hp
     status: Int, // s
     encodedClock: Option[Array[Byte]], // c
-    moveTimes: Option[Array[Byte]], // mt
-    encodedWhiteClock: Option[Array[Byte]], // cw
-    encodedBlackClock: Option[Array[Byte]], // cb
     rated: Option[Boolean], // ra
     variant: Option[Int], // v
     source: Option[Int], // so
@@ -177,9 +171,9 @@ case class DbGame(
 
 object DbGame:
   // format: off
-  given Decoder[DbGame] = Decoder.forProduct20(
+  given Decoder[DbGame] = Decoder.forProduct17(
     "_id", "us", "wid", "ca", "ua", "t", "an", "p0", "p1", "is",
-    "s", "c", "mt", "cw", "cb", "ra", "v", "so", "w", "if")(DbGame.apply)
+    "s", "c", "ra", "v", "so", "w", "if")(DbGame.apply)
   // format: on
 
   // We don't write to the database so We don't need to implement this
@@ -188,18 +182,14 @@ object DbGame:
 
 case class DbPlayer(
     rating: Option[Int],
-    ratingDiff: Option[Int],
-    berserk: Option[Boolean],
-    aiLevel: Option[Int],
-    provisional: Option[Boolean],
-    name: Option[String]
+    aiLevel: Option[Int]
 )
 
 object DbPlayer:
-  given Decoder[DbPlayer] = Decoder.forProduct6("e", "d", "be", "ai", "p", "na")(DbPlayer.apply)
-  given Encoder[DbPlayer] = Encoder.forProduct6("e", "d", "be", "ai", "p", "na")(p =>
-    (p.rating, p.ratingDiff, p.berserk, p.aiLevel, p.provisional, p.name)
-  )
+  given Decoder[DbPlayer] = Decoder.forProduct2("e", "ai")(DbPlayer.apply)
+
+  given Encoder[DbPlayer] = new Encoder[DbPlayer]:
+    def apply(a: DbPlayer) = ???
 
 object ClockDecoder:
   import chess.*

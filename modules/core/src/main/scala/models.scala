@@ -2,8 +2,6 @@ package lila.search
 
 import cats.syntax.all.*
 
-import java.time.ZoneId
-
 opaque type SearchDateTime = String
 
 object SearchDateTime:
@@ -18,7 +16,8 @@ object SearchDateTime:
     formatter.format(value)
 
   val format = "yyyy-MM-dd HH:mm:ss"
-  val formatter = java.time.format.DateTimeFormatter.ofPattern(format).withZone(ZoneId.systemDefault())
+  val formatter =
+    java.time.format.DateTimeFormatter.ofPattern(format).withZone(java.time.ZoneId.systemDefault())
 
   extension (x: SearchDateTime) def value: String = x
 
@@ -30,7 +29,7 @@ object Id:
 enum Index(val value: String):
   case Forum extends Index("forum")
   case Ublog extends Index("ublog")
-  case Game extends Index("game2")
+  case Game extends Index("game")
   case Study extends Index("study_with_chapters")
   case Team extends Index("team")
 

@@ -13,9 +13,6 @@ object CLITest extends weaver.FunSuite:
   def testIndexCommand(args: String*) =
     decline.Command("test", "Test Command")(opts.parseIndex).parse(args)
 
-  def testOptimizeCommand(args: String*) =
-    decline.Command("test", "Test Command")(opts.parseOptimize).parse(args)
-
   test("index command"):
     expect.same(
       testIndexCommand("index", "--index", "team", "--since", "0", "--until", "1", "--dry"),
@@ -28,15 +25,3 @@ object CLITest extends weaver.FunSuite:
       case Right(opts: IndexOpts) =>
         expect(opts.watch == true && opts.dry == true && opts.index == Index.Team)
       case _ => failure("Expected IndexOpts")
-
-  test("optimize command with partition"):
-    val result = testOptimizeCommand("optimize", "--partition", "202401")
-    result match
-      case Right(OptimizeOpts(OptimizeTarget.Partition(p))) => expect(p == "202401")
-      case _ => failure("Expected OptimizeOpts with partition")
-
-  test("optimize command with --all"):
-    val result = testOptimizeCommand("optimize", "--all")
-    result match
-      case Right(OptimizeOpts(OptimizeTarget.All)) => success
-      case _ => failure("Expected OptimizeOpts with All")

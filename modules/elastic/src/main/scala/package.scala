@@ -39,7 +39,7 @@ extension (index: Index)
 
   def shards: Int = index match
     case Index.Game =>
-      50 // games has 10B+ documents, so we need more shards https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards
+      25 // games has 10B+ documents, so we need more shards https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards
     case _ => 5
 
   def refreshInterval =
@@ -52,14 +52,27 @@ extension (index: Index)
       case Index.Study => chessAnalysis.some
       case _ => none
 
+  def indexSort: Option[(String, String)] = index match
+    case Index.Game => ("d", "desc").some // sort by date desc for early termination on default queries
+    case _ => none
+
+  def codec: Option[String] = index match
+    case Index.Game => "best_compression".some // DEFLATE for better compression on 10B+ doc index
+    case _ => none
+
   def createIndexRequest: CreateIndexRequest =
-    val request =
+    val base =
       createIndex(index.value)
         .mapping(properties(index.mapping).source(index.keepSource))
         .shards(index.shards)
         .replicas(0)
         .refreshInterval(index.refreshInterval)
-    index.analysis.fold(request)(request.analysis(_))
+    val withAnalysis = index.analysis.fold(base)(base.analysis(_))
+    val withCodec = index.codec.fold(withAnalysis)(withAnalysis.indexSetting("codec", _))
+    index.indexSort.fold(withCodec): (field, order) =>
+      withCodec
+        .indexSetting("sort.field", field)
+        .indexSetting("sort.order", order)
 
 extension [F[_]: Monad, A](response: Response[A])
   def toResult: Raise[F, ElasticError] ?=> F[A] =

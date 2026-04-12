@@ -16,9 +16,6 @@ trait BotUserCache:
 
 object BotUserCache:
 
-  val empty: BotUserCache = new BotUserCache:
-    def get: IO[Set[String]] = IO.pure(Set.empty)
-
   def apply(lichess: MongoDatabase[IO], refreshInterval: FiniteDuration = 5.minutes)(using
       LoggerFactory[IO]
   ): Resource[IO, BotUserCache] =
@@ -40,8 +37,10 @@ object BotUserCache:
       .flatMap:
         _.find(Filter.eq("title", "BOT"))
           .projection(Projection.include("_id"))
-          .all
-      .map(_.map(_.id).toSet)
+          .stream
+          .map(_.id)
+          .compile
+          .to(Set)
       .flatTap(ids => logger.info(s"Loaded ${ids.size} bot user IDs"))
 
   private def refreshLoop(

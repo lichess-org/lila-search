@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.mtl.Handle
 import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
-import lila.search.ingestor.game.GameIngestor
+import lila.search.ingestor.game.ESGameIngestor
 import lila.search.ingestor.opts.IndexOpts
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
@@ -28,20 +28,16 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
     def go(index: Index) = index match
       case Index.Game =>
-        val backend = config.gameIngestBackend
-        val needsCH = backend != GameIngestBackend.Elastic
-        val needsES = backend != GameIngestBackend.ClickHouse
-        res.clickhouse.createTable.whenA(needsCH && !opts.dry) *>
-          putMappingsIfNotExists(res.elastic, index).whenA(needsES && !opts.dry) *>
+        putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
           GameRepo(res.lichess, config.ingestor.game).flatMap: repo =>
             val ingestor: Ingestor[DbGame] =
               if opts.dry then DryRunIngestor(index)
-              else GameIngestor(backend, res.elastic, res.clickhouse, res.botCache)
+              else ESGameIngestor(res.elastic, res.botCache)
             val stream =
               if opts.watch then fs2.Stream.eval(opts.since.some.pure[IO]).flatMap(repo.watch)
               else repo.fetchAll(opts.since, opts.until)
             ingestor.ingest(stream) *>
-              refreshIndexes(res.elastic, index).whenA(needsES && opts.refresh && !opts.dry)
+              refreshIndexes(res.elastic, index).whenA(opts.refresh && !opts.dry)
       case _ =>
         putMappingsIfNotExists(res.elastic, index).whenA(!opts.dry) *>
           runIndex(index, opts) *>
@@ -68,7 +64,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
     case Index.Ublog => runES(index, UblogRepo(res.lichess, config.ingestor.ublog), opts)
     case Index.Study => runES(index, StudyRepo(res.study, res.studyLocal, config.ingestor.study), opts)
     case Index.Team => runES(index, TeamRepo(res.lichess, config.ingestor.team), opts)
-    case Index.Game => runES(index, GameRepo(res.lichess, config.ingestor.game), opts)
+    case Index.Game => throw UnsupportedOperationException("Game indexing is handled separately")
 
   private def putMappingsIfNotExists(elastic: ESClient[IO], index: Index)(using Logger[IO]): IO[Unit] =
     Handle
