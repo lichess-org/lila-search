@@ -99,7 +99,7 @@ object opts:
     )
 
   val indexOpt = (
-    singleIndexOpt.orElse(allIndexOpt),
+    singleIndexOpt.orElse[Index | Unit](allIndexOpt),
     sinceOpt,
     untilOpt.orElse(Instant.now.pure[Opts]),
     refreshOpt,
