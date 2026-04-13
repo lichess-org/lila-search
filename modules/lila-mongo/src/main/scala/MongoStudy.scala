@@ -161,7 +161,7 @@ object StudyRepo:
 
 case class StudyLikesOnly(id: Id, likes: Int, rank: Option[Instant]):
   inline def toMap: Map[String, Any] =
-    Map("likes" -> likes) ++ rank.map(r => "rank" -> SearchDateTime.fromInstant(r))
+    Map[String, Any]("likes" -> likes) ++ rank.map(r => "rank" -> SearchDateTime.fromInstant(r))
 
 object StudyLikesOnly:
   import StudyRepo.F
