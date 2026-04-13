@@ -28,6 +28,8 @@ val commonSettings = Seq(
     ScalacOptions.release("21"),
     ScalacOptions.other("-Wall")
   ),
+  // work around for https://github.com/scala/scala3/issues/18487
+  Compile / doc / sources := Seq.empty,
   resolvers += "jitpack".at("https://jitpack.io")
 )
 
