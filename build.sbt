@@ -143,7 +143,7 @@ lazy val `ingestor-app` = project
     libraryDependencies ++= Seq(
       logback % Runtime,
       otel4sSdk,
-      otel4sMetrics,
+      otel4sSdkMetrics,
       otel4sPrometheusExporter,
       otel4sInstrumentationMetrics
     ),
@@ -247,7 +247,7 @@ lazy val app = project
       log4Cats,
       logback % Runtime,
       otel4sSdk,
-      otel4sMetrics,
+      otel4sSdkMetrics,
       otel4sPrometheusExporter,
       otel4sInstrumentationMetrics,
       otel4sHttp4sCore,
