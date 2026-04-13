@@ -11,7 +11,7 @@ object Dependencies {
   object V {
     val catsEffect = "3.7.0"
     val catsMtl = "1.6.0"
-    val ciris = "3.12.0"
+    val ciris = "3.14.1"
     val chess = "17.14.1"
     val decline = "2.6.0"
     val elastic4s = "9.1.1"
