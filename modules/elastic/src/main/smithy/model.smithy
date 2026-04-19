@@ -171,7 +171,7 @@ structure StudySource {
   @required
   @keywordField(docValues: false)
   members: PlayerIds
-  @default
+  @default([])
   @textField(analyzer: "english", searchAnalyzer: "english_with_chess_synonyms", docValues: false)
   topics: Strings
   @nestedField(dynamic: "false")

@@ -17,7 +17,7 @@ import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.metrics.MeterProvider
 import org.typelevel.otel4s.sdk.exporter.prometheus.PrometheusMetricExporter
 import org.typelevel.otel4s.sdk.metrics.exporter.MetricExporter
-import smithy4s.Timestamp
+import smithy4s.time.Timestamp
 import weaver.*
 
 import java.time.Instant

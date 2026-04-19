@@ -97,7 +97,7 @@ structure Game {
   winner: String
   loser: String
   winnerColor: Integer
-  @default
+  @default([])
   perf: Perfs
   source: Integer
   status: Integer

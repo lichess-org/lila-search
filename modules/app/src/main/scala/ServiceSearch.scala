@@ -13,7 +13,7 @@ import lila.search.ublog.Ublog
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.metrics.*
-import smithy4s.Timestamp
+import smithy4s.time.Timestamp
 
 import java.time.Instant
 
