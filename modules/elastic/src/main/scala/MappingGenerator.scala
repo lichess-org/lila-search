@@ -22,7 +22,7 @@ object MappingGenerator:
           val fieldName = field.hints.get[smithy.api.JsonName].map(_.value).getOrElse(field.label)
           generateField(fieldName, field.hints, field.schema)
         }
-      case Schema.OptionSchema(underlying) =>
+      case Schema.OptionSchema(_, underlying) =>
         // Unwrap optional schemas and process the underlying structure
         generateFields(underlying)
       case Schema.CollectionSchema(_, _, _, member) =>
