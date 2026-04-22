@@ -12,7 +12,7 @@ object Dependencies {
     val catsEffect = "3.7.0"
     val catsMtl = "1.6.0"
     val ciris = "3.13.0"
-    val chess = "17.14.3"
+    val chess = "17.15.5"
     val decline = "2.6.2"
     val elastic4s = "9.3.0"
     val fs2 = "3.13.0"
