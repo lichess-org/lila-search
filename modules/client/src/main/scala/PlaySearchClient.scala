@@ -25,7 +25,7 @@ enum SearchError(message: String) extends NoStackTrace:
 
   override def getMessage: String = message
 
-class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionContext)
+private class PlaySearchClient(client: StandaloneWSClient, baseUrl: String)(using ExecutionContext)
     extends SearchClient:
 
   import PlaySearchClient.*

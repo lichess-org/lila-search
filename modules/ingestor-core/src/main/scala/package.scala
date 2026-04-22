@@ -44,7 +44,7 @@ class DryRunIngestor[A](index: Index)(using LoggerFactory[IO]) extends Ingestor[
 
 extension (index: Index)
 
-  def storeBulk[A: Indexable: HasStringId](
+  def storeBulk[A: {Indexable, HasStringId}](
       sources: List[A]
   )(using Logger[IO], ESClient[IO]): IO[Unit] =
     Logger[IO].info(s"Indexing ${sources.size} docs to ${index.value}") *>

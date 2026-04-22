@@ -29,7 +29,7 @@ trait ESClient[F[_]]:
 
 object ESClient:
 
-  def apply[F[_]: Sync: Files](uri: Uri)(client: Client[F]): ESClient[F] =
+  def apply[F[_]: {Sync, Files}](uri: Uri)(client: Client[F]): ESClient[F] =
     apply(ElasticClient(new Http4sClient(client, uri)))
 
   def apply[F[_]: MonadThrow](client: ElasticClient[F]) = new ESClient[F]:
