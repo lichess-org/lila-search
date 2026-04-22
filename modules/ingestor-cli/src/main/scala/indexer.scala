@@ -45,7 +45,7 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
     opts.index.toList.traverse_(go)
 
-  private def runES[A: Indexable: HasStringId](
+  private def runES[A: {Indexable, HasStringId}](
       index: Index,
       repo: IO[Repo[A]],
       opts: IndexOpts

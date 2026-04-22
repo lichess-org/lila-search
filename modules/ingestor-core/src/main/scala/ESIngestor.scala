@@ -7,7 +7,7 @@ import cats.syntax.all.*
 import com.sksamuel.elastic4s.Indexable
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
 
-class ESIngestor[A: Indexable: HasStringId](index: Index, elastic: ESClient[IO])(using LoggerFactory[IO])
+class ESIngestor[A: {Indexable, HasStringId}](index: Index, elastic: ESClient[IO])(using LoggerFactory[IO])
     extends Ingestor[A]:
 
   private given Logger[IO] = LoggerFactory[IO].getLoggerFromName(s"${index.value}.ingestor")
