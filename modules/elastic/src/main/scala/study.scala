@@ -67,10 +67,9 @@ case class Study(
 
     boolQuery()
       .must(
-        matcher ::
-          termQuery(Fields.owner, owner) ::
+        termQuery(Fields.owner, owner) ::
           parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList ++
-          allFilters
+          (matcher :: allFilters)
       )
       .should(
         List(
