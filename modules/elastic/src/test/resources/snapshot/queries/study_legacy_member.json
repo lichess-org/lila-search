@@ -1,0 +1,1 @@
+{"bool":{"must":[{"match_all":{}},{"bool":{"must":[{"term":{"members":{"value":"alice"}}}]}}],"should":[{"term":{"public":{"value":true}}},{"term":{"members":{"value":"alice"}}}],"minimum_should_match":"1"}}
