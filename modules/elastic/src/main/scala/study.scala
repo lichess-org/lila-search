@@ -40,7 +40,7 @@ case class Study(
     else
       chapter match
         case Some(_) => List(chapterNameDescQuery(text))
-        case None if isOwnerQuery && Study.ownerCompatibility => List(machChapterQuery(text))
+        case None if isOwnerQuery && Study.ownerCompatibility => List(matchChapterQuery(text))
         case None => Nil
 
   // mode 3: structured per-field filters
@@ -53,7 +53,7 @@ case class Study(
     if parsed.terms.isEmpty then matchAllQuery()
     else
       boolQuery().should(
-        chapterTextQueries(parsed.termsString, isOwnerQuery) ++ machStudyQueries(parsed.termsString)
+        chapterTextQueries(parsed.termsString, isOwnerQuery) ++ matchStudyQueries(parsed.termsString)
       )
 
   private def chapterNameDescQuery(text: String): Query =
@@ -94,7 +94,7 @@ case class Study(
       )
       .minimumShouldMatch(1)
 
-  private def machStudyQueries(text: String): List[MultiMatchQuery] =
+  private def matchStudyQueries(text: String): List[MultiMatchQuery] =
     List(
       multiMatchQuery(text)
         .field(Fields.name, 3.0)
@@ -106,7 +106,7 @@ case class Study(
         .fields(Fields.owner, Fields.members)
     )
 
-  private def machChapterQuery(text: String) =
+  private def matchChapterQuery(text: String) =
 
     def tagQuery(input: String): NestedQuery =
       nestedQuery(
