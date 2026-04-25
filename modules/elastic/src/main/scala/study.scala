@@ -4,6 +4,7 @@ package study
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.count.CountRequest
 import com.sksamuel.elastic4s.requests.searches.SearchRequest
+import com.sksamuel.elastic4s.requests.searches.queries.matches.MultiMatchQuery
 import com.sksamuel.elastic4s.requests.searches.queries.{ NestedQuery, Query }
 import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
 import lila.search.study.Study.Sorting
@@ -62,8 +63,12 @@ case class Study(
 
   private def makeOwnerQuery(parsed: ParsedQuery)(owner: String) = {
     val matcher: Query =
+      val chapterFilters = allFilters
       if parsed.terms.isEmpty then matchAllQuery()
-      else boolQuery().should(machChapterQuery(parsed.termsString) :: machStudyQueries(parsed.termsString))
+      else
+        boolQuery().should:
+          if chapterFilters.nonEmpty then machStudyQueries(parsed.termsString)
+          else machChapterQuery(parsed.termsString) :: machStudyQueries(parsed.termsString)
 
     boolQuery()
       .must(
@@ -79,7 +84,7 @@ case class Study(
       )
   }.minimumShouldMatch(1)
 
-  private def machStudyQueries(text: String) =
+  private def machStudyQueries(text: String): List[MultiMatchQuery] =
     List(
       multiMatchQuery(text)
         .field(Fields.name, 3.0)
@@ -92,6 +97,27 @@ case class Study(
     )
 
   private def machChapterQuery(text: String) =
+
+    def tagQuery(input: String): NestedQuery =
+      nestedQuery(
+        "chapters.tags",
+        boolQuery()
+          .should(
+            // keyword fields → termQuery (exact match)
+            termQuery("chapters.tags.variant", input),
+            termQuery("chapters.tags.whiteFideId", input),
+            termQuery("chapters.tags.blackFideId", input),
+            termQuery("chapters.tags.eco", input),
+
+            // text fields → matchQuery (full‑text / partial)
+            matchQuery("chapters.tags.event", input),
+            matchQuery("chapters.tags.white", input),
+            matchQuery("chapters.tags.black", input),
+            matchQuery("chapters.tags.opening", input)
+          )
+          .minimumShouldMatch(1)
+      )
+
     nestedQuery(
       "chapters",
       boolQuery().should(
@@ -100,26 +126,6 @@ case class Study(
           .analyzer("english_with_chess_synonyms"),
         tagQuery(text)
       )
-    )
-
-  def tagQuery(input: String): NestedQuery =
-    nestedQuery(
-      "chapters.tags",
-      boolQuery()
-        .should(
-          // keyword fields → termQuery (exact match)
-          termQuery("chapters.tags.variant", input),
-          termQuery("chapters.tags.whiteFideId", input),
-          termQuery("chapters.tags.blackFideId", input),
-          termQuery("chapters.tags.eco", input),
-
-          // text fields → matchQuery (full‑text / partial)
-          matchQuery("chapters.tags.event", input),
-          matchQuery("chapters.tags.white", input),
-          matchQuery("chapters.tags.black", input),
-          matchQuery("chapters.tags.opening", input)
-        )
-        .minimumShouldMatch(1)
     )
 
   // Build chapter-level filter queries (single nested)
@@ -153,9 +159,6 @@ case class Study(
         )
       )
 
-  // Combine all filters (chapter + tag).
-  // MUST return Nil when no new filters are set — load-bearing for legacy query backward-compat
-  // (snapshot test in StudyQuerySnapshotTest pins the wire shape).
   private def allFilters: List[Query] = chapterFilters ++ tagFilters
 
   private val selectPublic = termQuery(Fields.public, true)
