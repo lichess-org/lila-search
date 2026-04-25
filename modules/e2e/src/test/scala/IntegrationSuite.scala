@@ -126,6 +126,7 @@ object IntegrationSuite extends IOSuite:
         yield expect(x.hitIds.size == 1 && x == y)
 
   test("study"): res =>
+    val withFilters = (cf: TagFilter) => Some(ChapterMode.filters(cf))
     Clients
       .search(uri)
       .use: service =>
@@ -212,37 +213,70 @@ object IntegrationSuite extends IOSuite:
           b <- service.search(Query.study("study description"), from, size)
           c <- service.search(Query.study("topic1"), from, size)
           repertoires <- service.search(Query.study("Repertoire"), from, size)
-          byChapterName <- service.search(Query.study("Repertoire", chapterName = "Najdorf".some), from, size)
-          byChapterDesc <- service.search(
-            Query.study("Repertoire", chapterDescription = "sharp".some),
+          byEco <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(eco = "B90".some))),
             from,
             size
           )
-          byEco <- service.search(Query.study("Repertoire", eco = "B90".some), from, size)
           byVariantAndEco <- service.search(
-            Query.study("Repertoire", variant = "standard".some, eco = "B90".some),
+            Query.study(
+              "Repertoire",
+              chapter = withFilters(TagFilter(variant = "standard".some, eco = "B90".some))
+            ),
             from,
             size
           )
-          byOpening <- service.search(Query.study("Repertoire", opening = "Najdorf".some), from, size)
-          byPlayerWhite <- service.search(Query.study("Repertoire", playerWhite = "Carlsen".some), from, size)
+          byOpening <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(opening = "Najdorf".some))),
+            from,
+            size
+          )
+          byPlayerWhite <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(playerWhite = "Carlsen".some))),
+            from,
+            size
+          )
           byPlayerBlack <- service.search(
-            Query.study("Repertoire", playerBlack = "Nakamura".some),
+            Query.study("Repertoire", chapter = withFilters(TagFilter(playerBlack = "Nakamura".some))),
             from,
             size
           )
-          byWhiteFideId <- service.search(Query.study("Repertoire", whiteFideId = "1503014".some), from, size)
-          byBlackFideId <- service.search(Query.study("Repertoire", blackFideId = "2016192".some), from, size)
-          byEvent <- service.search(Query.study("Repertoire", event = "World Championship".some), from, size)
-          byMissingEco <- service.search(Query.study("Repertoire", eco = "A00".some), from, size)
+          byWhiteFideId <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(whiteFideId = "1503014".some))),
+            from,
+            size
+          )
+          byBlackFideId <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(blackFideId = "2016192".some))),
+            from,
+            size
+          )
+          byEvent <- service.search(
+            Query.study(
+              "Repertoire",
+              chapter = withFilters(TagFilter(event = "World Championship".some))
+            ),
+            from,
+            size
+          )
+          byMissingEco <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(eco = "A00".some))),
+            from,
+            size
+          )
+          // mode 2: SearchText finds chapter-only matches that mode 1 (study-only) would miss
+          byChapterText <- service.search(
+            Query.study("Najdorf", chapter = Some(ChapterMode.searchText())),
+            from,
+            size
+          )
+          byChapterTextOnly <- service.search(Query.study("Najdorf"), from, size)
           expected = List(sicilianId)
         yield expect.all(
           a.hitIds == List(plainId),
           b == a,
           c == a,
           repertoires.hitIds.toSet == Set(sicilianId, petroffId),
-          byChapterName.hitIds == expected,
-          byChapterDesc.hitIds == expected,
           byEco.hitIds == expected,
           byVariantAndEco.hitIds == expected,
           byOpening.hitIds == expected,
@@ -251,7 +285,9 @@ object IntegrationSuite extends IOSuite:
           byWhiteFideId.hitIds == expected,
           byBlackFideId.hitIds == expected,
           byEvent.hitIds == expected,
-          byMissingEco.hitIds.isEmpty
+          byMissingEco.hitIds.isEmpty,
+          byChapterText.hitIds.contains(sicilianId),
+          !byChapterTextOnly.hitIds.contains(sicilianId)
         )
 
   val defaultIntRange = IntRange(none, none)

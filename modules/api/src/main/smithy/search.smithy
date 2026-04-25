@@ -90,11 +90,17 @@ structure Study {
   sorting: StudySorting
   userId: String
 
-  // Chapter-level filters
-  chapterName: String
-  chapterDescription: String
+  chapter: ChapterMode
+}
 
-  // Tag-level filters
+union ChapterMode {
+  // also run a full-text query over nested chapters using the top-level `text`
+  searchText: Unit
+  // structured per-field constraints on chapters
+  filters: TagFilter
+}
+
+structure TagFilter {
   variant: String
   eco: String
   opening: String

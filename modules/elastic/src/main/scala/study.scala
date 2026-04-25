@@ -7,24 +7,13 @@ import com.sksamuel.elastic4s.requests.searches.SearchRequest
 import com.sksamuel.elastic4s.requests.searches.queries.matches.MultiMatchQuery
 import com.sksamuel.elastic4s.requests.searches.queries.{ NestedQuery, Query }
 import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
-import lila.search.study.Study.Sorting
+import lila.search.study.Study.{ ChapterMode, Sorting, TagFilter }
 
 case class Study(
     text: String,
     sorting: Option[Sorting],
     userId: Option[String],
-    // Chapter-level filters
-    chapterName: Option[String] = None,
-    chapterDescription: Option[String] = None,
-    // Tag-level filters
-    variant: Option[String] = None,
-    eco: Option[String] = None,
-    opening: Option[String] = None,
-    playerWhite: Option[String] = None,
-    playerBlack: Option[String] = None,
-    whiteFideId: Option[String] = None,
-    blackFideId: Option[String] = None,
-    event: Option[String] = None
+    chapter: Option[ChapterMode] = None
 ):
 
   def searchDef(from: From, size: Size): SearchRequest =
@@ -42,16 +31,45 @@ case class Study(
     val parsed = QueryParser(text, List("owner", "member"))
     parsed("owner").fold(makePublicQuery(parsed))(makeOwnerQuery(parsed))
 
-  private def makePublicQuery(parsed: ParsedQuery) = {
-    val matcher: Query =
-      if parsed.terms.isEmpty then matchAllQuery()
-      else boolQuery().should(machStudyQueries(parsed.termsString))
+  // Per-mode optional `should` clauses keyed off the top-level text:
+  //   - SearchText / Filters: chapter name/description nested multi-match
+  //   - None + owner-compat: legacy full chapter+tag matchChapterQuery
+  //   - None (public, or owner with compat off): nothing
+  private def chapterTextQueries(text: String, isOwnerQuery: Boolean): List[Query] =
+    if text.isEmpty then Nil
+    else
+      chapter match
+        case Some(_) => List(chapterNameDescQuery(text))
+        case None if isOwnerQuery && Study.ownerCompatibility => List(machChapterQuery(text))
+        case None => Nil
 
+  // mode 3: structured per-field filters
+  private def chapterStructuredFilters: List[Query] =
+    chapter match
+      case Some(ChapterMode.Filters(cf)) => tagFilters(cf)
+      case _ => Nil
+
+  private def studyMatcher(parsed: ParsedQuery, isOwnerQuery: Boolean): Query =
+    if parsed.terms.isEmpty then matchAllQuery()
+    else
+      boolQuery().should(
+        chapterTextQueries(parsed.termsString, isOwnerQuery) ++ machStudyQueries(parsed.termsString)
+      )
+
+  private def chapterNameDescQuery(text: String): Query =
+    nestedQuery(
+      "chapters",
+      multiMatchQuery(text)
+        .fields("chapters.name", "chapters.description")
+        .analyzer("english_with_chess_synonyms")
+    )
+
+  private def makePublicQuery(parsed: ParsedQuery) =
     boolQuery()
       .must(
-        matcher ::
+        studyMatcher(parsed, isOwnerQuery = false) ::
           parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList ++
-          allFilters
+          chapterStructuredFilters
       )
       .should(
         List(
@@ -59,22 +77,14 @@ case class Study(
           userId.map(selectUserId)
         ).flatten
       )
-  }.minimumShouldMatch(1)
+      .minimumShouldMatch(1)
 
-  private def makeOwnerQuery(parsed: ParsedQuery)(owner: String) = {
-    val matcher: Query =
-      val chapterFilters = allFilters
-      if parsed.terms.isEmpty then matchAllQuery()
-      else
-        boolQuery().should:
-          if chapterFilters.nonEmpty then machStudyQueries(parsed.termsString)
-          else machChapterQuery(parsed.termsString) :: machStudyQueries(parsed.termsString)
-
+  private def makeOwnerQuery(parsed: ParsedQuery)(owner: String) =
     boolQuery()
       .must(
         termQuery(Fields.owner, owner) ::
           parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList ++
-          (matcher :: allFilters)
+          (studyMatcher(parsed, isOwnerQuery = true) :: chapterStructuredFilters)
       )
       .should(
         List(
@@ -82,7 +92,7 @@ case class Study(
           userId.map(selectUserId)
         ).flatten
       )
-  }.minimumShouldMatch(1)
+      .minimumShouldMatch(1)
 
   private def machStudyQueries(text: String): List[MultiMatchQuery] =
     List(
@@ -128,26 +138,19 @@ case class Study(
       )
     )
 
-  // Build chapter-level filter queries (single nested)
-  private def chapterFilters: List[Query] =
-    List(
-      chapterName.map(name => nestedQuery("chapters", matchQuery("chapters.name", name))),
-      chapterDescription.map(desc => nestedQuery("chapters", matchQuery("chapters.description", desc)))
-    ).flatten
-
   // Build tag-level filter queries (double nested)
-  private def tagFilters: List[Query] =
+  private def tagFilters(cf: TagFilter): List[Query] =
     val tagQueries = List(
       // Keyword fields use termQuery for exact matching
-      variant.map(v => termQuery("chapters.tags.variant", v)),
-      eco.map(e => termQuery("chapters.tags.eco", e)),
-      whiteFideId.map(id => termQuery("chapters.tags.whiteFideId", id)),
-      blackFideId.map(id => termQuery("chapters.tags.blackFideId", id)),
+      cf.variant.map(v => termQuery("chapters.tags.variant", v)),
+      cf.eco.map(e => termQuery("chapters.tags.eco", e)),
+      cf.whiteFideId.map(id => termQuery("chapters.tags.whiteFideId", id)),
+      cf.blackFideId.map(id => termQuery("chapters.tags.blackFideId", id)),
       // Text fields use matchQuery for full-text search
-      opening.map(o => matchQuery("chapters.tags.opening", o)),
-      playerWhite.map(w => matchQuery("chapters.tags.white", w)),
-      playerBlack.map(b => matchQuery("chapters.tags.black", b)),
-      event.map(e => matchQuery("chapters.tags.event", e))
+      cf.opening.map(o => matchQuery("chapters.tags.opening", o)),
+      cf.playerWhite.map(w => matchQuery("chapters.tags.white", w)),
+      cf.playerBlack.map(b => matchQuery("chapters.tags.black", b)),
+      cf.event.map(e => matchQuery("chapters.tags.event", e))
     ).flatten
 
     if tagQueries.isEmpty then Nil
@@ -158,8 +161,6 @@ case class Study(
           nestedQuery("chapters.tags", boolQuery().must(tagQueries))
         )
       )
-
-  private def allFilters: List[Query] = chapterFilters ++ tagFilters
 
   private val selectPublic = termQuery(Fields.public, true)
 
@@ -183,6 +184,12 @@ object Mapping:
 
 object Study:
 
+  // When true, owner-prefixed queries with no chapter filters implicitly
+  // run machChapterQuery (legacy behaviour). Disable to require explicit
+  // ChapterMode.SearchText.
+  val ownerCompatibility: Boolean =
+    sys.env.get("STUDY_OWNER_COMPATIBILITY").forall(_.toLowerCase != "false")
+
   enum Field(val field: String):
     case Name extends Field(s"${Fields.name}.${Fields.nameRaw}")
     case Likes extends Field(Fields.likes)
@@ -201,3 +208,18 @@ object Study:
   case class Sorting(field: Field, order: Order):
     def toElastic: FieldSort =
       fieldSort(field.field).order(order.toElastic)
+
+  enum ChapterMode:
+    case SearchText
+    case Filters(value: TagFilter)
+
+  case class TagFilter(
+      variant: Option[String] = None,
+      eco: Option[String] = None,
+      opening: Option[String] = None,
+      playerWhite: Option[String] = None,
+      playerBlack: Option[String] = None,
+      whiteFideId: Option[String] = None,
+      blackFideId: Option[String] = None,
+      event: Option[String] = None
+  )

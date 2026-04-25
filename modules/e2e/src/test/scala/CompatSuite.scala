@@ -8,7 +8,7 @@ import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.Indexable
 import lila.search.app.{ App, AppConfig, AppResources, ElasticConfig, HttpServerConfig }
 import lila.search.client.{ SearchClient, SearchError }
-import lila.search.spec.{ CountOutput, Query, SearchOutput }
+import lila.search.spec.{ ChapterMode, CountOutput, Query, SearchOutput, TagFilter }
 import org.http4s.implicits.*
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }
@@ -59,29 +59,59 @@ object CompatSuite extends weaver.IOSuite:
     IO.fromFuture(IO(client.count(query))).map(expect.same(_, lila.search.spec.CountOutput(0)))
 
   test("study chapter and tag filters"): client =>
+    def withFilters(cf: TagFilter): Option[ChapterMode] =
+      Some(ChapterMode.filters(cf))
     val searchQueries = List(
-      Query.Study(text = "", userId = None, sorting = None, chapterName = Some("opening trap")),
-      Query.Study(text = "", userId = None, sorting = None, eco = Some("B90")),
-      Query.Study(text = "", userId = None, sorting = None, playerWhite = Some("Magnus Carlsen")),
-      Query.Study(text = "", userId = None, sorting = None, opening = Some("King's Indian")),
-      Query.Study(
-        text = "repertoire",
-        userId = None,
-        sorting = None,
-        eco = Some("E97"),
-        opening = Some("King's Indian")
-      ),
-      Query.Study(text = "", userId = None, sorting = None, variant = Some("standard")),
-      Query.Study(text = "", userId = None, sorting = None, event = Some("World Championship")),
       Query.Study(
         text = "",
         userId = None,
         sorting = None,
-        whiteFideId = Some("1503014"),
-        blackFideId = Some("2020009")
-      )
+        chapter = withFilters(TagFilter(eco = Some("B90")))
+      ),
+      Query.Study(
+        text = "",
+        userId = None,
+        sorting = None,
+        chapter = withFilters(TagFilter(playerWhite = Some("Magnus Carlsen")))
+      ),
+      Query.Study(
+        text = "",
+        userId = None,
+        sorting = None,
+        chapter = withFilters(TagFilter(opening = Some("King's Indian")))
+      ),
+      Query.Study(
+        text = "repertoire",
+        userId = None,
+        sorting = None,
+        chapter = withFilters(TagFilter(eco = Some("E97"), opening = Some("King's Indian")))
+      ),
+      Query.Study(
+        text = "",
+        userId = None,
+        sorting = None,
+        chapter = withFilters(TagFilter(variant = Some("standard")))
+      ),
+      Query.Study(
+        text = "",
+        userId = None,
+        sorting = None,
+        chapter = withFilters(TagFilter(event = Some("World Championship")))
+      ),
+      Query.Study(
+        text = "",
+        userId = None,
+        sorting = None,
+        chapter = withFilters(TagFilter(whiteFideId = Some("1503014"), blackFideId = Some("2020009")))
+      ),
+      Query.Study(text = "sicilian", userId = None, sorting = None, chapter = Some(ChapterMode.searchText()))
     )
-    val countQuery = Query.Study(text = "", userId = None, sorting = None, chapterName = Some("sicilian"))
+    val countQuery = Query.Study(
+      text = "",
+      userId = None,
+      sorting = None,
+      chapter = withFilters(TagFilter(eco = Some("B90")))
+    )
     for
       searches <- searchQueries.traverse(q => IO.fromFuture(IO(client.search(q, from, size))))
       count <- IO.fromFuture(IO(client.count(countQuery)))

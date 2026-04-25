@@ -2,6 +2,7 @@ package lila.search
 
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import lila.search.study.Study
+import lila.search.study.Study.{ ChapterMode, TagFilter }
 import weaver.*
 
 object StudyQueryTest extends FunSuite:
@@ -11,42 +12,32 @@ object StudyQueryTest extends FunSuite:
     val searchDef = study.searchDef(From(0), Size(10))
     searchDef.query.get
 
+  private def filters(cf: TagFilter): Option[ChapterMode] =
+    Some(ChapterMode.Filters(cf))
+
   test("basic text search generates correct query"):
     val study = Study(text = "sicilian defense", sorting = None, userId = None)
     val query = extractQuery(study)
     expect(query != null)
 
-  test("chapter name filter generates nested query"):
+  test("mode 2 (SearchText) runs nested chapter query"):
     val study = Study(
-      text = "",
+      text = "sicilian",
       sorting = None,
       userId = None,
-      chapterName = Some("opening trap")
+      chapter = Some(ChapterMode.SearchText)
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
+    val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters") && queryStr.contains("chapters.name"))
-
-  test("chapter description filter generates nested query"):
-    val study = Study(
-      text = "",
-      sorting = None,
-      userId = None,
-      chapterDescription = Some("advanced tactics")
-    )
-    val query = extractQuery(study)
-    val queryStr = query.toString
-    expect(queryStr.contains("chapters") && queryStr.contains("chapters.description"))
 
   test("ECO filter generates double nested query with term"):
     val study = Study(
       text = "",
       sorting = None,
       userId = None,
-      eco = Some("B90")
+      chapter = filters(TagFilter(eco = Some("B90")))
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
+    val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.eco"))
 
   test("variant filter generates term query for keyword field"):
@@ -54,10 +45,9 @@ object StudyQueryTest extends FunSuite:
       text = "",
       sorting = None,
       userId = None,
-      variant = Some("standard")
+      chapter = filters(TagFilter(variant = Some("standard")))
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
+    val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.variant"))
 
   test("player white filter generates match query"):
@@ -65,10 +55,9 @@ object StudyQueryTest extends FunSuite:
       text = "",
       sorting = None,
       userId = None,
-      playerWhite = Some("Magnus Carlsen")
+      chapter = filters(TagFilter(playerWhite = Some("Magnus Carlsen")))
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
+    val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.white"))
 
   test("player black filter generates match query"):
@@ -76,10 +65,9 @@ object StudyQueryTest extends FunSuite:
       text = "",
       sorting = None,
       userId = None,
-      playerBlack = Some("Hikaru Nakamura")
+      chapter = filters(TagFilter(playerBlack = Some("Hikaru Nakamura")))
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
+    val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.black"))
 
   test("opening filter generates match query"):
@@ -87,10 +75,9 @@ object StudyQueryTest extends FunSuite:
       text = "",
       sorting = None,
       userId = None,
-      opening = Some("King's Indian Defense")
+      chapter = filters(TagFilter(opening = Some("King's Indian Defense")))
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
+    val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.opening"))
 
   test("event filter generates match query"):
@@ -98,10 +85,9 @@ object StudyQueryTest extends FunSuite:
       text = "",
       sorting = None,
       userId = None,
-      event = Some("World Championship")
+      chapter = filters(TagFilter(event = Some("World Championship")))
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
+    val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.event"))
 
   test("white FIDE ID filter generates term query"):
@@ -109,10 +95,9 @@ object StudyQueryTest extends FunSuite:
       text = "",
       sorting = None,
       userId = None,
-      whiteFideId = Some("1503014")
+      chapter = filters(TagFilter(whiteFideId = Some("1503014")))
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
+    val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.whiteFideId"))
 
   test("black FIDE ID filter generates term query"):
@@ -120,33 +105,29 @@ object StudyQueryTest extends FunSuite:
       text = "",
       sorting = None,
       userId = None,
-      blackFideId = Some("2020009")
+      chapter = filters(TagFilter(blackFideId = Some("2020009")))
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
+    val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.blackFideId"))
 
-  test("combined text and chapter filters work together"):
+  test("combined text and tag filters work together"):
     val study = Study(
       text = "repertoire",
       sorting = None,
       userId = None,
-      chapterName = Some("main line")
+      chapter = filters(TagFilter(eco = Some("E97")))
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
-    expect(queryStr.contains("chapters.name"))
+    val queryStr = extractQuery(study).toString
+    expect(queryStr.contains("chapters.tags.eco"))
 
   test("multiple tag filters are combined correctly"):
     val study = Study(
       text = "",
       sorting = None,
       userId = None,
-      eco = Some("E97"),
-      opening = Some("King's Indian")
+      chapter = filters(TagFilter(eco = Some("E97"), opening = Some("King's Indian")))
     )
-    val query = extractQuery(study)
-    val queryStr = query.toString
+    val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.eco") && queryStr.contains("chapters.tags.opening"))
 
   test("empty filters do not add unnecessary clauses"):
@@ -158,19 +139,27 @@ object StudyQueryTest extends FunSuite:
     val query = extractQuery(study)
     expect(query != null)
 
+  test("Filters with all-None fields adds only chapter name/description should clause"):
+    val study = Study(
+      text = "test",
+      sorting = None,
+      userId = None,
+      chapter = filters(TagFilter())
+    )
+    val queryStr = extractQuery(study).toString
+    expect(queryStr.contains("chapters.name") && queryStr.contains("chapters.description"))
+
   test("count query includes all filters"):
     val study = Study(
       text = "",
       sorting = None,
       userId = None,
-      eco = Some("B90"),
-      chapterName = Some("sicilian")
+      chapter = filters(TagFilter(eco = Some("B90"), variant = Some("standard")))
     )
     val countDef = study.countDef
-    val query = countDef.query.get
-    val queryStr = query.toString
+    val queryStr = countDef.query.get.toString
     expect(
       queryStr.contains("chapters") &&
         queryStr.contains("chapters.tags.eco") &&
-        queryStr.contains("chapters.name")
+        queryStr.contains("chapters.tags.variant")
     )

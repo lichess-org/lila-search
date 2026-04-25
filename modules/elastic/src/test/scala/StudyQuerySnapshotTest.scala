@@ -2,11 +2,15 @@ package lila.search
 
 import com.sksamuel.elastic4s.handlers.searches.queries.QueryBuilderFn
 import lila.search.study.Study
+import lila.search.study.Study.{ ChapterMode, TagFilter }
 import snapshot4s.generated.*
 import snapshot4s.weaver.SnapshotExpectations
 import weaver.*
 
 object StudyQuerySnapshotTest extends SimpleIOSuite with SnapshotExpectations:
+
+  private def filters(cf: TagFilter): Option[ChapterMode] =
+    Some(ChapterMode.Filters(cf))
 
   test("legacy query shape: public text query"):
     snapshotQuery(Study("hello world", None, None), "study_legacy_public.json")
@@ -17,70 +21,56 @@ object StudyQuerySnapshotTest extends SimpleIOSuite with SnapshotExpectations:
   test("legacy query shape: member-prefixed query with userId"):
     snapshotQuery(Study("member:alice", None, Some("alice")), "study_legacy_member.json")
 
-  test("filter shape: single chapterName"):
-    snapshotQuery(
-      Study("", None, None, chapterName = Some("opening trap")),
-      "study_filter_chapter_name.json"
-    )
-
-  test("filter shape: both chapter filters"):
-    snapshotQuery(
-      Study(
-        "",
-        None,
-        None,
-        chapterName = Some("main line"),
-        chapterDescription = Some("advanced tactics")
-      ),
-      "study_filter_chapter_both.json"
-    )
-
   test("filter shape: multiple tag filters combined"):
     snapshotQuery(
       Study(
         "",
         None,
         None,
-        variant = Some("standard"),
-        eco = Some("B90"),
-        whiteFideId = Some("1503014"),
-        blackFideId = Some("2020009"),
-        opening = Some("Sicilian Najdorf"),
-        playerWhite = Some("Magnus Carlsen"),
-        playerBlack = Some("Hikaru Nakamura"),
-        event = Some("World Championship")
+        chapter = filters(
+          TagFilter(
+            variant = Some("standard"),
+            eco = Some("B90"),
+            whiteFideId = Some("1503014"),
+            blackFideId = Some("2020009"),
+            opening = Some("Sicilian Najdorf"),
+            playerWhite = Some("Magnus Carlsen"),
+            playerBlack = Some("Hikaru Nakamura"),
+            event = Some("World Championship")
+          )
+        )
       ),
       "study_filter_tag_multi.json"
     )
 
-  test("filter shape: chapter and tag combined"):
+  test("filter shape: text plus tag filter (public branch)"):
     snapshotQuery(
-      Study(
-        "",
-        None,
-        None,
-        chapterName = Some("repertoire"),
-        eco = Some("E97")
-      ),
-      "study_filter_chapter_and_tag.json"
-    )
-
-  test("filter shape: text plus chapter filter (public branch)"):
-    snapshotQuery(
-      Study("repertoire", None, None, chapterName = Some("main line")),
-      "study_filter_text_chapter_public.json"
+      Study("repertoire", None, None, chapter = filters(TagFilter(eco = Some("B90")))),
+      "study_filter_text_tag_public.json"
     )
 
   test("filter shape: owner-prefixed text plus tag filter"):
     snapshotQuery(
-      Study("owner:bob foo", None, None, eco = Some("B90")),
+      Study("owner:bob foo", None, None, chapter = filters(TagFilter(eco = Some("B90")))),
       "study_filter_text_tag_owner.json"
     )
 
-  test("filter shape: chapter filter with userId set"):
+  test("filter shape: tag filter with userId set"):
     snapshotQuery(
-      Study("", None, Some("alice"), chapterName = Some("openings")),
+      Study("", None, Some("alice"), chapter = filters(TagFilter(eco = Some("E97")))),
       "study_filter_with_user_id.json"
+    )
+
+  test("mode 2: SearchText runs full chapter query"):
+    snapshotQuery(
+      Study("sicilian", None, None, chapter = Some(ChapterMode.SearchText)),
+      "study_chapter_searchtext.json"
+    )
+
+  test("mode 2: SearchText with owner prefix"):
+    snapshotQuery(
+      Study("owner:bob sicilian", None, None, chapter = Some(ChapterMode.SearchText)),
+      "study_chapter_searchtext_owner.json"
     )
 
   private def snapshotQuery(study: Study, snapshotName: String) =
