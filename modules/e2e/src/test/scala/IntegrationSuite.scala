@@ -232,22 +232,22 @@ object IntegrationSuite extends IOSuite:
             size
           )
           byPlayerWhite <- service.search(
-            Query.study("Repertoire", chapter = withFilters(TagFilter(playerWhite = "Carlsen".some))),
+            Query.study("Repertoire", chapter = withFilters(TagFilter(player1 = "Carlsen".some))),
             from,
             size
           )
           byPlayerBlack <- service.search(
-            Query.study("Repertoire", chapter = withFilters(TagFilter(playerBlack = "Nakamura".some))),
+            Query.study("Repertoire", chapter = withFilters(TagFilter(player2 = "Nakamura".some))),
             from,
             size
           )
           byWhiteFideId <- service.search(
-            Query.study("Repertoire", chapter = withFilters(TagFilter(whiteFideId = "1503014".some))),
+            Query.study("Repertoire", chapter = withFilters(TagFilter(fideId1 = "1503014".some))),
             from,
             size
           )
           byBlackFideId <- service.search(
-            Query.study("Repertoire", chapter = withFilters(TagFilter(blackFideId = "2016192".some))),
+            Query.study("Repertoire", chapter = withFilters(TagFilter(fideId2 = "2016192".some))),
             from,
             size
           )

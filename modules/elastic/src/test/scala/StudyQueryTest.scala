@@ -50,25 +50,35 @@ object StudyQueryTest extends FunSuite:
     val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.variant"))
 
-  test("player white filter generates match query"):
+  test("player1 filter matches either color"):
     val study = Study(
       text = "",
       sorting = None,
       userId = None,
-      chapter = filters(TagFilter(playerWhite = Some("Magnus Carlsen")))
+      chapter = filters(TagFilter(player1 = Some("Magnus Carlsen")))
     )
     val queryStr = extractQuery(study).toString
-    expect(queryStr.contains("chapters.tags.white"))
+    expect(queryStr.contains("chapters.tags.white") && queryStr.contains("chapters.tags.black"))
 
-  test("player black filter generates match query"):
+  test("player2 filter matches either color"):
     val study = Study(
       text = "",
       sorting = None,
       userId = None,
-      chapter = filters(TagFilter(playerBlack = Some("Hikaru Nakamura")))
+      chapter = filters(TagFilter(player2 = Some("Hikaru Nakamura")))
     )
     val queryStr = extractQuery(study).toString
-    expect(queryStr.contains("chapters.tags.black"))
+    expect(queryStr.contains("chapters.tags.white") && queryStr.contains("chapters.tags.black"))
+
+  test("player1 + player2 filters match symmetrically"):
+    val study = Study(
+      text = "",
+      sorting = None,
+      userId = None,
+      chapter = filters(TagFilter(player1 = Some("Carlsen"), player2 = Some("Nakamura")))
+    )
+    val queryStr = extractQuery(study).toString
+    expect(queryStr.contains("Carlsen") && queryStr.contains("Nakamura"))
 
   test("opening filter generates match query"):
     val study = Study(
@@ -90,25 +100,27 @@ object StudyQueryTest extends FunSuite:
     val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.event"))
 
-  test("white FIDE ID filter generates term query"):
+  test("fideId1 filter matches either color"):
     val study = Study(
       text = "",
       sorting = None,
       userId = None,
-      chapter = filters(TagFilter(whiteFideId = Some("1503014")))
+      chapter = filters(TagFilter(fideId1 = Some("1503014")))
     )
     val queryStr = extractQuery(study).toString
-    expect(queryStr.contains("chapters.tags.whiteFideId"))
+    expect(
+      queryStr.contains("chapters.tags.whiteFideId") && queryStr.contains("chapters.tags.blackFideId")
+    )
 
-  test("black FIDE ID filter generates term query"):
+  test("fideId1 + fideId2 filters match symmetrically"):
     val study = Study(
       text = "",
       sorting = None,
       userId = None,
-      chapter = filters(TagFilter(blackFideId = Some("2020009")))
+      chapter = filters(TagFilter(fideId1 = Some("1503014"), fideId2 = Some("2020009")))
     )
     val queryStr = extractQuery(study).toString
-    expect(queryStr.contains("chapters.tags.blackFideId"))
+    expect(queryStr.contains("1503014") && queryStr.contains("2020009"))
 
   test("combined text and tag filters work together"):
     val study = Study(

@@ -31,11 +31,11 @@ object StudyQuerySnapshotTest extends SimpleIOSuite with SnapshotExpectations:
           TagFilter(
             variant = Some("standard"),
             eco = Some("B90"),
-            whiteFideId = Some("1503014"),
-            blackFideId = Some("2020009"),
+            fideId1 = Some("1503014"),
+            fideId2 = Some("2020009"),
             opening = Some("Sicilian Najdorf"),
-            playerWhite = Some("Magnus Carlsen"),
-            playerBlack = Some("Hikaru Nakamura"),
+            player1 = Some("Magnus Carlsen"),
+            player2 = Some("Hikaru Nakamura"),
             event = Some("World Championship")
           )
         )

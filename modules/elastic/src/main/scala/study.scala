@@ -138,20 +138,24 @@ case class Study(
       )
     )
 
-  // Build tag-level filter queries (double nested)
+  // Build tag-level filter queries (double nested).
+  // player1/player2 and fideId1/fideId2 are color-symmetric: see
+  // symmetricPair for the (both-set vs one-set) clause shape.
   private def tagFilters(cf: TagFilter): List[Query] =
     val tagQueries = List(
-      // Keyword fields use termQuery for exact matching
       cf.variant.map(v => termQuery("chapters.tags.variant", v)),
       cf.eco.map(e => termQuery("chapters.tags.eco", e)),
-      cf.whiteFideId.map(id => termQuery("chapters.tags.whiteFideId", id)),
-      cf.blackFideId.map(id => termQuery("chapters.tags.blackFideId", id)),
-      // Text fields use matchQuery for full-text search
       cf.opening.map(o => matchQuery("chapters.tags.opening", o)),
-      cf.playerWhite.map(w => matchQuery("chapters.tags.white", w)),
-      cf.playerBlack.map(b => matchQuery("chapters.tags.black", b)),
       cf.event.map(e => matchQuery("chapters.tags.event", e))
-    ).flatten
+    ).flatten ++
+      symmetricPair(cf.player1, cf.player2, "chapters.tags.white", "chapters.tags.black", matchQuery) ++
+      symmetricPair(
+        cf.fideId1,
+        cf.fideId2,
+        "chapters.tags.whiteFideId",
+        "chapters.tags.blackFideId",
+        termQuery(_, _)
+      )
 
     if tagQueries.isEmpty then Nil
     else
@@ -161,6 +165,29 @@ case class Study(
           nestedQuery("chapters.tags", boolQuery().must(tagQueries))
         )
       )
+
+  // Color-symmetric matching for a (player1, player2)-style pair.
+  //   - both set: (white=p1 ∧ black=p2) OR (white=p2 ∧ black=p1)
+  //   - one set:  match that value as either color
+  //   - neither:  Nil
+  private def symmetricPair(
+      a: Option[String],
+      b: Option[String],
+      whiteField: String,
+      blackField: String,
+      mk: (String, String) => Query
+  ): List[Query] =
+    (a, b) match
+      case (Some(x), Some(y)) =>
+        List(
+          boolQuery().should(
+            boolQuery().must(mk(whiteField, x), mk(blackField, y)),
+            boolQuery().must(mk(whiteField, y), mk(blackField, x))
+          )
+        )
+      case _ =>
+        List(a, b).flatten.map: v =>
+          boolQuery().should(mk(whiteField, v), mk(blackField, v))
 
   private val selectPublic = termQuery(Fields.public, true)
 
@@ -217,9 +244,9 @@ object Study:
       variant: Option[String] = None,
       eco: Option[String] = None,
       opening: Option[String] = None,
-      playerWhite: Option[String] = None,
-      playerBlack: Option[String] = None,
-      whiteFideId: Option[String] = None,
-      blackFideId: Option[String] = None,
+      player1: Option[String] = None,
+      player2: Option[String] = None,
+      fideId1: Option[String] = None,
+      fideId2: Option[String] = None,
       event: Option[String] = None
   )

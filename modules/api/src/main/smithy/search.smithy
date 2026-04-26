@@ -104,10 +104,16 @@ structure TagFilter {
   variant: String
   eco: String
   opening: String
-  playerWhite: String
-  playerBlack: String
-  whiteFideId: String
-  blackFideId: String
+  // player1 / player2 are symmetric: order does not matter.
+  // If both are set, matches games where {white=player1, black=player2}
+  // OR {white=player2, black=player1}. If only one is set, matches that
+  // player as either color.
+  player1: String
+  player2: String
+  // Same symmetry semantics as player1 / player2 but matched against the
+  // FIDE id keyword fields.
+  fideId1: String
+  fideId2: String
   event: String
 }
 

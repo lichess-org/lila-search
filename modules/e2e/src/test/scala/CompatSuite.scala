@@ -72,7 +72,7 @@ object CompatSuite extends weaver.IOSuite:
         text = "",
         userId = None,
         sorting = None,
-        chapter = withFilters(TagFilter(playerWhite = Some("Magnus Carlsen")))
+        chapter = withFilters(TagFilter(player1 = Some("Magnus Carlsen")))
       ),
       Query.Study(
         text = "",
@@ -102,7 +102,7 @@ object CompatSuite extends weaver.IOSuite:
         text = "",
         userId = None,
         sorting = None,
-        chapter = withFilters(TagFilter(whiteFideId = Some("1503014"), blackFideId = Some("2020009")))
+        chapter = withFilters(TagFilter(fideId1 = Some("1503014"), fideId2 = Some("2020009")))
       ),
       Query.Study(text = "sicilian", userId = None, sorting = None, chapter = Some(ChapterMode.searchText()))
     )
