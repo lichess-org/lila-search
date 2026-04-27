@@ -31,30 +31,28 @@ case class Study(
     val parsed = QueryParser(text, List("owner", "member"))
     parsed("owner").fold(makePublicQuery(parsed))(makeOwnerQuery(parsed))
 
-  // Per-mode optional `should` clauses keyed off the top-level text:
-  //   - SearchText / Filters: chapter name/description nested multi-match
-  //   - None + owner-compat: legacy full chapter+tag matchChapterQuery
+  // Single source of truth for how `chapter` translates to query clauses:
+  //   - text-driven `should` clauses (mixed into the study matcher)
+  //   - structured `must` clauses (added at the top-level bool query)
+  // Modes:
+  //   - None + owner-compat:                     legacy full chapter+tag matchChapterQuery
   //   - None (public, or owner with compat off): nothing
-  private def chapterTextQueries(text: String, isOwnerQuery: Boolean): List[Query] =
-    if text.isEmpty then Nil
-    else
-      chapter match
-        case Some(_) => List(chapterNameDescQuery(text))
-        case None if isOwnerQuery && Study.ownerCompatibility => List(matchChapterQuery(text))
-        case None => Nil
+  //   - SearchText:                              chapter name/description nested multi-match
+  //   - Filters(cf):                             chapter name/description + structured tag filters
+  private case class ChapterClauses(textShould: List[Query], structuredMust: List[Query])
 
-  // mode 3: structured per-field filters
-  private def chapterStructuredFilters: List[Query] =
+  private def chapterClauses(termText: String, isOwnerQuery: Boolean): ChapterClauses =
+    val nameDesc = if termText.isEmpty then Nil else List(chapterNameDescQuery(termText))
     chapter match
-      case Some(ChapterMode.Filters(cf)) => tagFilters(cf)
-      case _ => Nil
+      case None if termText.nonEmpty && isOwnerQuery && Study.ownerCompatibility =>
+        ChapterClauses(List(matchChapterQuery(termText)), Nil)
+      case None => ChapterClauses(Nil, Nil)
+      case Some(ChapterMode.SearchText) => ChapterClauses(nameDesc, Nil)
+      case Some(ChapterMode.Filters(cf)) => ChapterClauses(nameDesc, tagFilters(cf))
 
-  private def studyMatcher(parsed: ParsedQuery, isOwnerQuery: Boolean): Query =
+  private def studyMatcher(parsed: ParsedQuery, textShould: List[Query]): Query =
     if parsed.terms.isEmpty then matchAllQuery()
-    else
-      boolQuery().should(
-        chapterTextQueries(parsed.termsString, isOwnerQuery) ++ matchStudyQueries(parsed.termsString)
-      )
+    else boolQuery().should(textShould ++ matchStudyQueries(parsed.termsString))
 
   private def chapterNameDescQuery(text: String): Query =
     nestedQuery(
@@ -65,11 +63,12 @@ case class Study(
     )
 
   private def makePublicQuery(parsed: ParsedQuery) =
+    val clauses = chapterClauses(parsed.termsString, isOwnerQuery = false)
     boolQuery()
       .must(
-        studyMatcher(parsed, isOwnerQuery = false) ::
+        studyMatcher(parsed, clauses.textShould) ::
           parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList ++
-          chapterStructuredFilters
+          clauses.structuredMust
       )
       .should(
         List(
@@ -80,11 +79,12 @@ case class Study(
       .minimumShouldMatch(1)
 
   private def makeOwnerQuery(parsed: ParsedQuery)(owner: String) =
+    val clauses = chapterClauses(parsed.termsString, isOwnerQuery = true)
     boolQuery()
       .must(
         termQuery(Fields.owner, owner) ::
           parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList ++
-          (studyMatcher(parsed, isOwnerQuery = true) :: chapterStructuredFilters)
+          (studyMatcher(parsed, clauses.textShould) :: clauses.structuredMust)
       )
       .should(
         List(
