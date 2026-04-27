@@ -126,14 +126,18 @@ object IntegrationSuite extends IOSuite:
         yield expect(x.hitIds.size == 1 && x == y)
 
   test("study"): res =>
+    val withFilters = (cf: TagFilter) => Some(ChapterMode.filters(cf))
     Clients
       .search(uri)
       .use: service =>
+        val plainId = Id("study_id")
+        val sicilianId = Id("sicilian_study")
+        val petroffId = Id("petroff_study")
         for
           _ <- res.esClient.putMapping(Index.Study)
           _ <- res.esClient.store(
             Index.Study,
-            Id("study_id"),
+            plainId,
             StudySource(
               name = "study name",
               owner = "study owner",
@@ -144,11 +148,147 @@ object IntegrationSuite extends IOSuite:
               topics = List("topic1", "topic2")
             )
           )
+          _ <- res.esClient.store(
+            Index.Study,
+            sicilianId,
+            StudySource(
+              name = "Sicilian Repertoire",
+              owner = "gm_owner",
+              members = List("coach"),
+              description = none,
+              likes = 10,
+              public = true,
+              topics = Nil,
+              chapters = List(
+                Chapter(
+                  id = "ch1",
+                  name = "Najdorf main line".some,
+                  description = "sharp theoretical line".some,
+                  tags = ChapterTags(
+                    variant = "standard".some,
+                    event = "World Championship".some,
+                    white = "Magnus Carlsen".some,
+                    black = "Hikaru Nakamura".some,
+                    whiteFideId = "1503014".some,
+                    blackFideId = "2016192".some,
+                    eco = "B90".some,
+                    opening = "Sicilian Najdorf".some
+                  ).some
+                )
+              ).some
+            )
+          )
+          _ <- res.esClient.store(
+            Index.Study,
+            petroffId,
+            StudySource(
+              name = "Petroff Repertoire",
+              owner = "other_owner",
+              members = List("student"),
+              description = none,
+              likes = 5,
+              public = true,
+              topics = Nil,
+              chapters = List(
+                Chapter(
+                  id = "ch1",
+                  name = "Classical line".some,
+                  description = "solid equalising line".some,
+                  tags = ChapterTags(
+                    variant = "standard".some,
+                    event = "Candidates Tournament".some,
+                    white = "Fabiano Caruana".some,
+                    black = "Ian Nepomniachtchi".some,
+                    whiteFideId = "2020009".some,
+                    blackFideId = "4168119".some,
+                    eco = "C42".some,
+                    opening = "Petroff Defense".some
+                  ).some
+                )
+              ).some
+            )
+          )
           _ <- res.esClient.refreshIndex(Index.Study)
           a <- service.search(Query.study("name"), from, size)
           b <- service.search(Query.study("study description"), from, size)
           c <- service.search(Query.study("topic1"), from, size)
-        yield expect(true && a.hitIds.size == 1 && b == a && c == a)
+          repertoires <- service.search(Query.study("Repertoire"), from, size)
+          byEco <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(eco = "B90".some))),
+            from,
+            size
+          )
+          byVariantAndEco <- service.search(
+            Query.study(
+              "Repertoire",
+              chapter = withFilters(TagFilter(variant = "standard".some, eco = "B90".some))
+            ),
+            from,
+            size
+          )
+          byOpening <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(opening = "Najdorf".some))),
+            from,
+            size
+          )
+          byPlayerWhite <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(player1 = "Carlsen".some))),
+            from,
+            size
+          )
+          byPlayerBlack <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(player2 = "Nakamura".some))),
+            from,
+            size
+          )
+          byWhiteFideId <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(fideId1 = "1503014".some))),
+            from,
+            size
+          )
+          byBlackFideId <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(fideId2 = "2016192".some))),
+            from,
+            size
+          )
+          byEvent <- service.search(
+            Query.study(
+              "Repertoire",
+              chapter = withFilters(TagFilter(event = "World Championship".some))
+            ),
+            from,
+            size
+          )
+          byMissingEco <- service.search(
+            Query.study("Repertoire", chapter = withFilters(TagFilter(eco = "A00".some))),
+            from,
+            size
+          )
+          // mode 2: SearchText finds chapter-only matches that mode 1 (study-only) would miss
+          byChapterText <- service.search(
+            Query.study("Najdorf", chapter = Some(ChapterMode.searchText())),
+            from,
+            size
+          )
+          byChapterTextOnly <- service.search(Query.study("Najdorf"), from, size)
+          expected = List(sicilianId)
+        yield expect.all(
+          a.hitIds == List(plainId),
+          b == a,
+          c == a,
+          repertoires.hitIds.toSet == Set(sicilianId, petroffId),
+          byEco.hitIds == expected,
+          byVariantAndEco.hitIds == expected,
+          byOpening.hitIds == expected,
+          byPlayerWhite.hitIds == expected,
+          byPlayerBlack.hitIds == expected,
+          byWhiteFideId.hitIds == expected,
+          byBlackFideId.hitIds == expected,
+          byEvent.hitIds == expected,
+          byMissingEco.hitIds.isEmpty,
+          byChapterText.hitIds.contains(sicilianId),
+          !byChapterTextOnly.hitIds.contains(sicilianId)
+        )
 
   val defaultIntRange = IntRange(none, none)
   val defaultDateRange = DateRange(none, none)
