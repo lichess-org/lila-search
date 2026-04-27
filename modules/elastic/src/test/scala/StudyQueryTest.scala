@@ -15,11 +15,6 @@ object StudyQueryTest extends FunSuite:
   private def filters(cf: TagFilter): Option[ChapterMode] =
     Some(ChapterMode.Filters(cf))
 
-  test("basic text search generates correct query"):
-    val study = Study(text = "sicilian defense", sorting = None, userId = None)
-    val query = extractQuery(study)
-    expect(query != null)
-
   test("mode 2 (SearchText) runs nested chapter query"):
     val study = Study(
       text = "sicilian",
@@ -141,15 +136,6 @@ object StudyQueryTest extends FunSuite:
     )
     val queryStr = extractQuery(study).toString
     expect(queryStr.contains("chapters.tags.eco") && queryStr.contains("chapters.tags.opening"))
-
-  test("empty filters do not add unnecessary clauses"):
-    val study = Study(
-      text = "test",
-      sorting = None,
-      userId = None
-    )
-    val query = extractQuery(study)
-    expect(query != null)
 
   test("Filters with all-None fields adds only chapter name/description should clause"):
     val study = Study(
