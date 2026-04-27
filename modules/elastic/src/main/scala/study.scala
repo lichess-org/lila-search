@@ -62,20 +62,17 @@ case class Study(
         .analyzer("english_with_chess_synonyms")
     )
 
+  private def memberClause(parsed: ParsedQuery): List[Query] =
+    parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList
+
+  private def shouldClause: List[Query] =
+    List(Some(selectPublic), userId.map(selectUserId)).flatten
+
   private def makePublicQuery(parsed: ParsedQuery) =
     val clauses = chapterClauses(parsed.termsString, isOwnerQuery = false)
     boolQuery()
-      .must(
-        studyMatcher(parsed, clauses.textShould) ::
-          parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList ++
-          clauses.structuredMust
-      )
-      .should(
-        List(
-          Some(selectPublic),
-          userId.map(selectUserId)
-        ).flatten
-      )
+      .must(studyMatcher(parsed, clauses.textShould) :: memberClause(parsed) ++ clauses.structuredMust)
+      .should(shouldClause)
       .minimumShouldMatch(1)
 
   private def makeOwnerQuery(parsed: ParsedQuery)(owner: String) =
@@ -83,15 +80,10 @@ case class Study(
     boolQuery()
       .must(
         termQuery(Fields.owner, owner) ::
-          parsed("member").map(member => boolQuery().must(termQuery(Fields.members, member))).toList ++
+          memberClause(parsed) ++
           (studyMatcher(parsed, clauses.textShould) :: clauses.structuredMust)
       )
-      .should(
-        List(
-          Some(selectPublic),
-          userId.map(selectUserId)
-        ).flatten
-      )
+      .should(shouldClause)
       .minimumShouldMatch(1)
 
   private def matchStudyQueries(text: String): List[MultiMatchQuery] =
