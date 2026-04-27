@@ -4,8 +4,8 @@ package study
 import com.sksamuel.elastic4s.ElasticDsl.*
 import com.sksamuel.elastic4s.requests.count.CountRequest
 import com.sksamuel.elastic4s.requests.searches.SearchRequest
+import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.queries.matches.MultiMatchQuery
-import com.sksamuel.elastic4s.requests.searches.queries.{ NestedQuery, Query }
 import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
 import lila.search.study.Study.{ ChapterMode, Sorting, TagFilter }
 
@@ -107,34 +107,30 @@ case class Study(
     )
 
   private def matchChapterQuery(text: String) =
-
-    def tagQuery(input: String): NestedQuery =
-      nestedQuery(
-        "chapters.tags",
-        boolQuery()
-          .should(
-            // keyword fields → termQuery (exact match)
-            termQuery("chapters.tags.variant", input),
-            termQuery("chapters.tags.whiteFideId", input),
-            termQuery("chapters.tags.blackFideId", input),
-            termQuery("chapters.tags.eco", input),
-
-            // text fields → matchQuery (full‑text / partial)
-            matchQuery("chapters.tags.event", input),
-            matchQuery("chapters.tags.white", input),
-            matchQuery("chapters.tags.black", input),
-            matchQuery("chapters.tags.opening", input)
-          )
-          .minimumShouldMatch(1)
-      )
-
     nestedQuery(
       "chapters",
       boolQuery().should(
         multiMatchQuery(text)
           .fields("chapters.name", "chapters.description")
           .analyzer("english_with_chess_synonyms"),
-        tagQuery(text)
+        nestedQuery(
+          "chapters.tags",
+          boolQuery()
+            .should(
+              // keyword fields → termQuery (exact match)
+              termQuery("chapters.tags.variant", text),
+              termQuery("chapters.tags.whiteFideId", text),
+              termQuery("chapters.tags.blackFideId", text),
+              termQuery("chapters.tags.eco", text),
+
+              // text fields → matchQuery (full‑text / partial)
+              matchQuery("chapters.tags.event", text),
+              matchQuery("chapters.tags.white", text),
+              matchQuery("chapters.tags.black", text),
+              matchQuery("chapters.tags.opening", text)
+            )
+            .minimumShouldMatch(1)
+        )
       )
     )
 
