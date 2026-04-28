@@ -4,9 +4,8 @@ import snapshot4s.BuildInfo.snapshot4sVersion
 
 object Dependencies {
 
-  val lilaMaven = "lila-maven" at "https://raw.githubusercontent.com/lichess-org/lila-maven/master"
   val jitpack = "jitpack".at("https://jitpack.io")
-  val ourResolvers = Seq(lilaMaven, jitpack, Resolver.sonatypeCentralSnapshots)
+  val ourResolvers = Seq(jitpack, Resolver.sonatypeCentralSnapshots)
 
   object V {
     val catsEffect = "3.7.0"
