@@ -5,7 +5,7 @@ import sbt.ScriptedPlugin.autoImport.*
 
 import sbt.plugins.{ JvmPlugin, SbtPlugin }
 
-object BuildPlugin extends AutoPlugin {
+object BuildPlugin extends AutoPlugin:
   override def trigger = allRequirements
 
   override def requires = ReleasePlugin
@@ -27,4 +27,3 @@ object BuildPlugin extends AutoPlugin {
         pushChanges
       )
     )
-}
