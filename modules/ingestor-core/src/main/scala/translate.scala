@@ -72,6 +72,7 @@ object Translate:
       case Atomic => 14
       case Horde => 16
       case RacingKings => 17
+      case _ => -1 // Variant is not a sealed/enum so we have to catch this
 
   def forum(forum: DbForum): ForumSource =
     ForumSource(
