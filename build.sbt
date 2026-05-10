@@ -254,5 +254,15 @@ val e2e = project
 
 lazy val root = rootProject.autoAggregate
 
+Global / excludeLintKeys ++= Set(
+  git.gitDescribedVersion,
+  git.gitUncommittedChanges,
+  com.typesafe.sbt.packager.Keys.executableScriptName,
+  com.typesafe.sbt.packager.Keys.daemonStdoutLogFile,
+  com.typesafe.sbt.packager.Keys.rpmScriptsDirectory,
+  Keys.sourceDirectory,
+  Keys.name
+)
+
 addCommandAlias("prepare", "scalafixAll; scalafmtAll")
 addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")
