@@ -2,12 +2,12 @@ import sbt.*
 import smithy4s.codegen.BuildInfo.version as smithy4sVersion
 import snapshot4s.BuildInfo.snapshot4sVersion
 
-object Dependencies {
+object Dependencies:
 
   val jitpack = "jitpack".at("https://jitpack.io")
   val ourResolvers = Seq(jitpack, Resolver.sonatypeCentralSnapshots)
 
-  object V {
+  object V:
     val catsEffect = "3.7.0"
     val catsMtl = "1.6.0"
     val ciris = "3.13.0"
@@ -21,7 +21,6 @@ object Dependencies {
     val otel4sCore = "0.16.0"
     val otel4sSdk = "0.18.0"
     val otel4sHttp4s = "0.17.0"
-  }
 
   def http4s(artifact: String) = "org.http4s" %% s"http4s-$artifact" % V.http4s
   def smithy4s(artifact: String) = "com.disneystreaming.smithy4s" %% s"smithy4s-$artifact" % smithy4sVersion
@@ -82,4 +81,3 @@ object Dependencies {
   val catsEffectTestKit = "org.typelevel" %% "cats-effect-testkit" % V.catsEffect % Test
   val scalacheck = "org.scalacheck" %% "scalacheck" % "1.17.0" % Test
   val snapshot4s = "com.siriusxm" %% "snapshot4s-weaver" % snapshot4sVersion % Test
-}

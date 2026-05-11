@@ -50,7 +50,7 @@ object CompatSuite extends weaver.IOSuite:
     )
     IO.fromFuture(IO(client.search(query, from, size)))
       .recoverWith:
-        case e: SearchError.JsonWriterError =>
+        case _: SearchError.JsonWriterError =>
           IO(SearchOutput(Nil))
       .map(expect.same(_, SearchOutput(Nil)))
 
