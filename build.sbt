@@ -7,7 +7,7 @@ organization := "org.lichess.search"
 run / fork := true
 run / javaOptions += "-Dconfig.override_with_env_vars=true"
 semanticdbEnabled := true // for scalafix
-resolvers ++= ourResolvers
+resolvers += jitpack
 
 tpolecatScalacOptions ++= Set(
   ScalacOptions.other("-rewrite"),

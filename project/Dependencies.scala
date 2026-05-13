@@ -5,7 +5,6 @@ import snapshot4s.BuildInfo.snapshot4sVersion
 object Dependencies:
 
   val jitpack = "jitpack".at("https://jitpack.io")
-  val ourResolvers = Seq(jitpack, Resolver.sonatypeCentralSnapshots)
 
   object V:
     val catsEffect = "3.7.0"
