@@ -3,212 +3,246 @@ $version: "2"
 namespace lila.search.spec
 
 use alloy#simpleRestJson
-use smithy4s.meta#adt
-use smithy.api#default
-use smithy.api#jsonName
-
-use lila.search.core#Ids
 use lila.search.core#FromInt
+use lila.search.core#Ids
 use lila.search.core#SizeInt
-use lila.search.core#PlayerIds
-use lila.search.core#Strings
-use lila.search.core#IndexString
-use lila.search.core#DateTime
+use smithy.api#default
+use smithy4s.meta#adt
 
 @simpleRestJson
 service SearchService {
-  version: "3.0.0"
-  operations: [Search, Count]
+    version: "3.0.0"
+    operations: [
+        Search
+        Count
+    ]
 }
 
 @readonly
 @http(method: "POST", uri: "/api/search/{from}/{size}", code: 200)
 operation Search {
+    input := {
+        @required
+        query: Query
 
-  input := {
+        @required
+        @httpLabel
+        from: FromInt
 
-    @required
-    query: Query
+        @required
+        @httpLabel
+        size: SizeInt
+    }
 
-    @required
-    @httpLabel
-    from: FromInt
+    output := {
+        @required
+        hitIds: Ids
+    }
 
-    @required
-    @httpLabel
-    size: SizeInt
-  }
-
-  output := {
-    @required
-    hitIds: Ids
-  }
-
-  errors: [InternalServerError]
+    errors: [
+        InternalServerError
+    ]
 }
 
 @readonly
 @http(method: "POST", uri: "/api/count", code: 200)
 operation Count {
-  input := {
-    @required
-    query: Query
-  }
+    input := {
+        @required
+        query: Query
+    }
 
-  output := {
-    @required
-    count: Long
-  }
+    output := {
+        @required
+        count: Long
+    }
 
-  errors: [InternalServerError]
+    errors: [
+        InternalServerError
+    ]
 }
 
 structure Forum {
-  @required
-  text: String
-  @required
-  troll: Boolean = false
+    @required
+    text: String
+
+    @required
+    troll: Boolean = false
 }
 
 structure Ublog {
-  @required
-  queryText: String
-  @required
-  by: SortBlogsBy
-  minQuality: Integer
-  language: String
+    @required
+    queryText: String
+
+    @required
+    by: SortBlogsBy
+
+    minQuality: Integer
+
+    language: String
 }
 
 structure Team {
-  @required
-  text: String
+    @required
+    text: String
 }
 
 structure Study {
-  @required
-  text: String
-  sorting: StudySorting
-  userId: String
+    @required
+    text: String
 
-  chapter: ChapterMode
+    sorting: StudySorting
+
+    userId: String
+
+    chapter: ChapterMode
 }
 
 union ChapterMode {
-  // also run a full-text query over nested chapters using the top-level `text`
-  searchText: Unit
-  // structured per-field constraints on chapters
-  filters: TagFilter
+    // also run a full-text query over nested chapters using the top-level `text`
+    searchText: Unit
+
+    // structured per-field constraints on chapters
+    filters: TagFilter
 }
 
 structure TagFilter {
-  variant: String
-  eco: String
-  opening: String
-  // player1 / player2 are symmetric: order does not matter.
-  // If both are set, matches games where {white=player1, black=player2}
-  // OR {white=player2, black=player1}. If only one is set, matches that
-  // player as either color.
-  player1: String
-  player2: String
-  // Same symmetry semantics as player1 / player2 but matched against the
-  // FIDE id keyword fields.
-  fideId1: String
-  fideId2: String
-  event: String
+    variant: String
+
+    eco: String
+
+    opening: String
+
+    // player1 / player2 are symmetric: order does not matter.
+    // If both are set, matches games where {white=player1, black=player2}
+    // OR {white=player2, black=player1}. If only one is set, matches that
+    // player as either color.
+    player1: String
+
+    player2: String
+
+    // Same symmetry semantics as player1 / player2 but matched against the
+    // FIDE id keyword fields.
+    fideId1: String
+
+    fideId2: String
+
+    event: String
 }
 
 structure Game {
-  user1: String
-  user2: String
-  winner: String
-  loser: String
-  winnerColor: Integer
-  @default([])
-  perf: Perfs
-  source: Integer
-  status: Integer
-  @required
-  turns: IntRange
-  @required
-  averageRating: IntRange
-  hasAi: Boolean
-  @required
-  aiLevel: IntRange
-  rated: Boolean
-  @required
-  date: DateRange
-  @required
-  duration: IntRange
-  @required
-  sorting: GameSorting
-  analysed: Boolean
-  whiteUser: String
-  blackUser: String
-  clockInit: Integer
-  clockInc: Integer
+    user1: String
+
+    user2: String
+
+    winner: String
+
+    loser: String
+
+    winnerColor: Integer
+
+    @default([])
+    perf: Perfs
+
+    source: Integer
+
+    status: Integer
+
+    @required
+    turns: IntRange
+
+    @required
+    averageRating: IntRange
+
+    hasAi: Boolean
+
+    @required
+    aiLevel: IntRange
+
+    rated: Boolean
+
+    @required
+    date: DateRange
+
+    @required
+    duration: IntRange
+
+    @required
+    sorting: GameSorting
+
+    analysed: Boolean
+
+    whiteUser: String
+
+    blackUser: String
+
+    clockInit: Integer
+
+    clockInc: Integer
 }
 
 structure IntRange {
-  a: Integer
-  b: Integer
+    a: Integer
+    b: Integer
 }
 
 structure DateRange {
-  a: Timestamp
-  b: Timestamp
+    a: Timestamp
+    b: Timestamp
 }
 
 structure GameSorting {
-  @required
-  f: String
-  @required
-  order: String
+    @required
+    f: String
+
+    @required
+    order: String
 }
 
 list Perfs {
-  member: Integer
+    member: Integer
 }
 
 enum SortBlogsBy {
-  newest
-  oldest
-  score
-  likes
+    newest
+    oldest
+    score
+    likes
 }
 
 enum Order {
-  Asc = "asc"
-  Desc = "desc"
+    Asc = "asc"
+    Desc = "desc"
 }
 
 enum StudySortField {
-  Name = "name"
-  Likes = "like"
-  CreatedAt = "createdAt"
-  UpdatedAt = "updatedAt"
-  Hot = "hot"
+    Name = "name"
+    Likes = "like"
+    CreatedAt = "createdAt"
+    UpdatedAt = "updatedAt"
+    Hot = "hot"
 }
 
 structure StudySorting {
-  @required
-  field: StudySortField
-  @required
-  order: Order
+    @required
+    field: StudySortField
+
+    @required
+    order: Order
 }
 
 @adt
 union Query {
-  forum: Forum
-  ublog: Ublog
-  game: Game
-  study: Study
-  team: Team
+    forum: Forum
+    ublog: Ublog
+    game: Game
+    study: Study
+    team: Team
 }
 
 @error("server")
 @httpError(500)
 structure InternalServerError {
-  @required
-  message: String
+    @required
+    message: String
 }
-

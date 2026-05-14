@@ -264,5 +264,5 @@ Global / excludeLintKeys ++= Set(
   Keys.name
 )
 
-addCommandAlias("prepare", "scalafixAll; scalafmtAll")
-addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll")
+addCommandAlias("prepare", "scalafixAll; scalafmtAll; smithyFmtAll")
+addCommandAlias("check", "; scalafixAll --check ; scalafmtCheckAll; smithyFmtCheckAll")

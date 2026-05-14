@@ -8,6 +8,7 @@ use smithy.api#trait
 structure KeywordSubfield {
     @required
     name: String
+
     normalizer: String
 }
 
@@ -16,10 +17,13 @@ structure KeywordSubfield {
 structure textField {
     /// Search boost multiplier for this field
     boost: Integer
+
     /// Index analyzer to use (e.g., "english", "standard")
     analyzer: String
+
     /// Search analyzer to use (e.g., "english", "standard")
     searchAnalyzer: String
+
     /// Optional keyword subfield for exact matching
     keywordSubfield: KeywordSubfield
 }
@@ -29,6 +33,7 @@ structure textField {
 structure keywordField {
     /// Search boost multiplier for this field
     boost: Integer
+
     /// Whether to store doc values for sorting/aggregations
     docValues: Boolean
 }
@@ -38,6 +43,7 @@ structure keywordField {
 structure dateField {
     /// Date format (e.g., "epoch_millis")
     format: String
+
     /// Whether to store doc values for sorting/aggregations
     docValues: Boolean
 }
@@ -75,6 +81,7 @@ structure booleanField {
 structure nestedField {
     /// Controls whether new fields can be added dynamically (e.g., "true", "false", "strict")
     dynamic: String
+
     /// Whether to include nested fields in parent document
     includeInParent: Boolean
 }
