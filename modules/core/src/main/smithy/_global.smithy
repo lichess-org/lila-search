@@ -2,15 +2,11 @@ $version: "2"
 
 namespace lila.search.core
 
-use smithy4s.meta#unwrap
 use smithy4s.meta#refinement
-use alloy#simpleRestJson
+use smithy4s.meta#unwrap
 
 @trait(selector: "string")
-@refinement(
-   targetType: "lila.search.Id"
-   providerImport: "lila.search.core.providers.given"
-)
+@refinement(targetType: "lila.search.Id", providerImport: "lila.search.core.providers.given")
 structure IdFormat {}
 
 @IdFormat
@@ -18,22 +14,19 @@ structure IdFormat {}
 string IdString
 
 list Ids {
-  member: IdString
+    member: IdString
 }
 
 list Strings {
-  member: String
+    member: String
 }
 
 list PlayerIds {
-  member: String
+    member: String
 }
 
 @trait(selector: "string")
-@refinement(
-   targetType: "lila.search.SearchDateTime"
-   providerImport: "lila.search.core.providers.given"
-)
+@refinement(targetType: "lila.search.SearchDateTime", providerImport: "lila.search.core.providers.given")
 structure DateTimeFormat {}
 
 @DateTimeFormat
@@ -41,10 +34,7 @@ structure DateTimeFormat {}
 string DateTime
 
 @trait(selector: "integer")
-@refinement(
-   targetType: "lila.search.Size"
-   providerImport: "lila.search.core.providers.given"
-)
+@refinement(targetType: "lila.search.Size", providerImport: "lila.search.core.providers.given")
 structure SizeFormat {}
 
 @SizeFormat
@@ -52,10 +42,7 @@ structure SizeFormat {}
 integer SizeInt
 
 @trait(selector: "integer")
-@refinement(
-   targetType: "lila.search.From"
-   providerImport: "lila.search.core.providers.given"
-)
+@refinement(targetType: "lila.search.From", providerImport: "lila.search.core.providers.given")
 structure FromFormat {}
 
 @FromFormat
@@ -63,10 +50,7 @@ structure FromFormat {}
 integer FromInt
 
 @trait(selector: "string")
-@refinement(
-   targetType: "lila.search.Index"
-   providerImport: "lila.search.core.providers.given"
-)
+@refinement(targetType: "lila.search.Index", providerImport: "lila.search.core.providers.given")
 structure IndexFormat {}
 
 @IndexFormat
