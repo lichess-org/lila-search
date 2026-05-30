@@ -129,20 +129,20 @@ case class DbUblog(
 
 object DbUblog:
   import UblogRepo.F
-  given Decoder[DbUblog] =
-    Decoder.forProduct11(
-      _id,
-      F.title,
-      F.intro,
-      F.markdown,
-      F.blog,
-      F.language,
-      F.likes,
-      F.topics,
-      F.live,
-      F.livedAt,
-      F.quality
-    )(DbUblog.apply)
+  given Decoder[DbUblog] = Decoder.instance: c =>
+    for
+      id <- c.get[String](_id)
+      title <- c.get[String](F.title)
+      intro <- c.get[String](F.intro)
+      markdown <- c.get[String](F.markdown)
+      blog <- c.get[String](F.blog)
+      language <- c.get[String](F.language)
+      likes <- c.get[Int](F.likes)
+      topics <- c.get[List[String]](F.topics)
+      live <- c.get[Boolean](F.live)
+      livedAt <- c.downField("lived").get[Option[Instant]]("at")
+      quality <- c.downField("automod").get[Option[Int]]("quality")
+    yield DbUblog(id, title, intro, markdown, blog, language, likes, topics, live, livedAt, quality)
 
   // We don't write to the database so we don't need to implement this
   given Encoder[DbUblog] = new:
