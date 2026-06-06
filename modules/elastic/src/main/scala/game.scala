@@ -95,6 +95,15 @@ case class Game(
         case s: String => termQuery(name, s.toLowerCase)
         case x => termQuery(name, x)
 
+    // A "Draw" result groups every drawn outcome that carries its own game status
+    // id in scalachess: Stalemate, Draw, and InsufficientMaterialClaim. Selecting it
+    // must match all three, not only the literal Draw status.
+    // https://github.com/lichess-org/lila-search/issues/608
+    def statusQueries: List[Query] =
+      status.toList.map: s =>
+        if s == Game.drawStatusId then termsQuery(Fields.status, Game.drawStatusIds)
+        else termQuery(Fields.status, s)
+
     List(
       userQueries,
       winnerQueries,
@@ -111,7 +120,7 @@ case class Game(
       perf.nonEmpty.fold(List(termsQuery(Fields.perf, perf)), Nil),
       toQueries(source, Fields.source),
       toQueries(rated, Fields.rated),
-      toQueries(status, Fields.status),
+      statusQueries,
       toQueries(analysed, Fields.analysed),
       toQueries(whiteUser, Fields.whiteUser),
       toQueries(blackUser, Fields.blackUser)
@@ -144,6 +153,14 @@ object Mapping:
 
 object Game:
   val index = "game"
+
+  // Drawn outcomes have distinct scalachess `Status` ids: Stalemate (32),
+  // Draw (34 — agreement / 50-move / threefold / automatic insufficient material)
+  // and InsufficientMaterialClaim (39). A "Draw" result search groups all three.
+  // The ids are inlined rather than read from `chess.Status` because the elastic
+  // module does not depend on scalachess; the index stores raw `Status.id` values.
+  val drawStatusId = 34
+  val drawStatusIds = List(32, 34, 39)
 
 case class Sorting(f: String, order: String):
   import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
