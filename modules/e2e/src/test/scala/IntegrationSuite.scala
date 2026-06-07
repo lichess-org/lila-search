@@ -301,6 +301,30 @@ object IntegrationSuite extends IOSuite:
     sorting = GameSorting("field", "asc")
   )
 
+  // A drawn game whose fields match the Draw search below but none of the other filters.
+  def drawGameSource(status: Int) = GameSource(
+    status = status,
+    turns = 100,
+    rated = true,
+    perf = 2,
+    winnerColor = 3,
+    date = Timestamp(2001, 10, 20, 12, 20, 20).toInstant.getEpochSecond,
+    analysed = false,
+    averageRating = 150,
+    ai = 0,
+    duration = 50,
+    clockInit = 50,
+    clockInc = 50,
+    whiteUser = "white",
+    blackUser = "black",
+    source = 0,
+    whiteRating = 150,
+    blackRating = 150,
+    chess960Pos = 1000,
+    whiteBot = false,
+    blackBot = false
+  )
+
   test("game"): res =>
     Clients
       .search(uri)
@@ -333,6 +357,9 @@ object IntegrationSuite extends IOSuite:
               blackBot = false
             )
           )
+          _ <- res.esClient.store(Index.Game, Id("draw_stalemate"), drawGameSource(32))
+          _ <- res.esClient.store(Index.Game, Id("draw_normal"), drawGameSource(34))
+          _ <- res.esClient.store(Index.Game, Id("draw_insufficient_material"), drawGameSource(39))
           _ <- res.esClient.refreshIndex(Index.Game)
           a <- service.search(defaultGame.copy(perf = List(1)), from, size)
           b <- service.search(defaultGame.copy(loser = "black".some), from, size)
@@ -345,4 +372,18 @@ object IntegrationSuite extends IOSuite:
             from,
             size
           )
-        yield expect(a.hitIds.size == 1 && b == a && c == a && d == a && e == a && f == a && g == a)
+          draw <- service.search(defaultGame.copy(status = 34.some), from, size)
+        yield expect.all(
+          a.hitIds.size == 1,
+          b == a,
+          c.hitIds.size == 4,
+          d == a,
+          e == a,
+          f == a,
+          g == a,
+          draw.hitIds.size == 3,
+          draw.hitIds.contains(Id("draw_stalemate")),
+          draw.hitIds.contains(Id("draw_normal")),
+          draw.hitIds.contains(Id("draw_insufficient_material")),
+          !draw.hitIds.contains(Id("game_id"))
+        )
