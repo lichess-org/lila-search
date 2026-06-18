@@ -75,8 +75,8 @@ object Dependencies:
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
   val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
-  val weaver = "org.typelevel" %% "weaver-cats" % "0.12.0" % Test
-  val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.12.0" % Test
+  val weaver = "org.typelevel" %% "weaver-cats" % "0.13.0" % Test
+  val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.13.0" % Test
   val catsEffectTestKit = "org.typelevel" %% "cats-effect-testkit" % V.catsEffect % Test
   val scalacheck = "org.scalacheck" %% "scalacheck" % "1.17.0" % Test
   val snapshot4s = "com.siriusxm" %% "snapshot4s-weaver" % snapshot4sVersion % Test
