@@ -3,7 +3,7 @@ excludeDependencies ++= Seq(
   ExclusionRule("org.scala-lang.modules", "scala-xml_2.13")
 )
 
-addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.6")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.7")
 
 addSbtPlugin("com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.19.4")
 
@@ -22,4 +22,3 @@ addSbtPlugin("com.siriusxm" % "sbt-snapshot4s" % "0.2.9")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.6")
 
 addSbtPlugin("org.typelevel" % "sbt-tpolecat" % "0.5.4")
-
