@@ -17,7 +17,7 @@ object Dependencies:
     val fs2Data = "1.13.0"
     val http4s = "0.23.34"
     val mongo4cats = "0.7.17"
-    val otel4sCore = "0.16.0"
+    val otel4sCore = "1.0.0"
     val otel4sSdk = "0.18.0"
     val otel4sHttp4s = "0.17.0"
 
