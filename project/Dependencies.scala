@@ -19,7 +19,7 @@ object Dependencies:
     val mongo4cats = "0.7.17"
     val otel4sCore = "0.16.0"
     val otel4sSdk = "0.18.0"
-    val otel4sHttp4s = "0.17.0"
+    val otel4sHttp4s = "0.18.0"
 
   def http4s(artifact: String) = "org.http4s" %% s"http4s-$artifact" % V.http4s
   def smithy4s(artifact: String) = "com.disneystreaming.smithy4s" %% s"smithy4s-$artifact" % smithy4sVersion
