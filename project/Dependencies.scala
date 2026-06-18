@@ -8,18 +8,18 @@ object Dependencies:
 
   object V:
     val catsEffect = "3.7.0"
-    val catsMtl = "1.6.0"
-    val ciris = "3.13.0"
+    val catsMtl = "1.7.0"
+    val ciris = "3.15.0"
     val chess = "17.15.5"
     val decline = "2.6.2"
     val elastic4s = "9.3.0"
     val fs2 = "3.13.0"
-    val fs2Data = "1.13.0"
+    val fs2Data = "1.14.0"
     val http4s = "0.23.34"
-    val mongo4cats = "0.7.17"
-    val otel4sCore = "0.16.0"
-    val otel4sSdk = "0.18.0"
-    val otel4sHttp4s = "0.17.0"
+    val mongo4cats = "0.7.18"
+    val otel4sCore = "1.0.0"
+    val otel4sSdk = "0.19.0"
+    val otel4sHttp4s = "0.18.0"
 
   def http4s(artifact: String) = "org.http4s" %% s"http4s-$artifact" % V.http4s
   def smithy4s(artifact: String) = "com.disneystreaming.smithy4s" %% s"smithy4s-$artifact" % smithy4sVersion
@@ -50,7 +50,7 @@ object Dependencies:
   val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.37.10"
   val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.37.10"
 
-  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.15"
+  val playWS = "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.2.16"
 
   val elastic4sHttp4sClient = "nl.gn0s1s" %% "elastic4s-client-http4s" % V.elastic4s
 
@@ -59,8 +59,8 @@ object Dependencies:
   val circe = "io.circe" %% "circe-core" % "0.14.15"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j" % "2.8.0"
-  val logback = "ch.qos.logback" % "logback-classic" % "1.5.32"
-  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.12"
+  val logback = "ch.qos.logback" % "logback-classic" % "1.5.34"
+  val ducktape = "io.github.arainko" %% "ducktape" % "0.2.13"
 
   val otel4sCore = "org.typelevel" %% "otel4s-core" % V.otel4sCore
   val otel4sInstrumentationMetrics = "org.typelevel" %% "otel4s-instrumentation-metrics" % V.otel4sCore
@@ -75,8 +75,8 @@ object Dependencies:
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
   val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
-  val weaver = "org.typelevel" %% "weaver-cats" % "0.12.0" % Test
-  val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.12.0" % Test
+  val weaver = "org.typelevel" %% "weaver-cats" % "0.13.0" % Test
+  val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.13.0" % Test
   val catsEffectTestKit = "org.typelevel" %% "cats-effect-testkit" % V.catsEffect % Test
   val scalacheck = "org.scalacheck" %% "scalacheck" % "1.17.0" % Test
   val snapshot4s = "com.siriusxm" %% "snapshot4s-weaver" % snapshot4sVersion % Test
