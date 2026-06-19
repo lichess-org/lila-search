@@ -1,7 +1,7 @@
 import Dependencies.*
 import org.typelevel.scalacoptions.ScalacOptions
 
-scalaVersion := "3.8.3"
+scalaVersion := "3.8.4"
 versionScheme := Some("early-semver")
 organization := "org.lichess.search"
 run / fork := true
@@ -137,7 +137,7 @@ lazy val ingestorApp = project
       otel4sInstrumentationMetrics
     ),
     dockerSettings,
-    Compile / doc / sources := Seq.empty,
+    Compile / doc / sources := Seq.empty
   )
   .dependsOn(ingestorCore)
 
@@ -158,7 +158,7 @@ lazy val ingestorCli = project
       weaver
     ),
     dockerSettings,
-    Compile / doc / sources := Seq.empty,
+    Compile / doc / sources := Seq.empty
   )
   .dependsOn(elastic, core, ingestorCore)
 
@@ -239,7 +239,7 @@ lazy val app = project
       otel4sHttp4sMetrics
     ),
     dockerSettings,
-    Compile / doc / sources := Seq.empty,
+    Compile / doc / sources := Seq.empty
   )
   .dependsOn(api, elastic)
 
