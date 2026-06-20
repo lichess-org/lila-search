@@ -5,7 +5,7 @@ REMOTE_DIR="/home/lila-search-cli"
 
 echo "Deploy to server $REMOTE:$REMOTE_DIR"
 
-sbt ";ingestor-cli/stage;exit"
+sbt ";ingestorCli/stage"
 if [ $? != 0 ]; then
 	echo "Deploy canceled"
 	exit 1
