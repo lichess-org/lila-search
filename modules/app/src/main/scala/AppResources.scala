@@ -3,6 +3,8 @@ package app
 
 import cats.effect.*
 import cats.syntax.all.*
+import org.http4s.client.Client
+import org.http4s.client.middleware.RequestLogger
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.otel4s.middleware.metrics.OtelMetrics
 import org.typelevel.otel4s.metrics.MeterProvider
@@ -23,4 +25,9 @@ object AppResources:
 
     (metrics.toResource, EmberClientBuilder.default[IO].build)
       .mapN(_.apply(_))
+      .map(elasticClientLoggerMiddeware(conf.enableRequestLogging))
       .map(ESClient(conf.uri))
+
+  private def elasticClientLoggerMiddeware(enable: Boolean): Client[IO] => Client[IO] =
+    if enable then RequestLogger[IO](true, true)
+    else identity

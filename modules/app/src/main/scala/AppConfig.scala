@@ -40,9 +40,11 @@ object HttpServerConfig:
   private def enableDocs = env("HTTP_ENABLE_DOCS").or(prop("http.enable.docs")).as[Boolean].default(false)
   def config = (host, port, logger, shutdownTimeout, enableDocs).parMapN(HttpServerConfig.apply)
 
-case class ElasticConfig(uri: Uri)
+case class ElasticConfig(uri: Uri, enableRequestLogging: Boolean)
 
 object ElasticConfig:
   private def uri =
     env("ELASTIC_URI").or(prop("elastic.uri")).as[Uri].default(uri"http://127.0.0.1:9200")
-  def config = uri.map(ElasticConfig.apply)
+  private def requestLogger =
+    env("ELASTIC_REQUEST_LOGGER").or(prop("elastic.request.logger")).as[Boolean].default(false)
+  def config = (uri, requestLogger).parMapN(ElasticConfig.apply)
