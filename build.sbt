@@ -5,7 +5,6 @@ scalaVersion := "3.8.4"
 versionScheme := Some("early-semver")
 organization := "com.github.lichess-org.lila-search"
 run / fork := true
-run / javaOptions += "-Dconfig.override_with_env_vars=true"
 semanticdbEnabled := true // for scalafix
 resolvers += jitpack
 
