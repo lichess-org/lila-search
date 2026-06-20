@@ -3,7 +3,7 @@ import org.typelevel.scalacoptions.ScalacOptions
 
 scalaVersion := "3.8.4"
 versionScheme := Some("early-semver")
-organization := "org.lichess.search"
+organization := "com.github.lichess-org.lila-search"
 run / fork := true
 run / javaOptions += "-Dconfig.override_with_env_vars=true"
 semanticdbEnabled := true // for scalafix
@@ -25,6 +25,8 @@ val dockerSettings = Seq(
   Docker / maintainer := "lichess.org",
   Docker / dockerRepository := Some("ghcr.io")
 )
+
+Universal / target := baseDirectory.value / "target" / "universal"
 
 val buildInfoSettings = Seq(
   buildInfoKeys := Seq[BuildInfoKey](
@@ -252,7 +254,6 @@ val e2e = project
   )
   .dependsOn(client, app, ingestorCore)
 
-lazy val root = rootProject.autoAggregate
 
 Global / excludeLintKeys ++= Set(
   git.gitDescribedVersion,
