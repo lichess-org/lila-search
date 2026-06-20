@@ -122,7 +122,7 @@ object CompatSuite extends weaver.IOSuite:
 
   def testAppConfig = AppConfig(
     server = HttpServerConfig(ip"0.0.0.0", port"9999", false, shutdownTimeout = 1, false),
-    elastic = ElasticConfig(uri"http://0.0.0.0:9200")
+    elastic = ElasticConfig(uri"http://0.0.0.0:9200", false)
   )
 
   def fakeESClient: ESClient[IO] = new:
