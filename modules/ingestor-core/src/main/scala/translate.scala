@@ -84,6 +84,20 @@ object Translate:
       date = forum.post.createdAt.toEpochMilli
     )
 
+  def forum2(forum: DbForum): Forum2Source =
+    val langKey = SearchLang.esLangKey(forum.post.lang)
+    Forum2Source(
+      body = forum.post.text,
+      topic = forum.topicName,
+      topicId = forum.post.topicId,
+      author = forum.post.userId,
+      troll = forum.post.troll,
+      date = forum.post.createdAt.toEpochMilli,
+      bodyByLang = langKey.map(k => Map(k -> forum.post.text)),
+      topicByLang = langKey.map(k => Map(k -> forum.topicName)),
+      language = forum.post.lang
+    )
+
   def study(study: DbStudy, chapters: Option[List[StudyChapterData]]): StudySource =
     StudySource(
       name = study.name,
