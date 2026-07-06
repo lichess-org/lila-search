@@ -85,3 +85,8 @@ structure nestedField {
     /// Whether to include nested fields in parent document
     includeInParent: Boolean
 }
+
+/// Text stored under per-language keys. Mapped as an object with one text
+/// sub-field per supported language, each using that language's analyzer.
+@trait(selector: "member")
+structure languageTextField {}

@@ -25,6 +25,7 @@ extension (index: Index)
 
   def mapping: List[ElasticField] = index match
     case Index.Forum => forum.Mapping.fields
+    case Index.Forum2 => forum2.Mapping.fields
     case Index.Ublog => ublog.Mapping.fields
     case Index.Game => game.Mapping.fields
     case Index.Study => study.Mapping.fields
@@ -32,6 +33,7 @@ extension (index: Index)
 
   def keepSource: Boolean = index match
     case Index.Forum => false
+    case Index.Forum2 => false
     case Index.Ublog => false
     case Index.Game => false
     case Index.Study => true // need source for partial updates (likes and ranks)
