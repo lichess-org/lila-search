@@ -10,7 +10,10 @@ object Forum2QueryTest extends FunSuite:
 
   test("a supported lang queries its body and topic sub-fields"):
     val query = queryString(Forum2("cheval", troll = false, lang = Some("fr")))
-    expect(query.contains("bl.fr") && query.contains("tl.fr"))
+    expect(
+      query.contains("bl.fr") && query.contains("tl.fr") &&
+        query.contains("bl.fr^2") && query.contains("tl.fr^5")
+    )
 
   test("absent lang defaults to the english sub-fields"):
     val query = queryString(Forum2("knight", troll = false, lang = None))
@@ -18,4 +21,4 @@ object Forum2QueryTest extends FunSuite:
 
   test("an unsupported lang falls back to the base fields only"):
     val query = queryString(Forum2("knight", troll = false, lang = Some("tlh")))
-    expect(query.contains("bo") && !query.contains("bl."))
+    expect(query.contains("bo") && !query.contains("bl.") && !query.contains("tl."))
