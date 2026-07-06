@@ -3,6 +3,7 @@ package ingestor
 
 import cats.effect.*
 import cats.syntax.all.*
+import com.sksamuel.elastic4s.Indexable
 import lila.search.ingestor.game.ESGameIngestor
 import mongo4cats.database.MongoDatabase
 import org.typelevel.log4cats.syntax.*
@@ -31,6 +32,7 @@ object Ingestors:
       given KVStore = store
       List(
         run(Index.Forum, forums, ESIngestor(Index.Forum, elastic), config.forum.startAt),
+        run(Index.Forum2, forums, forum2ESIngestor(elastic), config.forum.startAt),
         // run(Index.Ublog, ublogs, ESIngestor(Index.Ublog, elastic), config.ublog.startAt),
         run(Index.Study, study2s, ESIngestor(Index.Study, elastic), config.study.startAt),
         run(Index.Team, teams, ESIngestor(Index.Team, elastic), config.team.startAt),
@@ -62,3 +64,7 @@ object Ingestors:
   private def saveTimestamp(index: Index)(time: Instant)(using Logger[IO])(using store: KVStore): IO[Unit] =
     store.put(index.value, time) *>
       Logger[IO].info(s"Stored last indexed time ${time.getEpochSecond} for ${index.value}")
+
+  private def forum2ESIngestor(elastic: ESClient[IO])(using LoggerFactory[IO]): Ingestor[DbForum] =
+    given Indexable[DbForum] = forum2Indexable
+    ESIngestor(Index.Forum2, elastic)
