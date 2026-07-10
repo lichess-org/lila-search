@@ -253,7 +253,6 @@ val e2e = project
   )
   .dependsOn(client, app, ingestorCore)
 
-
 Global / excludeLintKeys ++= Set(
   git.gitDescribedVersion,
   git.gitUncommittedChanges,
