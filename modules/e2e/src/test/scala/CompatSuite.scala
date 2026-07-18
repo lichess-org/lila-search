@@ -1,7 +1,6 @@
 package lila.search
 package test
 
-import akka.actor.ActorSystem
 import cats.effect.{ IO, Resource }
 import cats.syntax.all.*
 import com.comcast.ip4s.*
@@ -9,6 +8,7 @@ import com.sksamuel.elastic4s.Indexable
 import lila.search.app.{ App, AppConfig, AppResources, ElasticConfig, HttpServerConfig }
 import lila.search.client.{ SearchClient, SearchError }
 import lila.search.spec.{ ChapterMode, CountOutput, Query, SearchOutput, TagFilter }
+import org.apache.pekko.actor.ActorSystem
 import org.http4s.implicits.*
 import org.typelevel.log4cats.noop.{ NoOpFactory, NoOpLogger }
 import org.typelevel.log4cats.{ Logger, LoggerFactory }

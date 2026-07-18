@@ -1,9 +1,9 @@
 package lila.search
 package client
 
-import akka.util.ByteString
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import lila.search.spec.*
+import org.apache.pekko.util.ByteString
 import play.api.libs.ws.{ BodyReadable, BodyWritable, InMemoryBody, StandaloneWSClient }
 import smithy4s.json.Json.given
 import smithy4s.schema.Schema
