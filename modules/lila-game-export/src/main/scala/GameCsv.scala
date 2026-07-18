@@ -5,8 +5,6 @@ import fs2.data.csv.*
 import fs2.data.csv.generic.semiauto.*
 import lila.search.ingestor.DbGame
 
-import scala.annotation.nowarn
-
 case class GameCsv(
     id: String,
     status: Int,
@@ -30,7 +28,6 @@ case class GameCsv(
 )
 
 object GameCsv:
-  @nowarn("msg=is not accessible here")
   given CsvRowEncoder[GameCsv, String] = deriveCsvRowEncoder
 
   def fromDbGame(game: DbGame): GameCsv =
