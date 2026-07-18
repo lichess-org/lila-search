@@ -1,7 +1,7 @@
 package lila.search
 package client
 
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import lila.search.spec.*
 import play.api.libs.ws.{ BodyReadable, BodyWritable, InMemoryBody, StandaloneWSClient }
