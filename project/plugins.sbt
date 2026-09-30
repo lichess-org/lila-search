@@ -15,7 +15,7 @@ addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.12.0")
 
 addSbtPlugin("com.github.sbt" % "sbt-release" % "1.5.0")
 
-addSbtPlugin("org.polyvariant" % "smithy-scala-tools-sbt" % "0.3.1")
+addSbtPlugin("org.polyvariant" % "smithy-scala-tools-sbt" % "0.3.2")
 
 addSbtPlugin("com.siriusxm" % "sbt-snapshot4s" % "0.2.11")
 
