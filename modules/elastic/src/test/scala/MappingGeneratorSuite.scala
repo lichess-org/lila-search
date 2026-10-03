@@ -16,6 +16,9 @@ object MappingGeneratorSuite extends SimpleIOSuite with SnapshotExpectations:
   test("Forum index"):
     testIndex(Index.Forum, "forum.json")
 
+  test("Forum2 index"):
+    testIndex(Index.Forum2, "forum2.json")
+
   test("Ublog index"):
     testIndex(Index.Ublog, "ublog.json")
 

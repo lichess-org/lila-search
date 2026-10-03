@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import com.comcast.ip4s.*
 import com.sksamuel.elastic4s.ElasticError
 import lila.search.es.*
+import lila.search.forum2.Forum2
 import lila.search.ingestor.given
 import lila.search.spec.*
 import org.http4s.Uri
@@ -81,7 +82,52 @@ object IntegrationSuite extends IOSuite:
           _ <- res.esClient.refreshIndex(Index.Forum)
           x <- service.search(Query.forum("chess", false), from, size)
           y <- service.search(Query.forum("nt9", false), from, size)
-        yield expect(x.hitIds.size == 1 && x == y)
+          // a lang-bearing query against the old index must behave like today (param ignored)
+          withLang <- service.search(Query.forum("chess", false, lang = "fr".some), from, size)
+        yield expect(x.hitIds.size == 1 && x == y && withLang == x)
+
+  test("forum2"): res =>
+    for
+      _ <- res.esClient.putMapping(Index.Forum2)
+      _ <- res.esClient.store(
+        Index.Forum2,
+        Id("forum2_fr"),
+        Forum2Source(
+          body = "Les chevaux blancs de l'échiquier",
+          topic = "Ouvertures",
+          topicId = "ouvertures",
+          troll = false,
+          date = Instant.now().toEpochMilli(),
+          author = "pierre".some,
+          bodyByLang = Map("fr" -> "Les chevaux blancs de l'échiquier").some,
+          topicByLang = Map("fr" -> "Ouvertures").some,
+          language = "fr".some
+        )
+      )
+      _ <- res.esClient.store(
+        Index.Forum2,
+        Id("forum2_nolang"),
+        Forum2Source(
+          body = "just a plain undetected post",
+          topic = "offtopic",
+          topicId = "offtopic",
+          troll = false,
+          date = Instant.now().toEpochMilli(),
+          author = "someone".some
+        )
+      )
+      _ <- res.esClient.refreshIndex(Index.Forum2)
+      // french stemming: "cheval" must match indexed "chevaux" via bl.fr
+      fr <- res.esClient.search(Forum2("cheval", troll = false, lang = Some("fr")), from, size)
+      // default english: no french stemming, no match
+      en <- res.esClient.search(Forum2("cheval", troll = false), from, size)
+      // undetected-language post found by exact words via the standard fallback
+      plain <- res.esClient.search(Forum2("undetected", troll = false), from, size)
+    yield expect.all(
+      fr == List(Id("forum2_fr")),
+      en.isEmpty,
+      plain == List(Id("forum2_nolang"))
+    )
 
   test("ublog"): res =>
     Clients

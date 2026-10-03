@@ -40,6 +40,55 @@ structure ForumSource {
     date: Long
 }
 
+structure Forum2Source {
+    @required
+    @jsonName("bo")
+    @textField(boost: 2, analyzer: "standard")
+    body: String
+
+    @required
+    @jsonName("to")
+    @textField(boost: 5, analyzer: "standard")
+    topic: String
+
+    @required
+    @jsonName("ti")
+    @keywordField(docValues: false)
+    topicId: String
+
+    @jsonName("au")
+    @keywordField(docValues: false)
+    author: String
+
+    @required
+    @jsonName("tr")
+    @booleanField(docValues: false)
+    troll: Boolean
+
+    /// time in milliseconds
+    @required
+    @jsonName("da")
+    @dateField
+    date: Long
+
+    @jsonName("bl")
+    @languageTextField
+    bodyByLang: LangText
+
+    @jsonName("tl")
+    @languageTextField
+    topicByLang: LangText
+
+    @jsonName("la")
+    @keywordField(docValues: false)
+    language: String
+}
+
+map LangText {
+    key: String
+    value: String
+}
+
 structure GameSource {
     @required
     @jsonName("s")

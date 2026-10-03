@@ -30,7 +30,8 @@ object ForumRepo:
   private def eventFilter(maxPostLength: Int) =
     Filter.in("operationType", interestedOperations) && maxPostSizeFilter(maxPostLength)
 
-  private val interestedFields = List(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt)
+  private val interestedFields =
+    List(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt, F.lang)
   private val postProjection = Projection.include(interestedFields)
 
   private val interestedEventFields =
@@ -146,6 +147,7 @@ object ForumRepo:
     val createdAt = "createdAt"
     val updatedAt = "updatedAt"
     val erasedAt = "erasedAt"
+    val lang = "lang"
 
   object Topic:
     val name = "name"
@@ -157,13 +159,16 @@ case class DbPost(
     troll: Boolean,
     createdAt: Instant,
     userId: Option[String],
-    erasedAt: Option[Instant]
+    erasedAt: Option[Instant],
+    lang: Option[String]
 )
 
 object DbPost:
   import ForumRepo.F
   given Decoder[DbPost] =
-    Decoder.forProduct7(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt)(DbPost.apply)
+    Decoder.forProduct8(_id, F.text, F.topicId, F.troll, F.createdAt, F.userId, F.erasedAt, F.lang)(
+      DbPost.apply
+    )
 
   // We don't write to the database so we don't need to implement this
   given Encoder[DbPost] = new:
