@@ -4,9 +4,8 @@ package test
 
 import cats.effect.{ IO, Resource }
 import com.dimafeng.testcontainers.GenericContainer
-import com.dimafeng.testcontainers.GenericContainer.FileSystemBind
-import org.testcontainers.containers.BindMode
 import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.utility.MountableFile
 
 object ElasticSearchContainer:
 
@@ -23,10 +22,13 @@ object ElasticSearchContainer:
         "elasticsearch:7.10.1",
         exposedPorts = Seq(PORT),
         waitStrategy = Wait.forListeningPort(),
-        env = env,
-        classpathResourceMapping =
-          Seq(FileSystemBind("synonyms", "/usr/share/elasticsearch/config/synonyms", BindMode.READ_WRITE))
-      )
+        env = env
+      ).configure: cont =>
+        // Copy the resource so Docker does not need access to the test runner's filesystem.
+        cont.withCopyFileToContainer(
+          MountableFile.forClasspathResource("synonyms/chess_synonyms.txt"),
+          "/usr/share/elasticsearch/config/synonyms/chess_synonyms.txt"
+        ): Unit
     ).flatTap(cont => IO(cont.start()))
     Resource.make(start)(cont => IO(cont.stop()))
 
