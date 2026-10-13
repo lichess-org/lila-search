@@ -5,7 +5,9 @@ package test
 import cats.effect.{ IO, Resource }
 import com.dimafeng.testcontainers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.utility.MountableFile
+import org.testcontainers.images.builder.Transferable
+
+import scala.util.Using
 
 object ElasticSearchContainer:
 
@@ -24,9 +26,12 @@ object ElasticSearchContainer:
         waitStrategy = Wait.forListeningPort(),
         env = env
       ).configure: cont =>
-        // Copy the resource so Docker does not need access to the test runner's filesystem.
-        cont.withCopyFileToContainer(
-          MountableFile.forClasspathResource("synonyms/chess_synonyms.txt"),
+        // sbt's cached JARs have no .jar suffix, so MountableFile can copy the whole archive.
+        val synonyms = Using.resource(getClass.getResourceAsStream("/synonyms/chess_synonyms.txt"))(
+          _.readAllBytes()
+        )
+        cont.withCopyToContainer(
+          Transferable.of(synonyms),
           "/usr/share/elasticsearch/config/synonyms/chess_synonyms.txt"
         ): Unit
     ).flatTap(cont => IO(cont.start()))
