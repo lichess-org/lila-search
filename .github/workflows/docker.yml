@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup JVM
-        uses: actions/setup-java@v6.0.1
+        uses: actions/setup-java@v6.1.0
         with:
           distribution: temurin
           java-version: 25
@@ -33,7 +33,7 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       - name: Log in to the Container registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
