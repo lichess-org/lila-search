@@ -7,10 +7,10 @@ object Dependencies:
   val jitpack = "jitpack".at("https://jitpack.io")
 
   object V:
-    val catsEffect = "3.7.0"
+    val catsEffect = "3.7.1"
     val catsMtl = "1.7.0"
-    val ciris = "3.15.0"
-    val chess = "17.16.0"
+    val ciris = "3.15.2"
+    val chess = "17.16.2"
     val decline = "2.6.2"
     val elastic4s = "9.5.0"
     val fs2 = "3.14.0"
@@ -50,7 +50,7 @@ object Dependencies:
   val jsoniterCore = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.37.10"
   val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.37.10"
 
-  val playWS = "org.playframework" %% "play-ahc-ws-standalone" % "3.0.13"
+  val playWS = "org.playframework" %% "play-ahc-ws-standalone" % "3.0.14"
 
   val elastic4sHttp4sClient = "nl.gn0s1s" %% "elastic4s-client-http4s" % V.elastic4s
 
@@ -59,7 +59,7 @@ object Dependencies:
   val circe = "io.circe" %% "circe-core" % "0.14.17"
 
   val log4Cats = "org.typelevel" %% "log4cats-slf4j" % "2.8.0"
-  val logback = "ch.qos.logback" % "logback-classic" % "1.6.1"
+  val logback = "ch.qos.logback" % "logback-classic" % "1.6.5"
   val ducktape = "io.github.arainko" %% "ducktape" % "0.2.13"
 
   val otel4sCore = "org.typelevel" %% "otel4s-core" % V.otel4sCore
