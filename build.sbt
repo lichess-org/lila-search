@@ -1,7 +1,7 @@
 import Dependencies.*
 import org.typelevel.scalacoptions.ScalacOptions
 
-scalaVersion := "3.9.0"
+scalaVersion := "3.10.0"
 versionScheme := Some("early-semver")
 organization := "com.github.lichess-org.lila-search"
 run / fork := true
