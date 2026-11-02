@@ -2,7 +2,7 @@ package lila.search
 package app
 
 import cats.effect.{ IO, Resource }
-import fs2.io.net.Network
+import fs2.io.net.{ Network, SocketOption }
 import org.http4s.*
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Server
@@ -21,6 +21,7 @@ object MkHttpServer:
       .withHost(cfg.host)
       .withPort(cfg.port)
       .withHttpApp(httpApp)
+      .withAdditionalSocketOptions(List(SocketOption.noDelay(true)))
       .withShutdownTimeout(cfg.shutdownTimeout.seconds)
       .build
       .evalTap(showBanner)
