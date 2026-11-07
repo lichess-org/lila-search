@@ -12,7 +12,7 @@ object Dependencies:
     val ciris = "3.15.2"
     val chess = "17.17.1"
     val decline = "2.6.2"
-    val elastic4s = "9.5.0"
+    val elastic4s = "9.5.1"
     val fs2 = "3.14.0"
     val fs2Data = "1.14.1"
     val http4s = "0.23.38"
