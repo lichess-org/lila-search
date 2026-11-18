@@ -98,6 +98,9 @@ object SearchServiceImpl:
   given intRange: Transformer.Derived[IntRange, Range[Int]] =
     Transformer.Derived.FromFunction(r => Range(r.a, r.b))
 
+  given optIntRange: Transformer.Derived[Option[IntRange], Range[Int]] =
+    Transformer.Derived.FromFunction(_.fold(Range.none)(r => Range(r.a, r.b)))
+
   given dateRange: Transformer.Derived[DateRange, Range[Instant]] =
     Transformer.Derived.FromFunction(r => Range(r.a.map(_.to[Instant]), r.b.map(_.to[Instant])))
 

@@ -20,6 +20,7 @@ case class Game(
     status: Option[Int] = None,
     turns: Range[Int] = Range.none,
     averageRating: Range[Int] = Range.none,
+    opponentRating: Range[Int] = Range.none,
     hasAi: Option[Boolean] = None,
     aiLevel: Range[Int] = Range.none,
     rated: Option[Boolean] = None,
@@ -90,6 +91,26 @@ case class Game(
         rangeQuery(Fields.averageRating).gt(0) :: averageRating.queries(Fields.averageRating)
       else Nil
 
+    // A reference player's opponent rating lives in the opposite color's field
+    def opponentRatingQueries: List[Query] =
+      if opponentRating.nonEmpty then
+        def ratingQuery(field: String): Query =
+          boolQuery().must(rangeQuery(field).gt(0) :: opponentRating.queries(field))
+
+        val query = user1
+          .orElse(user2)
+          .orElse(whiteUser)
+          .orElse(blackUser)
+          .fold(
+            boolQuery().should(ratingQuery(Fields.whiteRating), ratingQuery(Fields.blackRating))
+          ): ref =>
+            boolQuery().should(
+              boolQuery().must(termQuery(Fields.whiteUser, ref), ratingQuery(Fields.blackRating)),
+              boolQuery().must(termQuery(Fields.blackUser, ref), ratingQuery(Fields.whiteRating))
+            )
+        List(query)
+      else Nil
+
     def toQueries(query: Option[String | Int | Boolean], name: String): List[TermQuery] =
       query.toList.map:
         case s: String => termQuery(name, s.toLowerCase)
@@ -111,6 +132,7 @@ case class Game(
       toQueries(winnerColor, Fields.winnerColor),
       turns.queries(Fields.turns),
       avgRatingQueries,
+      opponentRatingQueries,
       duration.queries(Fields.duration),
       clockInit.map(termsQuery(Fields.clockInit, _)).toList,
       clockInc.map(termsQuery(Fields.clockInc, _)).toList,

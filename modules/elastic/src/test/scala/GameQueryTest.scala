@@ -15,3 +15,21 @@ object GameQueryTest extends FunSuite:
   test("a non-Draw result matches its status exactly"):
     val query = queryString(Game(status = Some(30))) // Mate
     expect(query.contains("30") && !query.contains("32") && !query.contains("39"))
+
+  test("opponentRating with a reference player constrains the opposite color's rating"):
+    val query = queryString(
+      Game(user1 = Some("alice"), opponentRating = Range(Some(1500), Some(2000)))
+    )
+    expect(
+      query.contains("wr") && query.contains("br") &&
+        query.contains("wu") && query.contains("bu") &&
+        query.contains("alice") && query.contains("1500") && query.contains("2000")
+    )
+
+  test("opponentRating without a reference player matches either color's rating"):
+    val query = queryString(Game(opponentRating = Range(Some(1500), Some(2000))))
+    expect(
+      query.contains("wr") && query.contains("br") &&
+        !query.contains("wu") && !query.contains("bu") &&
+        query.contains("1500") && query.contains("2000")
+    )
