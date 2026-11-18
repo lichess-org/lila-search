@@ -104,6 +104,16 @@ object MappingGenerator:
           properties = nestedFields
         )
 
+  private def generateLanguageTextField(fieldName: String, hints: Hints): Option[ElasticField] =
+    hints
+      .get[es.LanguageTextField]
+      .map: _ =>
+        ObjectField(
+          name = fieldName,
+          dynamic = Some("false"),
+          properties = SearchLang.sortedCodes.map((code, an) => textField(code).copy(analyzer = Some(an)))
+        )
+
   private def generateField(fieldName: String, hints: Hints, schema: Schema[?]): Option[ElasticField] =
     generateTextField(fieldName, hints) <+>
       generateKeywordField(fieldName, hints) <+>
@@ -112,4 +122,5 @@ object MappingGenerator:
       generateShortField(fieldName, hints) <+>
       generateIntField(fieldName, hints) <+>
       generateBooleanField(fieldName, hints) <+>
+      generateLanguageTextField(fieldName, hints) <+>
       generateNestedField(fieldName, hints, schema)

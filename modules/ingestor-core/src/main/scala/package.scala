@@ -13,6 +13,7 @@ import smithy4s.schema.Schema
 given [A] => Schema[A] => Indexable[A] = a => writeToString(a)
 def gameIndexable(botIds: Set[String]): Indexable[DbGame] = a => writeToString(Translate.game(a, botIds))
 given Indexable[DbForum] = a => writeToString(Translate.forum(a))
+def forum2Indexable: Indexable[DbForum] = a => writeToString(Translate.forum2(a))
 given Indexable[DbUblog] = a => writeToString(Translate.ublog(a))
 given Indexable[(DbStudy, Option[List[StudyChapterData]])] = (study, chapters) =>
   writeToString(Translate.study(study, chapters))

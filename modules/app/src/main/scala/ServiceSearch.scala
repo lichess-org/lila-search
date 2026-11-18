@@ -5,6 +5,7 @@ import cats.effect.*
 import cats.mtl.Handle.*
 import io.github.arainko.ducktape.*
 import lila.search.forum.Forum
+import lila.search.forum2.Forum2
 import lila.search.game.Game
 import lila.search.spec.*
 import lila.search.study.Study
@@ -109,7 +110,9 @@ object SearchServiceImpl:
     extension (query: Query)
       def searchDef(from: From, size: Size) =
         query match
-          case q: Query.Forum => q.to[Forum].searchDef(from, size)
+          case q: Query.Forum =>
+            if Forum2.enabled then q.to[Forum2].searchDef(from, size)
+            else q.to[Forum].searchDef(from, size)
           case q: Query.Ublog => q.to[Ublog].searchDef(from, size)
           case q: Query.Game => q.to[Game].searchDef(from, size)
           case q: Query.Study => q.to[Study].searchDef(from, size)
@@ -117,14 +120,16 @@ object SearchServiceImpl:
 
       def countDef =
         query match
-          case q: Query.Forum => q.to[Forum].countDef
+          case q: Query.Forum =>
+            if Forum2.enabled then q.to[Forum2].countDef
+            else q.to[Forum].countDef
           case q: Query.Ublog => q.to[Ublog].countDef
           case q: Query.Game => q.to[Game].countDef
           case q: Query.Study => q.to[Study].countDef
           case q: Query.Team => q.to[Team].countDef
 
       def index = query match
-        case _: Query.Forum => Index.Forum
+        case _: Query.Forum => if Forum2.enabled then Index.Forum2 else Index.Forum
         case _: Query.Ublog => Index.Ublog
         case _: Query.Game => Index.Game
         case _: Query.Study => Index.Study
