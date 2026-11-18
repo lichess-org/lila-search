@@ -17,11 +17,24 @@ case class Team(text: String):
 
   def countDef = count(Team.index).query(makeQuery)
 
+  // The na/de fields use the `english` analyzer, whose _english_ stopwords are removed
+  // from indexed and queried text alike. A term consisting only of a stopword would be
+  // analyzed into zero tokens, making its match clause match nothing and zeroing out the
+  // whole query under bool.filter, so drop those terms before building the clauses.
+  private val stopwords =
+    "a an and are as at be but by for if in into is it no not of on or such that the their then there these they this to was will with"
+      .split(" ")
+      .toSet
+
+  private def meaningful(term: String): Boolean =
+    !stopwords.contains(term.filter(_.isLetterOrDigit))
+
   // A team name is analyzed into several tokens (e.g. "SF-Schönwald" -> [sf, schonwald]).
   // The default multi_match operator is OR, which would match every team containing
   // just one of them, so require all tokens of a term to be present.
   private def makeQuery =
     QueryParser(text, Nil).terms
+      .filter(meaningful)
       .map: term =>
         multiMatchQuery(term)
           .fields(Team.searchableFields*)

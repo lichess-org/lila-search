@@ -147,14 +147,54 @@ object IntegrationSuite extends IOSuite:
               50
             )
           )
+          _ <- res.esClient.store(
+            Index.Team,
+            Id("the-main-thing"),
+            TeamSource(
+              name = "The main thing in atomic!",
+              description = "a team for the main thing in atomic",
+              120
+            )
+          )
           _ <- res.esClient.refreshIndex(Index.Team)
           x <- service.search(Query.team("team name"), from, size)
           y <- service.search(Query.team("team description"), from, size)
           hyphen <- service.search(Query.team("SF-Schönwald"), from, size)
           withoutHyphen <- service.search(Query.team("SF Schönwald"), from, size)
-        yield expect(x.hitIds.size == 1 && x == y)
-          && expect(hyphen.hitIds == List(Id("sf-schonwald")))
-          && expect(withoutHyphen == hyphen)
+          theOnly <- service.search(Query.team("the"), from, size)
+          inOnly <- service.search(Query.team("in"), from, size)
+          stopwordsOnly <- service.search(Query.team("in the"), from, size)
+          articleList <- service.search(Query.team("the and or but"), from, size)
+          leadingStopword <- service.search(Query.team("The main thing"), from, size)
+          medialStopword <- service.search(Query.team("main thing in atomic"), from, size)
+          bothStopwords <- service.search(Query.team("the main thing in atomic"), from, size)
+          plainWords <- service.search(Query.team("main thing atomic"), from, size)
+          twoWords <- service.search(Query.team("main thing"), from, size)
+          stopwordPlusHyphen <- service.search(Query.team("the SF-Schönwald"), from, size)
+          hyphenPlusStopword <- service.search(Query.team("SF-Schönwald in"), from, size)
+          stopwordBeforeKnown <- service.search(Query.team("the team name"), from, size)
+          stopwordAfterKnown <- service.search(Query.team("team name the"), from, size)
+          unknownWord <- service.search(Query.team("this is a zzzunknown"), from, size)
+        yield expect.all(
+          x.hitIds == List(Id("team_id")),
+          y == x,
+          hyphen.hitIds == List(Id("sf-schonwald")),
+          withoutHyphen == hyphen,
+          twoWords.hitIds == List(Id("the-main-thing")),
+          plainWords.hitIds == List(Id("the-main-thing")),
+          theOnly.hitIds.size == 5,
+          inOnly.hitIds.size == 5,
+          stopwordsOnly.hitIds.size == 5,
+          articleList.hitIds.size == 5,
+          leadingStopword.hitIds == List(Id("the-main-thing")),
+          medialStopword.hitIds == List(Id("the-main-thing")),
+          bothStopwords.hitIds == List(Id("the-main-thing")),
+          stopwordPlusHyphen.hitIds == List(Id("sf-schonwald")),
+          hyphenPlusStopword.hitIds == List(Id("sf-schonwald")),
+          stopwordBeforeKnown.hitIds == List(Id("team_id")),
+          stopwordAfterKnown.hitIds == List(Id("team_id")),
+          unknownWord.hitIds.isEmpty
+        )
 
   test("study"): res =>
     val withFilters = (cf: TagFilter) => Some(ChapterMode.filters(cf))
