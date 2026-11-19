@@ -2,6 +2,7 @@ package lila.search
 package ublog
 
 import com.sksamuel.elastic4s.ElasticDsl.*
+import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.sort.SortOrder
 import lila.search.ublog.Ublog.SortBy
 
@@ -47,7 +48,8 @@ case class Ublog(
     boolQuery()
       .must(queryStringQuery(sanitized).defaultField(Fields.text))
       .filter(
-        List(
+        List[Option[Query]](
+          Some(termQuery(Fields.visible, true)),
           minQuality.map(f => rangeQuery(Fields.quality).gte(f)),
           language.map(l => termQuery(Fields.language, l))
         ).flatten
@@ -65,6 +67,7 @@ object Fields:
   val quality = "quality"
   val language = "language"
   val date = "date"
+  val visible = "visible"
 
 object Mapping:
   def fields = MappingGenerator.generateFields(es.UblogSource.schema)

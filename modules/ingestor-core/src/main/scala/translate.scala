@@ -124,7 +124,6 @@ object Translate:
   def team(team: DbTeam): TeamSource =
     TeamSource(team.name, team.description, team.nbMembers)
 
-  // todo maybe return Option[UblogSource] and filter out low quality blogs or non-live?
   def ublog(ublog: DbUblog): UblogSource =
     val topics = ublog.topics.mkString(" ").replaceAll("Chess", "")
     val text = s"${ublog.title}\n$topics\n${ublog.author}\n${ublog.intro}\n${ublog.markdown}"
@@ -133,5 +132,6 @@ object Translate:
       language = ublog.language,
       likes = ublog.likes,
       date = ublog.livedAt.fold(0L)(_.toEpochMilli),
-      quality = ublog.quality
+      quality = ublog.quality,
+      visible = ublog.visible
     )

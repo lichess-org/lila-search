@@ -97,13 +97,26 @@ object IntegrationSuite extends IOSuite:
               language = "en",
               likes = 0,
               date = Instant.now().toEpochMilli(),
-              quality = 1.some
+              quality = 1.some,
+              visible = true
+            )
+          )
+          _ <- res.esClient.store(
+            Index.Ublog,
+            Id("hidden-blog"),
+            UblogSource(
+              text = "lil bubber from a hidden blog",
+              language = "en",
+              likes = 0,
+              date = Instant.now().toEpochMilli(),
+              quality = 1.some,
+              visible = false
             )
           )
           _ <- res.esClient.refreshIndex(Index.Ublog)
           x <- service.search(Query.ublog("lil bubber", SortBlogsBy.score, 1.some), from, size)
           y <- service.search(Query.ublog("hayo", SortBlogsBy.newest, 2.some), from, size)
-        yield expect(x.hitIds.size == 1 && y.hitIds.isEmpty)
+        yield expect(x.hitIds == List(Id("abcdefgh"))) && expect(y.hitIds.isEmpty)
 
   test("team"): res =>
     Clients
