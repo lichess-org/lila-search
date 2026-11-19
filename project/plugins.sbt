@@ -9,7 +9,7 @@ addSbtPlugin("com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.19.13"
 
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.13.2")
 
-addSbtPlugin("com.github.sbt" % "sbt-git" % "2.2.0")
+addSbtPlugin("com.github.sbt" % "sbt-git" % "3.0.0")
 
 addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.13.0")
 
