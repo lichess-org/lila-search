@@ -10,14 +10,14 @@ object Dependencies:
     val catsEffect = "3.7.1"
     val catsMtl = "1.7.0"
     val ciris = "3.15.2"
-    val chess = "17.17.1"
+    val chess = "18.1.0"
     val decline = "2.6.2"
     val elastic4s = "9.5.0"
-    val fs2 = "3.14.0"
+    val fs2 = "3.16.0"
     val fs2Data = "1.14.1"
-    val http4s = "0.23.38"
+    val http4s = "0.23.39"
     val mongo4cats = "0.8.0"
-    val otel4sCore = "1.1.0"
+    val otel4sCore = "1.2.0"
     val otel4sSdk = "0.19.5"
     val otel4sHttp4s = "0.19.0"
 
@@ -75,8 +75,8 @@ object Dependencies:
   val declineCatsEffect = "com.monovore" %% "decline-effect" % V.decline
 
   val testContainers = "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
-  val weaver = "org.typelevel" %% "weaver-cats" % "0.13.0" % Test
-  val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.13.0" % Test
+  val weaver = "org.typelevel" %% "weaver-cats" % "0.13.1" % Test
+  val weaverScalaCheck = "org.typelevel" %% "weaver-scalacheck" % "0.13.1" % Test
   val catsEffectTestKit = "org.typelevel" %% "cats-effect-testkit" % V.catsEffect % Test
   val scalacheck = "org.scalacheck" %% "scalacheck" % "1.17.0" % Test
   val snapshot4s = "com.siriusxm" %% "snapshot4s-weaver" % snapshot4sVersion % Test
