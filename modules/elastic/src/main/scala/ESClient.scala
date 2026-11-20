@@ -42,7 +42,7 @@ object ESClient:
 
     def search[A](query: A, from: From, size: Size)(using Queryable[A]): RaiseF[List[Id]] =
       client
-        .execute(query.searchDef(from, size))
+        .execute(query.searchDef(from, size).trackTotalHits(false))
         .flatMap(_.toResult)
         .map(_.hits.hits.toList.map(h => Id(h.id)))
 

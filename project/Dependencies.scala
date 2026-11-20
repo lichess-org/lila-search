@@ -10,16 +10,16 @@ object Dependencies:
     val catsEffect = "3.7.1"
     val catsMtl = "1.7.0"
     val ciris = "3.15.2"
-    val chess = "17.17.1"
+    val chess = "18.1.0"
     val decline = "2.6.2"
     val elastic4s = "9.5.1"
-    val fs2 = "3.14.0"
+    val fs2 = "3.16.0"
     val fs2Data = "1.14.1"
-    val http4s = "0.23.38"
+    val http4s = "0.23.39"
     val mongo4cats = "0.8.0"
-    val otel4sCore = "1.1.0"
+    val otel4sCore = "1.2.0"
     val otel4sSdk = "0.19.4"
-    val otel4sHttp4s = "0.19.0"
+    val otel4sHttp4s = "0.20.0"
 
   def http4s(artifact: String) = "org.http4s" %% s"http4s-$artifact" % V.http4s
   def smithy4s(artifact: String) = "com.disneystreaming.smithy4s" %% s"smithy4s-$artifact" % smithy4sVersion
