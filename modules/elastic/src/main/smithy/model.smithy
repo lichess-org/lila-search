@@ -269,4 +269,8 @@ structure UblogSource {
 
     @shortField(docValues: true)
     quality: Integer
+
+    @required
+    @booleanField
+    visible: Boolean
 }
