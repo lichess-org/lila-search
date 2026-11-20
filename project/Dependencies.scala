@@ -13,7 +13,7 @@ object Dependencies:
     val chess = "17.17.1"
     val decline = "2.6.2"
     val elastic4s = "9.5.0"
-    val fs2 = "3.14.0"
+    val fs2 = "3.16.0"
     val fs2Data = "1.14.1"
     val http4s = "0.23.39"
     val mongo4cats = "0.8.0"
