@@ -1,7 +1,7 @@
 import Dependencies.*
 import org.typelevel.scalacoptions.ScalacOptions
 
-scalaVersion := "3.10.0"
+scalaVersion := "3.10.1"
 versionScheme := Some("early-semver")
 organization := "com.github.lichess-org.lila-search"
 run / fork := true
@@ -56,7 +56,7 @@ lazy val api = project
       catsCore,
       smithy4sCore
     ),
-    Compile / scalacOptions += "-Wconf:src=target/.*:silent", // deprecated warnings from generated code
+    Compile / scalacOptions += "-Wconf:src=target/.*:silent" // deprecated warnings from generated code
   )
   .dependsOn(core)
 
