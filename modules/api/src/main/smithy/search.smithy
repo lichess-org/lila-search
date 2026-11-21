@@ -154,6 +154,8 @@ structure Game {
     @required
     averageRating: IntRange
 
+    opponentRating: IntRange
+
     hasAi: Boolean
 
     @required
