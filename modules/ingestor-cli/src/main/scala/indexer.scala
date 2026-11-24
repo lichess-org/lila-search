@@ -61,6 +61,9 @@ class Indexer(val res: AppResources, val config: AppConfig)(using LoggerFactory[
 
   def runIndex(index: Index, opts: IndexOpts): IO[Unit] = index match
     case Index.Forum => runES(index, ForumRepo(res.lichess, config.ingestor.forum), opts)
+    case Index.Forum2 =>
+      given Indexable[DbForum] = forum2Indexable
+      runES(index, ForumRepo(res.lichess, config.ingestor.forum), opts)
     case Index.Ublog => runES(index, UblogRepo(res.lichess, config.ingestor.ublog), opts)
     case Index.Study => runES(index, StudyRepo(res.study, res.studyLocal, config.ingestor.study), opts)
     case Index.Team => runES(index, TeamRepo(res.lichess, config.ingestor.team), opts)

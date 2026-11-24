@@ -68,6 +68,9 @@ structure Forum {
 
     @required
     troll: Boolean = false
+
+    /// Searcher's language code; absent means english
+    lang: String
 }
 
 structure Ublog {

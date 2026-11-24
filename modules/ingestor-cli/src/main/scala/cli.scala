@@ -55,7 +55,7 @@ object opts:
         long = "index",
         help = "Target index",
         short = "i",
-        metavar = "forum|ublog|team|study|game"
+        metavar = "forum|forum2|ublog|team|study|game"
       )
 
   val allIndexOpt =
